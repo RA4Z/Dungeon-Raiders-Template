@@ -1,4 +1,4 @@
-// Renderizador oficial da Paper Doll em Batalha
+// Renderizador Oficial do Boneco
 function buildBattleCharacter(characterData, side, imgId, layersId) {
     const imgEl = document.getElementById(imgId);
     const layersEl = document.getElementById(layersId);
@@ -6,50 +6,54 @@ function buildBattleCharacter(characterData, side, imgId, layersId) {
     if (!characterData) return;
 
     if (characterData.race === 'humano') {
-        imgEl.style.display = 'none';
-        layersEl.style.display = 'block';
-        layersEl.innerHTML = '';
+        if(imgEl) imgEl.style.display = 'none';
+        if(layersEl) {
+            layersEl.style.display = 'block';
+            layersEl.innerHTML = '';
+        }
         
         let eqDataMap = typeof characterData.equipment_data === 'string' 
             ? JSON.parse(characterData.equipment_data) 
             : characterData.equipment_data;
         
-        // Segue estritamente a ordem do window.EQUIP_SLOTS
         window.EQUIP_SLOTS.forEach((slot, index) => {
             const itemId = eqDataMap[slot];
             if (itemId) {
-                let itemData = slot === 'base' 
-                    ? window.gameData.bodies.find(b => b.id == itemId)
-                    : window.gameData.equipments.find(e => e.id == itemId);
-
-                if (itemData) {
+                let itemData = slot === 'base' ? window.gameData.bodies.find(b => b.id == itemId) : window.gameData.equipments.find(e => e.id == itemId);
+                if (itemData && layersEl) {
                     const img = side === 'f' ? itemData.img_front : itemData.img_back;
                     if(img) layersEl.innerHTML += `<img src="${img}" style="z-index: ${index};">`;
                 }
             }
         });
     } else {
-        // Monstro Simples
-        layersEl.style.display = 'none';
-        imgEl.style.display = 'block';
-        imgEl.src = side === 'f' ? characterData.img_front : characterData.img_back;
+        if(layersEl) layersEl.style.display = 'none';
+        if(imgEl) {
+            imgEl.style.display = 'block';
+            imgEl.src = side === 'f' ? characterData.img_front : characterData.img_back;
+        }
     }
 }
 
 async function enterDungeon() {
     setView('combat-screen');
-    document.getElementById('combat-dialogue').innerText = "Adentrando as sombras... Buscando inimigo!";
+    document.getElementById('combat-dialogue').innerText = "Você adentra a caverna... procurando um inimigo.";
     document.getElementById('attack-btn').disabled = true;
     document.getElementById('flee-btn').disabled = true;
 
     document.getElementById('player-name-ui').innerText = window.activePlayer.name;
     buildBattleCharacter(window.activePlayer, 'b', 'player-image', 'player-layers');
     
+    await spawnRandomEnemy();
+}
+
+// Separado em função para permitir repetição infinita do Loop
+async function spawnRandomEnemy() {
     const enemyData = await window.pywebview.api.get_random_enemy(window.activePlayer.id);
     
     setTimeout(() => {
         if (!enemyData) {
-            document.getElementById('combat-dialogue').innerText = "As cavernas estão vazias. Volte depois.";
+            document.getElementById('combat-dialogue').innerText = "Não há monstros cadastrados na base de dados!";
             document.getElementById('flee-btn').disabled = false;
             return;
         }
@@ -59,14 +63,15 @@ async function enterDungeon() {
         document.getElementById('enemy-name').innerText = window.currentEnemy.name;
         
         buildBattleCharacter(window.currentEnemy, 'f', 'enemy-image', 'enemy-layers');
+        document.getElementById('enemy-image').style.display = 'block'; // força show
         
-        document.getElementById('combat-dialogue').innerText = `Um selvagem ${window.currentEnemy.name} atacou!`;
+        document.getElementById('combat-dialogue').innerText = `Um(a) ${window.currentEnemy.name} pulou das sombras!`;
         updateBattleUI();
         
         window.isTurnBusy = false;
         document.getElementById('attack-btn').disabled = false;
         document.getElementById('flee-btn').disabled = false;
-    }, 1000);
+    }, 800);
 }
 
 function updateBattleUI() {
@@ -120,14 +125,21 @@ async function enemyReviveTurn() {
             window.activePlayer.attack, window.currentEnemy.attack, window.playerHP, window.enemyHP, 'enemy'
         );
         window.playerHP = res.new_hp;
+        
+        // Sincroniza HP caso apanhe
+        await window.pywebview.api.sync_player_state(
+            window.activePlayer.id, window.playerHP, 
+            JSON.stringify(window.playerInventory), JSON.stringify(window.activePlayer.equipment_data)
+        );
+
         updateBattleUI();
         document.getElementById('combat-dialogue').innerText = res.msg;
 
         setTimeout(() => {
             pContainer.classList.remove('enemy-hit');
             if (window.playerHP <= 0) {
-                document.getElementById('combat-dialogue').innerText = "Você desmaiou e foi arrastado de volta para casa...";
-                setTimeout(() => { window.playerHP = 1; backToCity(); }, 3000);
+                document.getElementById('combat-dialogue').innerText = "Você morreu e perdeu sua mochila de ouro...";
+                setTimeout(() => { window.playerHP = window.activePlayer.hp; backToCity(); }, 3000);
             } else {
                 window.isTurnBusy = false;
                 document.getElementById('attack-btn').disabled = false;
@@ -138,20 +150,38 @@ async function enemyReviveTurn() {
 }
 
 async function winBattle() {
-    document.getElementById('combat-dialogue').innerText = "VITÓRIA! Buscando loots...";
+    document.getElementById('combat-dialogue').innerText = "Inimigo derrotado! Coletando os espólios...";
     document.getElementById('enemy-layers').innerHTML = '';
     document.getElementById('enemy-image').style.display = 'none';
 
-    const lootData = await window.pywebview.api.generate_loot();
+    // MODIFICAÇÃO AQUI: Passamos o ID do inimigo atual (window.currentEnemy.id)
+    const lootRes = await window.pywebview.api.generate_loot(window.currentEnemy.id);
     
+    // Atualiza o estado do inventário e ouro com o que o Python processou
+    window.playerInventory = lootRes.new_inventory;
+    window.playerGold = lootRes.new_gold;
+
     setTimeout(() => {
-        document.getElementById('loot-list').innerHTML = lootData.loot_list.map(l => `<li>${l}</li>`).join('');
+        document.getElementById('loot-list').innerHTML = lootRes.loot_list.map(l => `<li>✅ ${l}</li>`).join('');
         document.getElementById('loot-modal').style.display = 'flex';
     }, 1000);
 }
 
+// LOOP DUNGEON INFINITO
+function continueDungeon() {
+    document.getElementById('loot-modal').style.display = 'none';
+    document.getElementById('enemy-layers').innerHTML = '';
+    document.getElementById('enemy-image').style.display = 'none';
+    
+    document.getElementById('combat-dialogue').innerText = "Você desce mais fundo...";
+    document.getElementById('attack-btn').disabled = true;
+    document.getElementById('flee-btn').disabled = true;
+    
+    spawnRandomEnemy(); // Puxa outro inimigo!
+}
+
 function fleeBattle() {
-    document.getElementById('combat-dialogue').innerText = "Você correu feito um covarde!";
+    document.getElementById('combat-dialogue').innerText = "Você fugiu apavorado!";
     setTimeout(() => { backToCity(); }, 1500);
 }
 

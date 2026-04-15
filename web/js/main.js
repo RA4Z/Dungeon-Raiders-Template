@@ -1,37 +1,55 @@
-// Aguarda a API do Python estar 100% pronta para carregar os dados
 window.addEventListener('pywebviewready', async function() {
-    await refreshData();
+    console.log("API Python Pronta.");
+    await window.refreshData();
 });
 
-// Acessa o Python para baixar tudo e popular os Dropdowns globais
 window.refreshData = async function() {
-    window.gameData = await window.pywebview.api.load_data();
-    
-    // Popula o Game UI (Seleção de quem você vai controlar na cidade)
-    const selCity = document.getElementById('active-character-select');
-    if(selCity) {
-        const tempVal = selCity.value; // Salva pra não perder quem está equipado
-        selCity.innerHTML = '<option value="">Selecione...</option>';
-        window.gameData.characters.forEach(c => {
-            // Permite jogar com humanos e monstros!
-            selCity.innerHTML += `<option value="${c.id}">${c.name} (Atk: ${c.attack})</option>`;
-        });
-        if(tempVal && window.gameData.characters.find(c => c.id == tempVal)) selCity.value = tempVal;
+    console.log("Solicitando dados ao Banco...");
+    try {
+        window.gameData = await window.pywebview.api.load_data();
+        console.log("Dados recebidos:", window.gameData);
+
+        // Atualiza Dropdown da Cidade (quem o jogador controla)
+        const selCity = document.getElementById('active-character-select');
+        if (selCity) {
+            const currentVal = selCity.value;
+            selCity.innerHTML = '<option value="">-- Selecionar Herói --</option>';
+            window.gameData.characters.forEach(c => {
+                selCity.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+            });
+            selCity.value = currentVal;
+        }
+
+        // Atualiza os dropdowns da tela de Montagem de Personagem
+        if (typeof buildSelects === "function") {
+            buildSelects();
+        }
+
+        // Atualiza tabela do CRUD se estiver nela
+        if (typeof renderCrudTable === "function") {
+            renderCrudTable();
+        }
+
+    } catch (err) {
+        console.error("Erro ao carregar dados:", err);
     }
+};
 
-    // Chama funções de outros módulos que dependem desses dados:
-    if (typeof buildSelects === "function") buildSelects(); // builder.js
-    if (typeof renderCrudTable === "function") renderCrudTable(); // admin.js
-}
-
-// Navegação Visual do Aplicativo (Abas Superiores)
 window.showTab = function(tabId, btnElement) {
+    // Esconde todas as abas
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    // Mostra a selecionada
     document.getElementById(tabId).classList.add('active');
     
+    // Estilo dos botões
     document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
     if (btnElement) btnElement.classList.add('active');
     
-    if (tabId === 'crud-tab') renderCrudTable();
-    if (tabId === 'game-tab') updateCityUI(); 
-}
+    // Toda vez que mudar de aba, atualizamos os dados para garantir que itens novos apareçam
+    window.refreshData();
+
+    // Lógicas específicas de aba
+    if (tabId === 'game-tab' && typeof updateCityUI === "function") {
+        updateCityUI();
+    }
+};

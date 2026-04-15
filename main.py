@@ -9,7 +9,7 @@ def main():
     html_path = os.path.join(os.path.dirname(__file__), 'web', 'index.html')
     
     window = webview.create_window(
-        'RPG Clicker Novel - Cidade Mode', 
+        'RPG Clicker Novel', 
         url=html_path, 
         js_api=api,
         width=1280, 

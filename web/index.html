@@ -1,35 +1,39 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
     <meta charset="UTF-8">
     <title>RPG Clicker</title>
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/admin.css">
     <link rel="stylesheet" href="css/game.css">
+    <link rel="stylesheet" href="css/inventory.css">
 </head>
+
 <body>
     <nav class="tabs">
         <button class="active" onclick="showTab('game-tab', this)">O Jogo (Cidade)</button>
-        <button onclick="showTab('admin-tab', this)">Forja do Mundo (Peças)</button>
+        <button onclick="showTab('admin-tab', this)">Forja (Peças)</button>
         <button onclick="showTab('char-tab', this)">Montar Personagem</button>
         <button onclick="showTab('crud-tab', this)">Banco de Dados</button>
     </nav>
 
     <!-- ==================== TELA DO JOGO ==================== -->
     <div id="game-tab" class="tab-content active" style="padding: 0;">
-        
+
         <div id="city-screen" class="game-view active-view">
             <h1 class="city-title">Capital de Ferro</h1>
             <div class="city-locations">
                 <div class="location-btn btn-casa" onclick="goToLocation('casa')"><span>🏠 Sua Casa</span></div>
-                <div class="location-btn btn-quartel" onclick="goToLocation('quartel')"><span>⚔️ Quartel General</span></div>
-                <div class="location-btn btn-centro" onclick="goToLocation('centro')"><span>⛲ Praça Central</span></div>
-                <div class="location-btn btn-bar" onclick="goToLocation('bar')"><span>🍺 Taverna do Javali</span></div>
-                <div class="location-btn btn-caverna" onclick="goToLocation('caverna')"><span>💀 Cavernas Sombrias</span></div>
+                <div class="location-btn btn-centro" onclick="openInventory()"><span>🎒 Abrir Inventário</span></div>
+                <div class="location-btn btn-bar" onclick="goToLocation('bar')"><span>🍺 Taverna</span></div>
+                <div class="location-btn btn-caverna" onclick="goToLocation('caverna')"><span>💀 Entrar na
+                        Caverna</span></div>
             </div>
-            
             <div id="player-status-bar">
-                <span>Personagem Ativo: <select id="active-character-select" onchange="setActiveCharacter()"><option>Carregando...</option></select></span>
+                <span>Personagem Ativo: <select id="active-character-select" onchange="setActiveCharacter()">
+                        <option>Carregando...</option>
+                    </select></span>
             </div>
         </div>
 
@@ -37,49 +41,92 @@
             <button class="btn-voltar" onclick="backToCity()">⬅ Voltar</button>
             <div id="loc-dialogue-box">
                 <h2 id="loc-title">Local</h2>
-                <p id="loc-text">Descrição do local...</p>
+                <p id="loc-text">Descrição...</p>
                 <div id="loc-actions" style="margin-top: 15px;"></div>
             </div>
         </div>
 
         <div id="combat-screen" class="game-view">
             <div id="battlefield">
-                <div id="enemy-container">
-                    <div id="enemy-layers" class="paper-doll-container" style="display:none;"></div>
-                    <img id="enemy-image" src="" alt="Inimigo" style="display:none;">
-                </div>
+                <!-- PLAYER INVERTIDO PARA A ESQUERDA -->
                 <div id="player-container">
                     <div id="player-layers" class="paper-doll-container" style="display:none;"></div>
                     <img id="player-image" src="" alt="Player" style="display:none;">
+                </div>
+                <!-- INIMIGO INVERTIDO PARA A DIREITA -->
+                <div id="enemy-container">
+                    <div id="enemy-layers" class="paper-doll-container" style="display:none;"></div>
+                    <img id="enemy-image" src="" alt="Inimigo" style="display:none;">
                 </div>
             </div>
 
             <div id="visual-novel-ui">
                 <div class="battle-stats">
-                    <div class="stat-block enemy-stat">
-                        <span id="enemy-name">Inimigo</span>
-                        <div class="hp-bar-bg"><div id="enemy-hp-fill" class="hp-bar-fill"></div></div>
-                        <span id="enemy-hp-text" class="hp-text">HP: 0/0</span>
-                    </div>
+                    <!-- STATUS DO PLAYER AGORA NA ESQUERDA -->
                     <div class="stat-block player-stat">
                         <span id="player-name-ui">Jogador</span>
-                        <div class="hp-bar-bg"><div id="player-hp-fill" class="hp-bar-fill player-hp"></div></div>
+                        <div class="hp-bar-bg">
+                            <div id="player-hp-fill" class="hp-bar-fill player-hp"></div>
+                        </div>
                         <span id="player-hp-text" class="hp-text">HP: 0/0</span>
                     </div>
+                    <!-- STATUS DO INIMIGO AGORA NA DIREITA -->
+                    <div class="stat-block enemy-stat">
+                        <span id="enemy-name">Inimigo</span>
+                        <div class="hp-bar-bg">
+                            <div id="enemy-hp-fill" class="hp-bar-fill"></div>
+                        </div>
+                        <span id="enemy-hp-text" class="hp-text">HP: 0/0</span>
+                    </div>
                 </div>
-                <div class="dialogue-box"><p id="combat-dialogue">Um inimigo se aproxima...</p></div>
+                <div class="dialogue-box">
+                    <p id="combat-dialogue">Buscando Inimigo...</p>
+                </div>
                 <div class="actions">
                     <button id="attack-btn" onclick="startTurnSequence()">ATACAR</button>
                     <button id="flee-btn" onclick="fleeBattle()" style="background:#8e44ad;">FUGIR</button>
                 </div>
             </div>
         </div>
-        
-        <div id="loot-modal" style="display: none;">
+
+        <!-- LOOT MODAL ATUALIZADO (PÓS COMBATE) -->
+        <div id="loot-modal" class="modal-overlay" style="display: none;">
             <div class="loot-box">
                 <h2>Vitória!</h2>
                 <ul id="loot-list"></ul>
-                <button onclick="closeLootAndReturn()">Retornar à Cidade</button>
+                <div class="loot-actions">
+                    <button onclick="continueDungeon()" style="background:#2980b9;">⚔️ Continuar Explorando</button>
+                    <button onclick="openInventory()" style="background:#f39c12;">🎒 Inventário</button>
+                    <button onclick="closeLootAndReturn()" style="background:#c0392b;">⬅ Voltar à Cidade</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- NOVO: INVENTÁRIO MODAL -->
+        <div id="inventory-modal" class="modal-overlay" style="display: none;">
+            <div class="inv-box">
+                <button class="inv-close" onclick="closeInventory()">X</button>
+                <h2>Inventário de <span id="inv-player-name"></span></h2>
+
+                <div class="inv-content">
+                    <!-- PREVIEW ESQUERDA -->
+                    <div class="inv-preview-pane">
+                        <div class="paper-doll-container" id="inv-doll-preview"
+                            style="transform: scale(1.5); margin: 30px auto;"></div>
+                        <div class="inv-stats-box">
+                            HP: <span id="inv-hp">0</span> | Ouro: <span id="inv-gold">0</span>
+                        </div>
+                    </div>
+                    <!-- ITENS DIREITA -->
+                    <div class="inv-items-pane">
+                        <div class="inv-tabs">
+                            <button class="active" onclick="switchInvTab('equipments', this)">Equipamentos</button>
+                            <button onclick="switchInvTab('consumables', this)">Consumíveis</button>
+                        </div>
+                        <div id="inv-grid-equipments" class="inv-grid active"></div>
+                        <div id="inv-grid-consumables" class="inv-grid"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -89,7 +136,7 @@
         <h1>Forja de Componentes do Mundo</h1>
         <p id="admin-msg" class="msg-alert"></p>
         <div class="forms-grid">
-            
+
             <!-- CORPO BASE -->
             <div class="form-card" id="form-body">
                 <h3>Corpo Base (Manequim)</h3>
@@ -170,7 +217,7 @@
     <div id="char-tab" class="tab-content">
         <h1>Montagem de Personagem</h1>
         <div class="forms-grid" style="align-items: flex-start;">
-            
+
             <div class="form-card" style="flex: 2;" id="form-char">
                 <div class="attr-grid">
                     <label>Nome <input type="text" id="ch-name"></label>
@@ -196,6 +243,24 @@
                         <input type="text" id="ch-img-b" oninput="updateMiniPrev(this.id, 'prev-ch-b')">
                         <img id="prev-ch-b" class="mini-preview" src="" alt=" ">
                     </div>
+
+                    <!-- NOVO: SISTEMA DE LOOT CUSTOMIZADO -->
+                    <div
+                        style="background: #222; padding: 15px; border-radius: 8px; margin-top: 15px; border: 1px solid #444;">
+                        <h4 style="color: #3498db; margin-bottom: 10px;">Loot do Monstro</h4>
+                        <div class="attr-grid" style="align-items: end;">
+                            <label>Item / Equipamento:
+                                <select id="cd-item"></select>
+                            </label>
+                            <label>Chance de Drop (%):
+                                <input type="number" id="cd-chance" value="50" min="1" max="100">
+                            </label>
+                        </div>
+                        <button onclick="addCustomDrop()" style="background:#2980b9; padding:8px; margin-bottom:10px;">+
+                            Adicionar à Lista de Loot</button>
+
+                        <ul id="cd-list" style="list-style: none; padding: 0; font-size: 0.9em;"></ul>
+                    </div>
                 </div>
 
                 <!-- SE HUMANOIDE (TODOS OS SLOTS) -->
@@ -211,7 +276,8 @@
                         <label>Botas: <select id="sel-boots" onchange="updateDollPreview()"></select></label>
                         <label>Mão Direita: <select id="sel-hand_r" onchange="updateDollPreview()"></select></label>
                         <label>Mão Esquerda: <select id="sel-hand_l" onchange="updateDollPreview()"></select></label>
-                        <label style="grid-column: span 2;">Acessório: <select id="sel-accessory" onchange="updateDollPreview()"></select></label>
+                        <label style="grid-column: span 2;">Acessório: <select id="sel-accessory"
+                                onchange="updateDollPreview()"></select></label>
                     </div>
                 </div>
                 <button onclick="saveCharacter()" style="margin-top:20px;">Salvar no Banco de Dados</button>
@@ -221,7 +287,8 @@
             <!-- PREVIEW DA PAPER DOLL -->
             <div class="form-card" style="flex: 1;" id="preview-panel">
                 <h3>Pré-Visualização</h3>
-                <div class="preview-boxes" style="display:flex; justify-content:space-around; background:#111; padding:20px; border-radius:5px;">
+                <div class="preview-boxes"
+                    style="display:flex; justify-content:space-around; background:#111; padding:20px; border-radius:5px;">
                     <div class="paper-doll-container" id="prev-front"></div>
                     <div class="paper-doll-container" id="prev-back"></div>
                 </div>
@@ -240,7 +307,9 @@
         </select>
         <div style="overflow-x: auto; margin-top: 15px;">
             <table class="crud-table">
-                <thead><tr id="crud-thead"></tr></thead>
+                <thead>
+                    <tr id="crud-thead"></tr>
+                </thead>
                 <tbody id="crud-tbody"></tbody>
             </table>
         </div>
@@ -252,6 +321,8 @@
     <script src="js/builder.js"></script>
     <script src="js/game_city.js"></script>
     <script src="js/game_combat.js"></script>
+    <script src="js/inventory.js"></script>
     <script src="js/main.js"></script>
 </body>
+
 </html>
