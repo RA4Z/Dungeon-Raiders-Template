@@ -1,29 +1,53 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-
 <head>
     <meta charset="UTF-8">
     <title>RPG Clicker</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/game.css">
 </head>
-
 <body>
     <nav class="tabs">
-        <button class="active" onclick="showTab('game-tab', this)">Jogar</button>
+        <button class="active" onclick="showTab('game-tab', this)">O Jogo (Cidade)</button>
         <button onclick="showTab('admin-tab', this)">Forja do Mundo (Peças)</button>
         <button onclick="showTab('char-tab', this)">Montar Personagem</button>
         <button onclick="showTab('crud-tab', this)">Banco de Dados</button>
     </nav>
 
-    <!-- TELA DO JOGO (BATALHA 2.5D) -->
-    <div id="game-tab" class="tab-content active">
-        <div id="game-screen">
+    <!-- ==================== TELA DO JOGO ==================== -->
+    <div id="game-tab" class="tab-content active" style="padding: 0;">
+        
+        <div id="city-screen" class="game-view active-view">
+            <h1 class="city-title">Capital de Ferro</h1>
+            <div class="city-locations">
+                <div class="location-btn btn-casa" onclick="goToLocation('casa')"><span>🏠 Sua Casa</span></div>
+                <div class="location-btn btn-quartel" onclick="goToLocation('quartel')"><span>⚔️ Quartel General</span></div>
+                <div class="location-btn btn-centro" onclick="goToLocation('centro')"><span>⛲ Praça Central</span></div>
+                <div class="location-btn btn-bar" onclick="goToLocation('bar')"><span>🍺 Taverna do Javali</span></div>
+                <div class="location-btn btn-caverna" onclick="goToLocation('caverna')"><span>💀 Cavernas Sombrias</span></div>
+            </div>
+            
+            <div id="player-status-bar">
+                <span>Personagem Ativo: <select id="active-character-select" onchange="setActiveCharacter()"><option>Carregando...</option></select></span>
+            </div>
+        </div>
+
+        <div id="location-screen" class="game-view">
+            <button class="btn-voltar" onclick="backToCity()">⬅ Voltar</button>
+            <div id="loc-dialogue-box">
+                <h2 id="loc-title">Local</h2>
+                <p id="loc-text">Descrição do local...</p>
+                <div id="loc-actions" style="margin-top: 15px;"></div>
+            </div>
+        </div>
+
+        <div id="combat-screen" class="game-view">
             <div id="battlefield">
                 <div id="enemy-container">
                     <div id="enemy-layers" class="paper-doll-container" style="display:none;"></div>
                     <img id="enemy-image" src="" alt="Inimigo" style="display:none;">
                 </div>
-
                 <div id="player-container">
                     <div id="player-layers" class="paper-doll-container" style="display:none;"></div>
                     <img id="player-image" src="" alt="Player" style="display:none;">
@@ -32,183 +56,172 @@
 
             <div id="visual-novel-ui">
                 <div class="battle-stats">
-                    <!-- HP DO INIMIGO -->
                     <div class="stat-block enemy-stat">
                         <span id="enemy-name">Inimigo</span>
-                        <div class="hp-bar-bg">
-                            <div id="enemy-hp-fill" class="hp-bar-fill"></div>
-                        </div>
+                        <div class="hp-bar-bg"><div id="enemy-hp-fill" class="hp-bar-fill"></div></div>
                         <span id="enemy-hp-text" class="hp-text">HP: 0/0</span>
                     </div>
-
-                    <!-- HP DO PLAYER -->
                     <div class="stat-block player-stat">
                         <span id="player-name-ui">Jogador</span>
-                        <div class="hp-bar-bg">
-                            <div id="player-hp-fill" class="hp-bar-fill player-hp"></div>
-                        </div>
+                        <div class="hp-bar-bg"><div id="player-hp-fill" class="hp-bar-fill player-hp"></div></div>
                         <span id="player-hp-text" class="hp-text">HP: 0/0</span>
                     </div>
                 </div>
-
-                <div class="dialogue-box">
-                    <p id="dialogue-text">Selecione os combatentes!</p>
-                </div>
-
+                <div class="dialogue-box"><p id="combat-dialogue">Um inimigo se aproxima...</p></div>
                 <div class="actions">
-                    <button id="attack-btn" onclick="startTurnSequence()" disabled>ATACAR</button>
-                    <select id="select-player" onchange="spawnPlayer()"></select>
-                    <select id="select-enemy" onchange="spawnEnemy()"></select>
-                    <select id="select-scenario" onchange="changeScenario()"></select>
+                    <button id="attack-btn" onclick="startTurnSequence()">ATACAR</button>
+                    <button id="flee-btn" onclick="fleeBattle()" style="background:#8e44ad;">FUGIR</button>
                 </div>
+            </div>
+        </div>
+        
+        <div id="loot-modal" style="display: none;">
+            <div class="loot-box">
+                <h2>Vitória!</h2>
+                <ul id="loot-list"></ul>
+                <button onclick="closeLootAndReturn()">Retornar à Cidade</button>
             </div>
         </div>
     </div>
 
-    <!-- TELA DE CRIAR PEÇAS -->
+    <!-- ==================== FORJA (ADMIN) ==================== -->
     <div id="admin-tab" class="tab-content">
         <h1>Forja de Componentes do Mundo</h1>
         <p id="admin-msg" class="msg-alert"></p>
         <div class="forms-grid">
+            
+            <!-- CORPO BASE -->
             <div class="form-card" id="form-body">
-                <h3>Corpo Base</h3>
-                <input type="hidden" id="edit-bd-id" value="">
-                <label>Nome do Corpo</label>
-                <input type="text" id="bd-name" placeholder="Ex: Humano Claro">
-
-                <label>Imagem Frente</label>
+                <h3>Corpo Base (Manequim)</h3>
+                <label>Nome do Corpo</label><input type="text" id="bd-name">
+                <label>Img Frente</label>
                 <div class="file-input-group">
-                    <input type="text" id="bd-img-f" oninput="updateMiniPrev('bd-img-f', 'prev-bd-f')"
-                        placeholder="ex: assets/humano_frente.png">
+                    <input type="text" id="bd-img-f" oninput="updateMiniPrev(this.id, 'prev-bd-f')">
                     <img id="prev-bd-f" class="mini-preview" src="" alt=" ">
                 </div>
-
-                <label>Imagem Verso (Costas)</label>
+                <label>Img Verso</label>
                 <div class="file-input-group">
-                    <input type="text" id="bd-img-b" oninput="updateMiniPrev('bd-img-b', 'prev-bd-b')"
-                        placeholder="ex: assets/humano_verso.png">
+                    <input type="text" id="bd-img-b" oninput="updateMiniPrev(this.id, 'prev-bd-b')">
                     <img id="prev-bd-b" class="mini-preview" src="" alt=" ">
                 </div>
                 <button onclick="saveBody()">Salvar Corpo</button>
             </div>
 
+            <!-- EQUIPAMENTOS -->
             <div class="form-card" id="form-equip">
-                <h3>Nova Peça / Equipamento</h3>
-                <input type="hidden" id="edit-eq-id" value="">
-                <label>Nome do Equipamento</label>
-                <input type="text" id="eq-name" placeholder="Ex: Espada de Ferro">
+                <h3>Criar Nova Peça / Equipamento</h3>
+                <label>Nome</label><input type="text" id="eq-name">
                 <label>Tipo (Aonde equipa)</label>
                 <select id="eq-type">
                     <option value="face">Rosto / Expressão</option>
                     <option value="hair">Cabelo</option>
                     <option value="helmet">Capacete / Chapéu</option>
-                    <option value="shirt">Tronco / Camiseta / Armadura</option>
-                    <option value="gloves">Luvas</option>
+                    <option value="shirt">Tronco / Camisa / Armadura</option>
                     <option value="pants">Calças</option>
+                    <option value="gloves">Luvas</option>
                     <option value="boots">Botas</option>
+                    <option value="hand_r">Mão Direita (Arma)</option>
+                    <option value="hand_l">Mão Esquerda (Escudo/Magia)</option>
+                    <option value="accessory">Acessório (Capa, Colar, Asas)</option>
                 </select>
-
-                <label>Imagem Frente</label>
+                <label>Img Frente</label>
                 <div class="file-input-group">
-                    <input type="text" id="eq-img-f" oninput="updateMiniPrev('eq-img-f', 'prev-eq-f')"
-                        placeholder="ex: assets/botas.png">
+                    <input type="text" id="eq-img-f" oninput="updateMiniPrev(this.id, 'prev-eq-f')">
                     <img id="prev-eq-f" class="mini-preview" src="" alt=" ">
                 </div>
-
-                <label>Imagem Verso</label>
+                <label>Img Verso</label>
                 <div class="file-input-group">
-                    <input type="text" id="eq-img-b" oninput="updateMiniPrev('eq-img-b', 'prev-eq-b')"
-                        placeholder="Deixe vazio se só houver frente">
+                    <input type="text" id="eq-img-b" oninput="updateMiniPrev(this.id, 'prev-eq-b')">
                     <img id="prev-eq-b" class="mini-preview" src="" alt=" ">
                 </div>
-
-                <h4>Status do Equipamento</h4>
+                <label>Atk / DefF / DefM / Drop(%)</label>
                 <div class="attr-grid">
-                    <label>Defesa Física <input type="number" id="eq-pdef" value="0"></label>
-                    <label>Defesa Mágica <input type="number" id="eq-mdef" value="0"></label>
-                    <label>Força (Str) <input type="number" id="eq-str" value="0"></label>
-                    <label>Inteligência (Int) <input type="number" id="eq-int" value="0"></label>
-                    <label>Destreza (Dex) <input type="number" id="eq-dex" value="0"></label>
+                    <input type="number" id="eq-pdef" placeholder="Def Fis" value="0">
+                    <input type="number" id="eq-mdef" placeholder="Def Mag" value="0">
+                    <input type="number" id="eq-str" placeholder="Força/Ataque" value="0">
+                    <input type="number" id="eq-drop" placeholder="Drop %" value="5">
                 </div>
                 <button onclick="saveEquipment()">Salvar Equipamento</button>
             </div>
 
-            <div class="form-card" id="form-scenario">
-                <h3>Cenário</h3>
-                <input type="hidden" id="edit-sc-id" value="">
-                <label>Nome do Local</label>
-                <input type="text" id="sc-name" placeholder="Ex: Floresta Negra">
-                <label>Imagem de Fundo</label>
+            <!-- CONSUMÍVEIS -->
+            <div class="form-card" id="form-consumable">
+                <h3>Item Consumível</h3>
+                <label>Nome</label><input type="text" id="cons-name" placeholder="Ex: Poção de Vida">
+                <label>Tipo de Efeito</label>
+                <select id="cons-type">
+                    <option value="heal_hp">Curar HP</option>
+                    <option value="buff_atk">Aumentar Ataque</option>
+                </select>
+                <label>Valor do Efeito</label><input type="number" id="cons-value" value="50">
+                <label>Imagem</label>
                 <div class="file-input-group">
-                    <input type="text" id="sc-img" oninput="updateMiniPrev('sc-img', 'prev-sc')"
-                        placeholder="ex: assets/bg.jpg">
-                    <img id="prev-sc" class="mini-preview" src="" alt=" ">
+                    <input type="text" id="cons-img" oninput="updateMiniPrev(this.id, 'prev-cons')">
+                    <img id="prev-cons" class="mini-preview" src="" alt=" ">
                 </div>
-                <label>História / Descrição</label>
-                <input type="text" id="sc-desc" placeholder="Descrição ao entrar no mapa">
-                <button onclick="saveScenario()">Salvar Cenário</button>
+                <label>Chance de Drop (%)</label><input type="number" id="cons-drop" value="20">
+                <button onclick="saveConsumable()" style="background:#9b59b6;">Salvar Consumível</button>
             </div>
+
         </div>
     </div>
 
-    <!-- TELA DE MONTAR PERSONAGEM -->
+    <!-- ==================== MONTAR PERSONAGEM ==================== -->
     <div id="char-tab" class="tab-content">
-        <h1 id="char-form-title">Montagem de Personagem</h1>
+        <h1>Montagem de Personagem</h1>
         <div class="forms-grid" style="align-items: flex-start;">
-            <div class="form-card" style="flex: 1;" id="form-char">
-                <input type="hidden" id="edit-char-id" value="">
-                <h3>Status Básicos</h3>
-                <label>Nome do Personagem</label>
-                <input type="text" id="ch-name" placeholder="Ex: Guerreiro Lendário">
+            
+            <div class="form-card" style="flex: 2;" id="form-char">
                 <div class="attr-grid">
+                    <label>Nome <input type="text" id="ch-name"></label>
+                    <label>Raça:
+                        <select id="ch-race" onchange="toggleRaceFields()">
+                            <option value="humano">Humanoide (Montar por Peças)</option>
+                            <option value="monstro">Monstro Único (Simples)</option>
+                        </select>
+                    </label>
                     <label>HP Máximo <input type="number" id="ch-hp" value="100"></label>
                     <label>Ataque Base <input type="number" id="ch-atk" value="10"></label>
                 </div>
 
-                <label>Raça/Estrutura:</label>
-                <select id="ch-race" onchange="toggleRaceFields()">
-                    <option value="monstro">Monstro/Simples (Sem Equipamentos)</option>
-                    <option value="humano">Humanoide (Usa Corpos e Equipamentos)</option>
-                </select>
-
-                <div id="simple-fields">
-                    <label>Imagem Frente (Monstro)</label>
+                <!-- SE MONSTRO SIMPLES -->
+                <div id="simple-fields" style="display:none; margin-top: 15px;">
+                    <label>Img Frente (Corpo inteiro)</label>
                     <div class="file-input-group">
-                        <input type="text" id="ch-img-f" oninput="updateMiniPrev('ch-img-f', 'prev-ch-f')"
-                            placeholder="ex: assets/slime_frente.png">
+                        <input type="text" id="ch-img-f" oninput="updateMiniPrev(this.id, 'prev-ch-f')">
                         <img id="prev-ch-f" class="mini-preview" src="" alt=" ">
                     </div>
-                    <label>Imagem Verso (Monstro)</label>
+                    <label>Img Verso (Costas)</label>
                     <div class="file-input-group">
-                        <input type="text" id="ch-img-b" oninput="updateMiniPrev('ch-img-b', 'prev-ch-b')"
-                            placeholder="ex: assets/slime_verso.png">
+                        <input type="text" id="ch-img-b" oninput="updateMiniPrev(this.id, 'prev-ch-b')">
                         <img id="prev-ch-b" class="mini-preview" src="" alt=" ">
                     </div>
                 </div>
 
-                <div id="human-fields" style="display:none; margin-top: 15px;">
-                    <label>Corpo Base:</label><select id="sel-base" onchange="updatePrev()"></select>
-                    <label>Rosto:</label><select id="sel-face" onchange="updatePrev()"></select>
-                    <label>Cabelo:</label><select id="sel-hair" onchange="updatePrev()"></select>
-                    <label>Capacete:</label><select id="sel-helmet" onchange="updatePrev()"></select>
-                    <label>Tronco:</label><select id="sel-shirt" onchange="updatePrev()"></select>
-                    <label>Calça:</label><select id="sel-pants" onchange="updatePrev()"></select>
-                    <label>Botas:</label><select id="sel-boots" onchange="updatePrev()"></select>
-                    <label>Luvas:</label><select id="sel-gloves" onchange="updatePrev()"></select>
+                <!-- SE HUMANOIDE (TODOS OS SLOTS) -->
+                <div id="human-fields" style="margin-top: 15px;">
+                    <div class="attr-grid">
+                        <label>Corpo Base: <select id="sel-base" onchange="updateDollPreview()"></select></label>
+                        <label>Rosto: <select id="sel-face" onchange="updateDollPreview()"></select></label>
+                        <label>Cabelo: <select id="sel-hair" onchange="updateDollPreview()"></select></label>
+                        <label>Camisa: <select id="sel-shirt" onchange="updateDollPreview()"></select></label>
+                        <label>Calças: <select id="sel-pants" onchange="updateDollPreview()"></select></label>
+                        <label>Capacete: <select id="sel-helmet" onchange="updateDollPreview()"></select></label>
+                        <label>Luvas: <select id="sel-gloves" onchange="updateDollPreview()"></select></label>
+                        <label>Botas: <select id="sel-boots" onchange="updateDollPreview()"></select></label>
+                        <label>Mão Direita: <select id="sel-hand_r" onchange="updateDollPreview()"></select></label>
+                        <label>Mão Esquerda: <select id="sel-hand_l" onchange="updateDollPreview()"></select></label>
+                        <label style="grid-column: span 2;">Acessório: <select id="sel-accessory" onchange="updateDollPreview()"></select></label>
+                    </div>
                 </div>
-                <button onclick="saveCharacter()" style="margin-top:20px;">Salvar Personagem</button>
+                <button onclick="saveCharacter()" style="margin-top:20px;">Salvar no Banco de Dados</button>
                 <p id="char-msg" class="msg-alert"></p>
             </div>
 
+            <!-- PREVIEW DA PAPER DOLL -->
             <div class="form-card" style="flex: 1;" id="preview-panel">
-                <h3>Pré-Visualização e Status</h3>
-                <div class="stats-preview" id="equip-stats">
-                    <strong>Bônus de Equipamentos:</strong><br>
-                    Def Fís: <span id="st-pdef">0</span> | Def Mág: <span id="st-mdef">0</span><br>
-                    Força: <span id="st-str">0</span> | Int: <span id="st-int">0</span> | Des: <span
-                        id="st-dex">0</span>
-                </div>
-                <div class="preview-boxes">
+                <h3>Pré-Visualização</h3>
+                <div class="preview-boxes" style="display:flex; justify-content:space-around; background:#111; padding:20px; border-radius:5px;">
                     <div class="paper-doll-container" id="prev-front"></div>
                     <div class="paper-doll-container" id="prev-back"></div>
                 </div>
@@ -216,25 +229,29 @@
         </div>
     </div>
 
-    <!-- TELA CRUD -->
+    <!-- ==================== CRUD ==================== -->
     <div id="crud-tab" class="tab-content">
         <h1>Banco de Dados Bruto</h1>
         <select id="crud-table-select" onchange="renderCrudTable()">
-            <option value="characters">Personagens Cadastrados</option>
-            <option value="bodies">Corpos Bases</option>
+            <option value="characters">Personagens</option>
+            <option value="consumables">Consumíveis</option>
             <option value="equipments">Equipamentos</option>
-            <option value="scenarios">Cenários</option>
+            <option value="bodies">Corpos Bases</option>
         </select>
-        <div style="overflow-x: auto;">
+        <div style="overflow-x: auto; margin-top: 15px;">
             <table class="crud-table">
-                <thead>
-                    <tr id="crud-thead"></tr>
-                </thead>
+                <thead><tr id="crud-thead"></tr></thead>
                 <tbody id="crud-tbody"></tbody>
             </table>
         </div>
     </div>
-    <script src="js/app.js"></script>
-</body>
 
+    <!-- IMPORTAÇÃO DOS SCRIPTS (A Ordem Importa!) -->
+    <script src="js/globals.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/builder.js"></script>
+    <script src="js/game_city.js"></script>
+    <script src="js/game_combat.js"></script>
+    <script src="js/main.js"></script>
+</body>
 </html>
