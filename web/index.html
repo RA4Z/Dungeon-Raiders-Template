@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>RPG Clicker</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="tabs">
+        <button class="active" onclick="showTab('game-tab', this)">Jogar</button>
+        <button onclick="showTab('admin-tab', this)">Forja do Mundo (Peças)</button>
+        <button onclick="showTab('char-tab', this)">Montar Personagem</button>
+        <button onclick="showTab('crud-tab', this)">Banco de Dados</button>
+    </nav>
+
+    <!-- TELA DO JOGO (Mantida igual) -->
+    <div id="game-tab" class="tab-content active">
+        <div id="game-screen">
+            <div id="character-container">
+                <div id="in-game-layers" class="paper-doll-container" style="display:none; transform: scale(2); transform-origin: bottom;"></div>
+                <img id="enemy-image" src="" alt="Inimigo" style="display:none;">
+            </div>
+            <div id="visual-novel-ui">
+                <div class="stats-bar">
+                    <span id="enemy-name">Nenhum inimigo</span>
+                    <span id="enemy-hp-text">HP: 0/0</span>
+                    <div class="hp-bar-bg"><div id="enemy-hp-fill" class="hp-bar-fill"></div></div>
+                </div>
+                <div class="dialogue-box"><p id="dialogue-text">Selecione um cenário e um inimigo.</p></div>
+                <div class="actions">
+                    <button id="attack-btn" onclick="performAttack()" disabled>ATACAR</button>
+                    <button id="turn-btn" onclick="turnCharacter()" disabled>GIRAR</button>
+                    <select id="select-scenario" onchange="changeScenario()"></select>
+                    <select id="select-enemy" onchange="spawnEnemy()"></select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TELA DE CRIAR PEÇAS -->
+    <div id="admin-tab" class="tab-content">
+        <h1>Forja de Componentes do Mundo</h1>
+        <p id="admin-msg" class="msg-alert"></p>
+        
+        <div class="forms-grid">
+            <!-- Form: Corpos Base -->
+            <div class="form-card" id="form-body">
+                <h3>Corpo Base</h3>
+                <input type="hidden" id="edit-bd-id" value="">
+                <label>Nome do Corpo</label>
+                <input type="text" id="bd-name" placeholder="Ex: Humano Claro">
+                
+                <label>Imagem Frente</label>
+                <div class="file-input-group">
+                    <input type="text" id="bd-img-f" oninput="updateMiniPrev('bd-img-f', 'prev-bd-f')" placeholder="Caminho/URL">
+                    <img id="prev-bd-f" class="mini-preview" src="" alt=" ">
+                </div>
+
+                <label>Imagem Verso (Costas)</label>
+                <div class="file-input-group">
+                    <input type="text" id="bd-img-b" oninput="updateMiniPrev('bd-img-b', 'prev-bd-b')" placeholder="Caminho/URL">
+                    <img id="prev-bd-b" class="mini-preview" src="" alt=" ">
+                </div>
+                
+                <button onclick="saveBody()">Salvar Corpo</button>
+            </div>
+            
+            <!-- Form: Equipamentos -->
+            <div class="form-card" id="form-equip">
+                <h3>Nova Peça / Equipamento</h3>
+                <input type="hidden" id="edit-eq-id" value="">
+                
+                <label>Nome do Equipamento</label>
+                <input type="text" id="eq-name" placeholder="Ex: Espada de Ferro">
+                
+                <label>Tipo (Aonde equipa)</label>
+                <select id="eq-type">
+                    <option value="face">Rosto / Expressão</option>
+                    <option value="hair">Cabelo</option>
+                    <option value="helmet">Capacete / Chapéu</option>
+                    <option value="shirt">Tronco / Camiseta / Armadura</option>
+                    <option value="gloves">Luvas</option>
+                    <option value="pants">Calças</option>
+                    <option value="boots">Botas</option>
+                </select>
+
+                <label>Imagem Frente</label>
+                <div class="file-input-group">
+                    <input type="text" id="eq-img-f" oninput="updateMiniPrev('eq-img-f', 'prev-eq-f')" placeholder="Caminho/URL">
+                    <img id="prev-eq-f" class="mini-preview" src="" alt=" ">
+                </div>
+
+                <label>Imagem Verso</label>
+                <div class="file-input-group">
+                    <input type="text" id="eq-img-b" oninput="updateMiniPrev('eq-img-b', 'prev-eq-b')" placeholder="Caminho/URL">
+                    <img id="prev-eq-b" class="mini-preview" src="" alt=" ">
+                </div>
+                
+                <h4>Status do Equipamento</h4>
+                <div class="attr-grid">
+                    <label>Defesa Física <input type="number" id="eq-pdef" value="0"></label>
+                    <label>Defesa Mágica <input type="number" id="eq-mdef" value="0"></label>
+                    <label>Força (Str) <input type="number" id="eq-str" value="0"></label>
+                    <label>Inteligência (Int) <input type="number" id="eq-int" value="0"></label>
+                    <label>Destreza (Dex) <input type="number" id="eq-dex" value="0"></label>
+                </div>
+
+                <button onclick="saveEquipment()">Salvar Equipamento</button>
+            </div>
+
+            <!-- Form: Cenários -->
+            <div class="form-card" id="form-scenario">
+                <h3>Cenário</h3>
+                <input type="hidden" id="edit-sc-id" value="">
+                
+                <label>Nome do Local</label>
+                <input type="text" id="sc-name" placeholder="Ex: Floresta Negra">
+                
+                <label>Imagem de Fundo</label>
+                <div class="file-input-group">
+                    <input type="text" id="sc-img" oninput="updateMiniPrev('sc-img', 'prev-sc')" placeholder="Caminho/URL">
+                    <img id="prev-sc" class="mini-preview" src="" alt=" ">
+                </div>
+
+                <label>História / Descrição</label>
+                <input type="text" id="sc-desc" placeholder="Descrição ao entrar no mapa">
+                <button onclick="saveScenario()">Salvar Cenário</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TELA DE MONTAR PERSONAGEM -->
+    <div id="char-tab" class="tab-content">
+        <h1 id="char-form-title">Montagem de Personagem</h1>
+        <div class="forms-grid" style="align-items: flex-start;">
+            <div class="form-card" style="flex: 1;" id="form-char">
+                <input type="hidden" id="edit-char-id" value="">
+                <h3>Status Básicos</h3>
+                <label>Nome do Monstro/Personagem</label>
+                <input type="text" id="ch-name" placeholder="Ex: Goblin">
+                <div class="attr-grid">
+                    <label>HP Máximo <input type="number" id="ch-hp" value="100"></label>
+                    <label>Ataque Base <input type="number" id="ch-atk" value="10"></label>
+                </div>
+                
+                <label>Raça/Estrutura:</label>
+                <select id="ch-race" onchange="toggleRaceFields()">
+                    <option value="monstro">Monstro/Simples (Sem Equipamentos)</option>
+                    <option value="humano">Humanoide (Usa Corpos e Equipamentos)</option>
+                </select>
+
+                <div id="simple-fields">
+                    <label>Imagem Frente (Monstro)</label>
+                    <div class="file-input-group">
+                        <input type="text" id="ch-img-f" oninput="updateMiniPrev('ch-img-f', 'prev-ch-f')">
+                        <img id="prev-ch-f" class="mini-preview" src="" alt=" ">
+                    </div>
+
+                    <label>Imagem Verso (Monstro)</label>
+                    <div class="file-input-group">
+                        <input type="text" id="ch-img-b" oninput="updateMiniPrev('ch-img-b', 'prev-ch-b')">
+                        <img id="prev-ch-b" class="mini-preview" src="" alt=" ">
+                    </div>
+                </div>
+
+                <div id="human-fields" style="display:none; margin-top: 15px;">
+                    <label>Corpo Base:</label><select id="sel-base" onchange="updatePrev()"></select>
+                    <label>Rosto:</label><select id="sel-face" onchange="updatePrev()"></select>
+                    <label>Cabelo:</label><select id="sel-hair" onchange="updatePrev()"></select>
+                    <label>Capacete:</label><select id="sel-helmet" onchange="updatePrev()"></select>
+                    <label>Tronco:</label><select id="sel-shirt" onchange="updatePrev()"></select>
+                    <label>Calça:</label><select id="sel-pants" onchange="updatePrev()"></select>
+                    <label>Botas:</label><select id="sel-boots" onchange="updatePrev()"></select>
+                    <label>Luvas:</label><select id="sel-gloves" onchange="updatePrev()"></select>
+                </div>
+
+                <button onclick="saveCharacter()" style="margin-top:20px;">Salvar Personagem</button>
+                <p id="char-msg" class="msg-alert"></p>
+            </div>
+
+            <!-- Preview do Personagem -->
+            <div class="form-card" style="flex: 1;" id="preview-panel">
+                <h3>Pré-Visualização e Status</h3>
+                <div class="stats-preview" id="equip-stats">
+                    <strong>Bônus de Equipamentos:</strong><br>
+                    Def Fís: <span id="st-pdef">0</span> | Def Mág: <span id="st-mdef">0</span><br>
+                    Força: <span id="st-str">0</span> | Int: <span id="st-int">0</span> | Des: <span id="st-dex">0</span>
+                </div>
+                <div class="preview-boxes">
+                    <div class="paper-doll-container" id="prev-front"></div>
+                    <div class="paper-doll-container" id="prev-back"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TELA CRUD -->
+    <div id="crud-tab" class="tab-content">
+        <h1>Banco de Dados Bruto</h1>
+        <select id="crud-table-select" onchange="renderCrudTable()">
+            <option value="characters">Personagens Cadastrados</option>
+            <option value="bodies">Corpos Bases</option>
+            <option value="equipments">Equipamentos</option>
+            <option value="scenarios">Cenários</option>
+        </select>
+        <div style="overflow-x: auto;">
+            <table class="crud-table">
+                <thead><tr id="crud-thead"></tr></thead>
+                <tbody id="crud-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
