@@ -9,14 +9,30 @@
 .inv-preview-pane { width: 35%; background: #1a252f; border-radius: 10px; padding: 20px; display: flex; flex-direction: column; align-items: center; border: 1px solid #444;}
 .inv-stats-box { background: #111; padding: 10px 20px; border-radius: 5px; color: #f1c40f; font-weight: bold; font-size: 1.1rem; width: 100%; text-align: center; border: 1px solid #555;}
 
+/* NOVA SESSÃO: Itens Equipados no painel esquerdo */
+.inv-equipped-container { margin-top: 15px; width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; overflow-y: auto; max-height: 180px; padding-right: 5px; }
+.inv-eq-slot { background: #2c3e50; border: 1px solid #555; border-radius: 5px; padding: 5px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.65rem; color: #ecf0f1; cursor: pointer; transition: transform 0.1s, border-color 0.1s;}
+.inv-eq-slot:not(.inv-eq-empty):hover { border-color: #e74c3c; transform: scale(1.05); background: #c0392b; }
+.inv-eq-slot img { width: 35px; height: 35px; object-fit: contain; margin-bottom: 2px; }
+.inv-eq-empty { opacity: 0.5; cursor: default; }
+
 /* Pane de Grid e Tabs (Lado Direito) */
 .inv-items-pane { width: 65%; background: #1a252f; border-radius: 10px; padding: 20px; display: flex; flex-direction: column; border: 1px solid #444;}
 .inv-tabs { display: flex; gap: 10px; margin-bottom: 15px;}
 .inv-tabs button { flex: 1; padding: 10px; background: #34495e; color: white; border: none; cursor: pointer; font-weight: bold; border-radius: 5px;}
 .inv-tabs button.active { background: #8e44ad;}
 
-/* Grid Bonita */
-.inv-grid { display: none; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 15px; overflow-y: auto; max-height: 100%; padding-right: 5px;}
+/* Grid Bonita - CORRIGIDO SCROLLBAR AQUI */
+.inv-grid { 
+    display: none; 
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); 
+    gap: 15px; 
+    overflow-y: auto; 
+    overflow-x: hidden; /* Corta o crescimento lateral do hover */
+    max-height: 100%; 
+    padding: 5px; /* Evita que a borda do hover toque na caixa e gere scroll */
+    align-content: start;
+}
 .inv-grid.active { display: grid; }
 
 .inv-item-card { background: #2c3e50; border: 2px solid #555; border-radius: 8px; display: flex; flex-direction: column; align-items: center; padding: 10px; cursor: pointer; transition: 0.2s;}
