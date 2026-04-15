@@ -5,7 +5,6 @@ body { background-color: #1a1a1a; color: #fff; height: 100vh; display: flex; fle
 .tabs { display: flex; background: #222; padding: 10px; flex-wrap: wrap; gap: 5px; border-bottom: 2px solid #444; }
 .tabs button { background: #444; color: #ccc; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px 4px 0 0; font-weight: bold; transition: all 0.3s ease;}
 .tabs button:hover { background: #555; color: white;}
-/* INDICADOR DA ABA ATIVA */
 .tabs button.active { background: #e67e22; color: white; border-bottom: 3px solid #d35400; transform: translateY(2px); }
 
 .tab-content { display: none; height: calc(100vh - 60px); padding: 20px; overflow-y: auto;}
@@ -15,30 +14,24 @@ body { background-color: #1a1a1a; color: #fff; height: 100vh; display: flex; fle
 .forms-grid { display: flex; gap: 20px; flex-wrap: wrap; }
 .form-card { background: #2a2a2a; padding: 20px; border-radius: 8px; border: 1px solid #444; flex: 1; min-width: 320px;}
 .form-card h3, .form-card h4 { margin-bottom: 10px; color: #f39c12; border-bottom: 1px solid #444; padding-bottom: 5px;}
-.form-card input[type="text"], .form-card input[type="number"], .form-card select { 
-    width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 4px; border: 1px solid #555; background: #111; color: white;
-}
+.form-card input[type="text"], .form-card input[type="number"], .form-card select { width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 4px; border: 1px solid #555; background: #111; color: white;}
 .form-card label { font-size: 0.85em; color: #b2bec3; margin-bottom: 4px; display: block; font-weight: 600;}
 .form-card button { width: 100%; padding: 12px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 1.1em; margin-top: 10px;}
 .form-card button:hover { background: #2ecc71; }
 .msg-alert { margin: 15px 0; color: #f1c40f; font-weight: bold;}
-
-/* --- ATRIBUTOS GRID --- */
 .attr-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
 .attr-grid label { display: flex; flex-direction: column; color: #bdc3c7; }
 .attr-grid input { margin-bottom: 0 !important; }
 
-/* --- FILE PICKER E PREVIEWS --- */
-.file-input-group { display: flex; gap: 5px; margin-bottom: 15px; align-items: center; }
+/* --- INPUT COM PREVIEW (Simplificado) --- */
+.file-input-group { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; }
 .file-input-group input { margin-bottom: 0 !important; flex-grow: 1; }
-.btn-browse { background: #2980b9 !important; color: white; padding: 0 15px !important; margin: 0 !important; width: auto !important; height: 35px; }
-.btn-browse:hover { background: #3498db !important; }
 .mini-preview { width: 45px; height: 45px; object-fit: contain; background: #000; border: 1px solid #555; border-radius: 4px; }
 
 /* --- PREVIEW STATUS (Montar Personagem) --- */
 .stats-preview { background: #111; padding: 10px; border-radius: 5px; margin-bottom: 15px; border: 1px solid #333; color: #3498db; font-family: monospace; font-size: 1.1em;}
 .preview-boxes { display: flex; justify-content: space-around; background: #111; padding: 20px; border-radius: 5px;}
-.paper-doll-container { position: relative; width: 150px; height: 250px; background: #222; border: 1px solid #555; overflow: hidden;}
+.paper-doll-container { position: relative; width: 150px; height: 250px; background: transparent; overflow: hidden;}
 .paper-doll-container img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; }
 
 /* --- TABELA CRUD --- */
@@ -49,14 +42,47 @@ body { background-color: #1a1a1a; color: #fff; height: 100vh; display: flex; fle
 .btn-edit { background: #f39c12; color: black; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; margin-right: 5px; font-weight: bold;}
 .btn-del { background: #c0392b; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-weight: bold;}
 
-/* --- VISUAL NOVEL UI --- */
+/* =========================================
+   TELA DE JOGO - VISUAL NOVEL / BATTLE
+   ========================================= */
 #game-tab { padding: 0; }
 #game-screen { position: relative; width: 100%; height: 100%; background-color: #000; background-size: cover; background-position: center; transition: background-image 0.5s ease;}
-#character-container { position: absolute; bottom: 200px; left: 50%; transform: translateX(-50%); height: 60%; display: flex; align-items: flex-end;}
-#enemy-image { max-height: 100%; filter: drop-shadow(0px 0px 10px rgba(0,0,0,0.8)); transition: transform 0.1s;}
-.hit { transform: translateX(-50%) scale(0.95) rotate(-2deg); filter: brightness(200%) drop-shadow(0 0 10px red) !important; }
 
-#visual-novel-ui { position: absolute; bottom: 0; width: 100%; height: 200px; background: rgba(0, 0, 0, 0.85); border-top: 3px solid #f39c12; display: flex; flex-direction: column; padding: 15px;}
+/* Campo de Batalha e Contêineres */
+#battlefield { position: absolute; bottom: 200px; width: 100%; height: calc(100% - 200px); }
+
+/* Inimigo: Ao fundo (menor) */
+#enemy-container {
+    position: absolute; bottom: 35%; left: 70%; /* Movido para a direita */
+    transform: translateX(-50%) scale(1.1); transform-origin: bottom center; z-index: 5;
+}
+/* Player: Perto da tela (maior) */
+#player-container {
+    position: absolute; bottom: 5%; left: 30%; /* Movido para a esquerda */
+    transform: translateX(-50%) scale(1.7); transform-origin: bottom center; z-index: 10;
+}
+
+#enemy-image, #player-image { max-height: 250px; filter: drop-shadow(0px 0px 10px rgba(0,0,0,0.5)); }
+
+/* Animação do Inimigo Apanhando */
+.enemy-hit { filter: brightness(200%) drop-shadow(0 0 10px red) !important; animation: shakeEnemy 0.2s; }
+@keyframes shakeEnemy {
+    0%   { transform: translateX(-50%) scale(1.2) rotate(0deg); }
+    25%  { transform: translateX(-52%) scale(1.2) rotate(-5deg); }
+    50%  { transform: translateX(-48%) scale(1.2) rotate(5deg); }
+    100% { transform: translateX(-50%) scale(1.2) rotate(0deg); }
+}
+
+/* Animação do Player Atacando */
+.player-attack { animation: lungePlayer 0.2s; }
+@keyframes lungePlayer {
+    0%   { transform: translateX(-50%) scale(1.8) translateY(0); }
+    50%  { transform: translateX(-50%) scale(1.8) translateY(-20px); }
+    100% { transform: translateX(-50%) scale(1.8) translateY(0); }
+}
+
+/* UI Inferior */
+#visual-novel-ui { position: absolute; bottom: 0; width: 100%; height: 200px; background: rgba(0, 0, 0, 0.85); border-top: 3px solid #f39c12; display: flex; flex-direction: column; padding: 15px; z-index: 20;}
 .stats-bar { display: flex; align-items: center; gap: 15px; margin-bottom: 10px;}
 .stats-bar span { font-weight: bold; font-size: 1.2rem;}
 .hp-bar-bg { flex-grow: 1; height: 20px; background: #333; border-radius: 10px; overflow: hidden; border: 1px solid #555;}
@@ -64,7 +90,26 @@ body { background-color: #1a1a1a; color: #fff; height: 100vh; display: flex; fle
 .dialogue-box { flex-grow: 1; margin-bottom: 10px; font-size: 1.1rem; color: #ddd; }
 .actions { display: flex; gap: 10px; }
 .actions button { padding: 10px 20px; background: #c0392b; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;}
-.actions button#turn-btn { background: #8e44ad; }
 .actions button:disabled { background: #555; cursor: not-allowed; }
 .actions button:hover:not(:disabled) { filter: brightness(1.2); }
 .actions select { padding: 10px; background: #333; color: white; border: 1px solid #555; border-radius: 5px;}
+
+/* UI de Stats de Batalha */
+.battle-stats { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 5px; }
+.stat-block { flex: 1; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 5px; border-left: 4px solid #f39c12; }
+.enemy-stat { border-left-color: #e74c3c; }
+.player-stat { border-left-color: #3498db; text-align: right; }
+
+.hp-bar-bg { width: 100%; height: 12px; background: #222; border-radius: 6px; overflow: hidden; margin: 4px 0; border: 1px solid #444; }
+.hp-bar-fill { height: 100%; width: 100%; background: #2ecc71; transition: width 0.4s ease; }
+.player-hp { background: #3498db; }
+.hp-text { font-size: 0.8em; font-family: monospace; color: #aaa; }
+
+/* Animação de Dano no Player */
+.player-hit { filter: brightness(200%) sepia(1) saturate(5) hue-rotate(-50deg) !important; animation: shakePlayer 0.2s; }
+@keyframes shakePlayer {
+    0% { transform: translateX(-50%) scale(1.7) translateY(0); }
+    25% { transform: translateX(-52%) scale(1.7) translateY(5px); }
+    50% { transform: translateX(-48%) scale(1.7) translateY(-5px); }
+    100% { transform: translateX(-50%) scale(1.7) translateY(0); }
+}
