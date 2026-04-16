@@ -133,7 +133,8 @@ def init_db():
         completed_quests TEXT DEFAULT '[]',
         dungeon_max_floor INTEGER DEFAULT 1,
         dungeon_current_floor INTEGER DEFAULT 1,
-        power_score INTEGER DEFAULT 0
+        power_score INTEGER DEFAULT 0,
+        fired_zero_moral TEXT DEFAULT '[]'
     )''')
 
     for sql in [
@@ -153,6 +154,8 @@ def init_db():
         "ALTER TABLE saves ADD COLUMN dungeon_max_floor INTEGER DEFAULT 1",
         "ALTER TABLE saves ADD COLUMN dungeon_current_floor INTEGER DEFAULT 1",
         "ALTER TABLE saves ADD COLUMN power_score INTEGER DEFAULT 0",
+        # Nova coluna para penalidade de moral zero
+        "ALTER TABLE saves ADD COLUMN fired_zero_moral TEXT DEFAULT '[]'",
     ]:
         run_migration(conn_save, sql)
 

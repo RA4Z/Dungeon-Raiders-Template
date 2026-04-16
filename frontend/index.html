@@ -9,21 +9,24 @@
     <link rel="stylesheet" href="src/css/inventory.css">
     <link rel="stylesheet" href="src/css/menu.css">
     <link rel="stylesheet" href="src/css/guild.css">
+    <link rel="stylesheet" href="src/css/allies.css">
 </head>
 <body>
     <nav class="tabs">
         <button class="active" onclick="showTab('menu-tab', this)" id="btn-tab-menu">Menu Principal</button>
         <button onclick="showTab('game-tab', this)" id="btn-tab-game" style="display:none; background:#27ae60; color:#fff;">🎮 O Jogo</button>
+        <button onclick="showTab('allies-tab', this)" id="btn-tab-allies" style="display:none; background:#8e44ad; color:#fff;">⚔️ Aliados</button>
         <button onclick="showTab('admin-tab', this)">Forja (Peças)</button>
         <button onclick="showTab('char-tab', this)">Montar Personagem</button>
         <button onclick="showTab('crud-tab', this)">Banco de Dados</button>
     </nav>
 
-    <div id="menu-tab" class="tab-content active" style="padding:0;"></div>
-    <div id="game-tab" class="tab-content" style="padding:0;"></div>
-    <div id="admin-tab" class="tab-content"></div>
-    <div id="char-tab" class="tab-content"></div>
-    <div id="crud-tab" class="tab-content"></div>
+    <div id="menu-tab"   class="tab-content active" style="padding:0;"></div>
+    <div id="game-tab"   class="tab-content"         style="padding:0;"></div>
+    <div id="allies-tab" class="tab-content"         style="padding:0;"></div>
+    <div id="admin-tab"  class="tab-content"></div>
+    <div id="char-tab"   class="tab-content"></div>
+    <div id="crud-tab"   class="tab-content"></div>
 
     <script src="src/js/globals.js"></script>
     <script src="src/js/admin.js"></script>
@@ -38,6 +41,7 @@
     <script src="src/js/dungeon_floors.js"></script>
     <script src="src/js/guild.js"></script>
     <script src="src/js/guild_admin.js"></script>
+    <script src="src/js/allies.js"></script>
     <script src="src/js/main.js"></script>
 </body>
 </html>

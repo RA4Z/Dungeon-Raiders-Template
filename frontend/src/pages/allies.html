@@ -1,0 +1,114 @@
+<!-- src/pages/allies.html -->
+<div class="allies-page">
+
+    <!-- CABEÇALHO -->
+    <div class="allies-header">
+        <h1 class="allies-title">⚔️ Gestão de Aliados</h1>
+        <div class="allies-summary" id="allies-summary">
+            <span id="as-count">0 aliados</span>
+            <span id="as-party">Party: 0/3</span>
+            <span id="as-daily-cost">💸 0/dia</span>
+            <span id="as-gold">🪙 0</span>
+        </div>
+    </div>
+
+    <!-- FILTROS / BARRA DE BUSCA -->
+    <div class="allies-filters">
+        <input type="text" id="ally-search" placeholder="🔍 Buscar aliado..." oninput="filterAlliesPanel()" />
+        <div class="allies-filter-tabs">
+            <button class="af-tab active" onclick="setAlliesFilter('all', this)">Todos</button>
+            <button class="af-tab" onclick="setAlliesFilter('idle', this)">💤 Ociosos</button>
+            <button class="af-tab" onclick="setAlliesFilter('party', this)">⚔️ Na Party</button>
+            <button class="af-tab" onclick="setAlliesFilter('hunt', this)">🏹 Caçando</button>
+            <button class="af-tab" onclick="setAlliesFilter('train', this)">📚 Treinando</button>
+        </div>
+    </div>
+
+    <!-- GRID DE CARDS -->
+    <div id="allies-grid" class="allies-grid">
+        <div class="allies-empty-msg">Nenhum aliado contratado ainda. Visite as Guildas para recrutar!</div>
+    </div>
+
+</div>
+
+<!-- ══════════════ MODAL DE CONFIGURAÇÃO DETALHADA ══════════════ -->
+<div id="ally-detail-modal" class="modal-overlay" style="display:none;">
+    <div class="ally-detail-box">
+        <button class="inv-close" onclick="closeAllyDetail()" style="top:12px; right:15px;">X</button>
+
+        <!-- LADO ESQUERDO: AVATAR + STATUS -->
+        <div class="ally-detail-left">
+            <div class="ally-detail-avatar">
+                <div class="paper-doll-container" id="ad-doll-front" style="transform:scale(1.1); transform-origin:top center;"></div>
+            </div>
+            <div class="ally-detail-guild-badge" id="ad-guild-badge"></div>
+
+            <!-- Barra de Moral -->
+            <div class="ally-moral-section">
+                <div class="ally-moral-header">
+                    <span>⚖️ Moral</span>
+                    <span id="ad-moral-value" class="ally-moral-value">100</span>
+                </div>
+                <div class="ally-moral-bar-bg">
+                    <div id="ad-moral-fill" class="ally-moral-bar-fill" style="width:100%;"></div>
+                </div>
+                <p id="ad-moral-desc" class="ally-moral-desc"></p>
+            </div>
+
+            <!-- Stats -->
+            <div class="ally-detail-stats" id="ad-stats-list"></div>
+        </div>
+
+        <!-- LADO DIREITO: CONFIGURAÇÕES -->
+        <div class="ally-detail-right">
+            <h2 id="ad-name" class="ally-detail-name"></h2>
+            <div id="ad-status-pills" class="ally-status-pills"></div>
+
+            <!-- CUSTO DIÁRIO -->
+            <div class="ally-cost-box" id="ad-cost-box">
+                <span>💸 Custo Diário:</span>
+                <strong id="ad-daily-cost">0</strong>
+                <span style="color:#7f8c8d; font-size:0.8em;" id="ad-cost-breakdown"></span>
+            </div>
+
+            <!-- ROTINA -->
+            <div class="ally-section">
+                <h4 class="ally-section-title">🗓️ Rotina Diária</h4>
+                <div class="ally-routine-grid" id="ad-routine-grid"></div>
+            </div>
+
+            <!-- ATRIBUTO DE TREINO (visível só quando rotina = train) -->
+            <div class="ally-section" id="ad-train-section" style="display:none;">
+                <h4 class="ally-section-title">🎯 Atributo para Treinar</h4>
+                <div class="ally-train-grid" id="ad-train-grid"></div>
+                <p style="color:#7f8c8d; font-size:0.8em; margin-top:6px;">+50 XP por dia neste atributo</p>
+            </div>
+
+            <!-- PARTY -->
+            <div class="ally-section">
+                <h4 class="ally-section-title">👥 Party</h4>
+                <div id="ad-party-section"></div>
+            </div>
+
+            <!-- HOTBAR -->
+            <div class="ally-section">
+                <h4 class="ally-section-title">⚔️ Habilidades na Barra</h4>
+                <div id="ad-hotbar-grid" class="bg3-hotbar" style="justify-content:flex-start; flex-wrap:wrap; margin-bottom:10px;"></div>
+                <h5 style="color:#bdc3c7; margin-bottom:6px; font-size:0.85em;">Habilidades Disponíveis:</h5>
+                <div id="ad-skills-list" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+            </div>
+
+            <!-- PROGRESSO DE ATRIBUTOS -->
+            <div class="ally-section">
+                <h4 class="ally-section-title">📊 Progresso de Atributos</h4>
+                <div id="ad-attr-progress" class="ally-attr-progress"></div>
+            </div>
+
+            <!-- AÇÕES -->
+            <div class="ally-detail-actions">
+                <button onclick="saveAllyDetail()" class="btn-save-ally">💾 Salvar</button>
+                <button onclick="fireAllyDetail()" class="btn-fire-ally">🔥 Dispensar</button>
+            </div>
+        </div>
+    </div>
+</div>

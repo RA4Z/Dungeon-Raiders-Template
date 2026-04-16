@@ -73,34 +73,56 @@ async function goToLocation(locType) {
 }
 
 // ══════════════════════════════════════════════════
-// DESCANSO
+// DESCANSO — integra moral + rotinas do aliado
 // ══════════════════════════════════════════════════
 async function healPlayer() {
-    if (window.activePlayer && window.playerFullStats) {
-        window.playerHP      = window.playerFullStats.computed.hp;
-        window.playerMana    = window.playerFullStats.computed.mana;
-        window.playerStamina = window.playerFullStats.computed.stamina;
-        window.playerDays   += 1;
+    if (!window.activePlayer || !window.playerFullStats) return;
 
-        // Processa rotinas dos aliados
-        const routineRes = await window.pywebview.api.process_daily_routines(window.activeSaveId);
-        if (routineRes && routineRes.messages && routineRes.messages.length > 0) {
-            window.playerGold = routineRes.new_gold;
-        }
+    // Restaura recursos do player
+    window.playerHP      = window.playerFullStats.computed.hp;
+    window.playerMana    = window.playerFullStats.computed.mana;
+    window.playerStamina = window.playerFullStats.computed.stamina;
+    window.playerDays   += 1;
 
-        window.updateHUD();
-        await window.saveGameState();
+    // 1. Processa rotinas dos aliados (hunt/train/idle) — Python
+    const routineRes = await window.pywebview.api.process_daily_routines(window.activeSaveId);
 
-        let routineMsg = '';
-        if (routineRes?.messages?.length > 0)
-            routineMsg = '\n\n📋 Relatório dos aliados:\n' + routineRes.messages.join('\n');
+    // 2. Processa moral e pagamentos — JS (atualiza window._hiredAllies)
+    const moralMessages = await window.processMoralAndWages();
 
-        alert(`Você dormiu profundamente. HP, Mana e Stamina restaurados!\n+1 Dia se passou.${routineMsg}`);
+    // Atualiza ouro após rotinas (o Python já debitou salários)
+    if (routineRes && typeof routineRes.new_gold === 'number') {
+        window.playerGold = routineRes.new_gold;
     }
+
+    window.updateHUD();
+    await window.saveGameState();
+
+    // Sincroniza estado para atualizar _hiredAllies com dados finais do servidor
+    if (typeof syncSaveState === 'function') await syncSaveState();
+
+    // Monta relatório do dia
+    let allMessages = [];
+    if (routineRes?.messages?.length > 0) allMessages = allMessages.concat(routineRes.messages);
+    if (moralMessages?.length > 0)        allMessages = allMessages.concat(moralMessages);
+
+    let report = '';
+    if (allMessages.length > 0)
+        report = '\n\n📋 Relatório do dia:\n' + allMessages.join('\n');
+
+    // Avisa sobre aliados que abandonaram
+    const fired = routineRes?.fired_allies || [];
+    if (fired.length > 0)
+        report += `\n\n⚠️ ${fired.length} aliado(s) abandonaram a equipe por falta de pagamento!`;
+
+    alert(`Você dormiu profundamente. HP, Mana e Stamina restaurados!\n+1 Dia se passou.${report}`);
+
+    // Atualiza painel de aliados se estiver aberto
+    if (typeof window.renderAlliesPanel === 'function') window.renderAlliesPanel();
 }
 
 // ══════════════════════════════════════════════════
-// TREINO
+// TREINO DO PLAYER
 // ══════════════════════════════════════════════════
 window.trainStat = async function(statKey) {
     const COST    = 20;

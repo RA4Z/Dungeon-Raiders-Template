@@ -1,0 +1,497 @@
+/* src/css/allies.css */
+
+/* ════════════════════════════════════════
+   PÁGINA DE ALIADOS
+════════════════════════════════════════ */
+.allies-page {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+    padding: 20px;
+    overflow: hidden;
+}
+
+/* Cabeçalho */
+.allies-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #30363d;
+    flex-shrink: 0;
+}
+.allies-title {
+    font-size: 1.8rem;
+    font-family: serif;
+    color: #f1c40f;
+    text-shadow: 0 0 12px #e67e2244;
+    margin: 0;
+}
+.allies-summary {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.allies-summary span {
+    background: #21262d;
+    border: 1px solid #30363d;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    color: #bdc3c7;
+}
+
+/* Filtros */
+.allies-filters {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 14px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+#ally-search {
+    background: #21262d;
+    border: 1px solid #30363d;
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    width: 220px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+#ally-search:focus { border-color: #e67e22; }
+
+.allies-filter-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.af-tab {
+    background: #21262d;
+    border: 1px solid #30363d;
+    color: #8b949e;
+    padding: 6px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.82em;
+    font-weight: bold;
+    transition: 0.15s;
+}
+.af-tab:hover { background: #30363d; color: #fff; }
+.af-tab.active { background: #e67e22; border-color: #e67e22; color: #fff; }
+
+/* Grid de Cards */
+.allies-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+    overflow-y: auto;
+    flex: 1;
+    padding-bottom: 10px;
+    align-content: start;
+}
+.allies-empty-msg {
+    color: #555;
+    font-size: 1rem;
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 40px 0;
+}
+
+/* Card Individual de Aliado */
+.ally-panel-card {
+    background: #161b22;
+    border: 2px solid #30363d;
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    position: relative;
+}
+.ally-panel-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    border-color: #e67e22;
+}
+.ally-panel-card.in-party {
+    border-color: #27ae60;
+    box-shadow: 0 0 12px rgba(39,174,96,0.3);
+}
+.ally-panel-card.low-morale {
+    border-color: #e74c3c;
+    box-shadow: 0 0 10px rgba(231,76,60,0.25);
+}
+
+/* Topo do card */
+.apc-header {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+.apc-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+}
+.apc-avatar .paper-doll-container {
+    width: 150px;
+    height: 250px;
+    transform: scale(0.3);
+    transform-origin: top center;
+    top: 2px;
+    left: 50%;
+    margin-left: -75px;
+    position: absolute;
+}
+.apc-info { flex: 1; min-width: 0; }
+.apc-name {
+    font-weight: bold;
+    color: #ecf0f1;
+    font-size: 0.95em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.apc-race {
+    font-size: 0.75em;
+    color: #7f8c8d;
+}
+
+/* Badge de Guilda no card */
+.apc-guild-badge {
+    font-size: 0.7em;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: bold;
+    margin-top: 3px;
+    display: inline-block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* Status de Rotina */
+.apc-routine-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 0.75em;
+    font-weight: bold;
+}
+.apc-routine-idle    { background: #333; color: #bdc3c7; }
+.apc-routine-party   { background: #1a3d2b; color: #2ecc71; border: 1px solid #27ae60; }
+.apc-routine-hunt    { background: #3d1a1a; color: #e74c3c; border: 1px solid #c0392b; }
+.apc-routine-train   { background: #1a2a3d; color: #3498db; border: 1px solid #2980b9; }
+
+/* Barra de Moral no card */
+.apc-moral-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75em;
+    color: #bdc3c7;
+}
+.apc-moral-bar-bg {
+    flex: 1;
+    height: 5px;
+    background: #111;
+    border-radius: 3px;
+    overflow: hidden;
+}
+.apc-moral-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s;
+}
+
+/* Custo diário no card */
+.apc-cost {
+    font-size: 0.78em;
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+/* ════════════════════════════════════════
+   MODAL DE DETALHE DO ALIADO
+════════════════════════════════════════ */
+.ally-detail-box {
+    background: #161b22;
+    border: 2px solid #30363d;
+    border-radius: 14px;
+    width: 92%;
+    max-width: 860px;
+    max-height: 90vh;
+    display: flex;
+    gap: 0;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+}
+
+/* Coluna esquerda */
+.ally-detail-left {
+    width: 220px;
+    background: #0d1117;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border-right: 1px solid #30363d;
+    flex-shrink: 0;
+    overflow-y: auto;
+}
+.ally-detail-avatar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #21262d;
+    border-radius: 10px;
+    padding: 10px;
+    height: 170px;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Badge de guilda no modal */
+.ally-detail-guild-badge {
+    text-align: center;
+    font-size: 0.82em;
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-weight: bold;
+}
+
+/* Moral no modal */
+.ally-moral-section { display: flex; flex-direction: column; gap: 4px; }
+.ally-moral-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85em;
+    color: #bdc3c7;
+    font-weight: bold;
+}
+.ally-moral-value { font-size: 1.1em; }
+.ally-moral-bar-bg {
+    background: #111;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid #333;
+}
+.ally-moral-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s, background 0.4s;
+}
+.ally-moral-desc {
+    font-size: 0.75em;
+    color: #7f8c8d;
+    margin: 0;
+    font-style: italic;
+}
+
+/* Stats no modal */
+.ally-detail-stats { display: flex; flex-direction: column; gap: 3px; font-size: 0.8em; }
+.ally-detail-stats .stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 6px;
+    background: #21262d;
+    border-radius: 4px;
+    color: #bdc3c7;
+}
+.ally-detail-stats .stat-row strong { color: #2ecc71; }
+
+/* Coluna direita */
+.ally-detail-right {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.ally-detail-name {
+    color: #f1c40f;
+    font-family: serif;
+    font-size: 1.5rem;
+    margin: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #30363d;
+}
+
+.ally-status-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.status-pill {
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.78em;
+    font-weight: bold;
+}
+
+/* Custo */
+.ally-cost-box {
+    background: #21262d;
+    border: 1px solid #e74c3c44;
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 0.9em;
+    color: #bdc3c7;
+}
+.ally-cost-box strong { color: #e74c3c; font-size: 1.1em; }
+
+/* Seções */
+.ally-section { display: flex; flex-direction: column; gap: 8px; }
+.ally-section-title {
+    font-size: 0.9em;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #21262d;
+}
+
+/* Grid de rotina */
+.ally-routine-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.routine-option {
+    background: #21262d;
+    border: 2px solid #30363d;
+    border-radius: 8px;
+    padding: 10px;
+    cursor: pointer;
+    transition: 0.15s;
+    text-align: left;
+}
+.routine-option:hover { border-color: #555; }
+.routine-option.selected { border-color: var(--routine-color, #e67e22); background: color-mix(in srgb, var(--routine-color, #e67e22) 15%, #21262d); }
+.routine-option .ro-label { font-weight: bold; font-size: 0.9em; color: #ecf0f1; }
+.routine-option .ro-desc { font-size: 0.75em; color: #7f8c8d; margin-top: 2px; }
+
+/* Grid de treino */
+.ally-train-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+}
+.train-option {
+    background: #21262d;
+    border: 2px solid #30363d;
+    border-radius: 6px;
+    padding: 6px 4px;
+    cursor: pointer;
+    transition: 0.15s;
+    text-align: center;
+    font-size: 0.8em;
+}
+.train-option:hover { border-color: #3498db; }
+.train-option.selected { border-color: #3498db; background: #1a2a3d; color: #3498db; font-weight: bold; }
+.train-option .to-level { font-size: 0.7em; color: #7f8c8d; display: block; }
+
+/* Seção de party */
+.ally-party-status {
+    background: #21262d;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 0.88em;
+    color: #bdc3c7;
+}
+.btn-add-party, .btn-remove-party {
+    padding: 8px 18px;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.88em;
+    transition: filter 0.15s;
+}
+.btn-add-party    { background: #27ae60; color: #fff; }
+.btn-remove-party { background: #e74c3c; color: #fff; }
+.btn-add-party:hover, .btn-remove-party:hover { filter: brightness(1.2); }
+
+/* Progresso de atributos */
+.ally-attr-progress { display: flex; flex-direction: column; gap: 6px; }
+.aap-row { display: flex; flex-direction: column; gap: 2px; }
+.aap-row .aap-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8em;
+    color: #bdc3c7;
+}
+.aap-bar-bg {
+    background: #111;
+    height: 5px;
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid #333;
+}
+.aap-bar-fill {
+    height: 100%;
+    background: #2ecc71;
+    border-radius: 3px;
+    transition: width 0.4s;
+}
+
+/* Botões de ação do modal */
+.ally-detail-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 10px;
+    border-top: 1px solid #30363d;
+}
+.btn-save-ally {
+    flex: 1;
+    padding: 12px;
+    background: #27ae60;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    font-weight: bold;
+    font-size: 1em;
+    cursor: pointer;
+    transition: filter 0.15s;
+}
+.btn-save-ally:hover { filter: brightness(1.2); }
+.btn-fire-ally {
+    padding: 12px 20px;
+    background: #c0392b;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    font-weight: bold;
+    font-size: 1em;
+    cursor: pointer;
+    transition: filter 0.15s;
+}
+.btn-fire-ally:hover { filter: brightness(1.2); }
