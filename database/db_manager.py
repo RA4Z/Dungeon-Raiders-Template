@@ -1,14 +1,26 @@
 import sqlite3
 import os
 
-DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'game_data.db')
+# DOIS BANCOS DE DADOS SEPARADOS
+GAME_DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'game_data.db')
+SAVE_DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'saves.db')
 
-def get_connection():
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    return sqlite3.connect(DB_PATH)
+def get_game_connection():
+    os.makedirs(os.path.dirname(GAME_DB_PATH), exist_ok=True)
+    return sqlite3.connect(GAME_DB_PATH)
+
+def get_save_connection():
+    os.makedirs(os.path.dirname(SAVE_DB_PATH), exist_ok=True)
+    return sqlite3.connect(SAVE_DB_PATH)
+
+def _get_conn(table):
+    # Se a tabela for 'saves', conecta no banco de saves. Se não, no banco do jogo.
+    if table == 'saves': return get_save_connection()
+    return get_game_connection()
 
 def init_db():
-    conn = get_connection()
+    # ==== 1. INICIALIZA BANCO DO JOGO (Peças, Monstros, Cenários) ====
+    conn = get_game_connection()
     cursor = conn.cursor()
     
     cursor.execute('''CREATE TABLE IF NOT EXISTS scenarios (
@@ -16,8 +28,12 @@ def init_db():
     )''')
     
     cursor.execute('''CREATE TABLE IF NOT EXISTS bodies (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, img_front TEXT, img_back TEXT
+        id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, img_front TEXT, img_back TEXT, is_playable INTEGER DEFAULT 0
     )''')
+    
+    # Migração segura para adicionar a coluna caso o banco já exista
+    try: cursor.execute("ALTER TABLE bodies ADD COLUMN is_playable INTEGER DEFAULT 0")
+    except sqlite3.OperationalError: pass
 
     cursor.execute('''CREATE TABLE IF NOT EXISTS equipments (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,38 +47,41 @@ def init_db():
         name TEXT, effect_type TEXT, effect_value INTEGER, img_path TEXT, drop_chance INTEGER DEFAULT 20
     )''')
     
-    # Atualizamos a criação base para ter a coluna custom_drops
     cursor.execute('''CREATE TABLE IF NOT EXISTS characters (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT, hp INTEGER, attack INTEGER, race TEXT,
         img_front TEXT, img_back TEXT, equipment_data TEXT,
         custom_drops TEXT DEFAULT '[]'
     )''')
-
-    # TENTA ADICIONAR A COLUNA CASO O BANCO JÁ EXISTA ANTIGAMENTE (MIGRAÇÃO SEGURA)
-    try:
-        cursor.execute("ALTER TABLE characters ADD COLUMN custom_drops TEXT DEFAULT '[]'")
-    except sqlite3.OperationalError:
-        pass # A coluna já existe, segue o jogo.
-
-    cursor.execute('''CREATE TABLE IF NOT EXISTS player_save (
-        id INTEGER PRIMARY KEY DEFAULT 1,
-        gold INTEGER DEFAULT 0,
-        active_character_id INTEGER,
-        current_hp INTEGER DEFAULT 100,
-        inventory_data TEXT DEFAULT '{"equipments":[], "consumables": {}}',
-        FOREIGN KEY(active_character_id) REFERENCES characters(id)
-    )''')
-
-    cursor.execute('SELECT COUNT(*) FROM player_save WHERE id = 1')
-    if cursor.fetchone()[0] == 0:
-        cursor.execute('INSERT INTO player_save (id, gold, current_hp, inventory_data) VALUES (1, 0, 100, \'{"equipments":[], "consumables": {}}\')')
+    
+    try: cursor.execute("ALTER TABLE characters ADD COLUMN custom_drops TEXT DEFAULT '[]'")
+    except sqlite3.OperationalError: pass
 
     conn.commit()
     conn.close()
 
+    # ==== 2. INICIALIZA BANCO DE SAVES (Jogadores) ====
+    conn_save = get_save_connection()
+    cursor_save = conn_save.cursor()
+    
+    cursor_save.execute('''CREATE TABLE IF NOT EXISTS saves (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        body_id INTEGER,
+        gold INTEGER DEFAULT 0,
+        max_hp INTEGER DEFAULT 100,
+        current_hp INTEGER DEFAULT 100,
+        attack INTEGER DEFAULT 10,
+        equipment_data TEXT DEFAULT '{}',
+        inventory_data TEXT DEFAULT '{"equipments":[], "consumables": {}}',
+        last_played TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )''')
+    
+    conn_save.commit()
+    conn_save.close()
+
 def insert_item(table, data_dict):
-    conn = get_connection()
+    conn = _get_conn(table)
     cursor = conn.cursor()
     columns = ', '.join(data_dict.keys())
     placeholders = ', '.join('?' * len(data_dict))
@@ -72,7 +91,7 @@ def insert_item(table, data_dict):
     conn.close()
 
 def update_item(table, item_id, data_dict):
-    conn = get_connection()
+    conn = _get_conn(table)
     cursor = conn.cursor()
     set_clause = ', '.join([f"{key} = ?" for key in data_dict.keys()])
     sql = f'UPDATE {table} SET {set_clause} WHERE id = ?'
@@ -83,7 +102,7 @@ def update_item(table, item_id, data_dict):
     conn.close()
 
 def delete_item(table, item_id):
-    conn = get_connection()
+    conn = _get_conn(table)
     cursor = conn.cursor()
     cursor.execute(f'DELETE FROM {table} WHERE id = ?', (item_id,))
     conn.commit()
@@ -91,7 +110,7 @@ def delete_item(table, item_id):
 
 def get_all_items(table):
     try:
-        conn = get_connection()
+        conn = _get_conn(table)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute(f'SELECT * FROM {table}')

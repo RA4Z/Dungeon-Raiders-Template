@@ -1,0 +1,79 @@
+<div id="city-screen" class="game-view active-view">
+    <h1 class="city-title">Capital de Ferro</h1>
+    <div class="city-locations">
+        <div class="location-btn btn-casa" onclick="goToLocation('casa')"><span>🏠 Sua Casa</span></div>
+        <div class="location-btn btn-centro" onclick="openInventory()"><span>🎒 Abrir Inventário</span></div>
+        <div class="location-btn btn-bar" onclick="goToLocation('bar')"><span>🍺 Taverna</span></div>
+        <div class="location-btn btn-caverna" onclick="goToLocation('caverna')"><span>💀 Entrar na Caverna</span></div>
+    </div>
+    <div id="player-status-bar">
+        <span id="session-status" style="font-size: 1.2rem; font-weight:bold; color:#3498db;">Sessão Não Iniciada</span>
+    </div>
+</div>
+
+<div id="location-screen" class="game-view">
+    <button class="btn-voltar" onclick="backToCity()">⬅ Voltar</button>
+    <div id="loc-dialogue-box">
+        <h2 id="loc-title">Local</h2><p id="loc-text">Descrição...</p>
+        <div id="loc-actions" style="margin-top: 15px;"></div>
+    </div>
+</div>
+
+<div id="combat-screen" class="game-view">
+    <div id="battlefield">
+        <div id="player-container"><div id="player-layers" class="paper-doll-container" style="display:none;"></div><img id="player-image" src="" style="display:none;"></div>
+        <div id="enemy-container"><div id="enemy-layers" class="paper-doll-container" style="display:none;"></div><img id="enemy-image" src="" style="display:none;"></div>
+    </div>
+    <div id="visual-novel-ui">
+        <div class="battle-stats">
+            <div class="stat-block player-stat">
+                <span id="player-name-ui">Jogador</span>
+                <div class="hp-bar-bg"><div id="player-hp-fill" class="hp-bar-fill player-hp"></div></div>
+                <span id="player-hp-text" class="hp-text">HP: 0/0</span>
+            </div>
+            <div class="stat-block enemy-stat">
+                <span id="enemy-name">Inimigo</span>
+                <div class="hp-bar-bg"><div id="enemy-hp-fill" class="hp-bar-fill"></div></div>
+                <span id="enemy-hp-text" class="hp-text">HP: 0/0</span>
+            </div>
+        </div>
+        <div class="dialogue-box"><p id="combat-dialogue">Buscando Inimigo...</p></div>
+        <div class="actions">
+            <button id="attack-btn" onclick="startTurnSequence()">ATACAR</button>
+            <button id="flee-btn" onclick="fleeBattle()" style="background:#8e44ad;">FUGIR</button>
+        </div>
+    </div>
+</div>
+
+<div id="loot-modal" class="modal-overlay" style="display: none;">
+    <div class="loot-box">
+        <h2>Vitória!</h2><ul id="loot-list"></ul>
+        <div class="loot-actions">
+            <button onclick="continueDungeon()" style="background:#2980b9;">⚔️ Continuar Explorando</button>
+            <button onclick="openInventory()" style="background:#f39c12;">🎒 Inventário</button>
+            <button onclick="closeLootAndReturn()" style="background:#c0392b;">⬅ Voltar à Cidade</button>
+        </div>
+    </div>
+</div>
+
+<div id="inventory-modal" class="modal-overlay" style="display: none;">
+    <div class="inv-box">
+        <button class="inv-close" onclick="closeInventory()">X</button>
+        <h2>Inventário de <span id="inv-player-name"></span></h2>
+        <div class="inv-content">
+            <div class="inv-preview-pane">
+                <div class="paper-doll-container" id="inv-doll-preview" style="transform: scale(1.5); margin: 30px auto;"></div>
+                <div class="inv-stats-box">HP: <span id="inv-hp">0</span> | Ouro: <span id="inv-gold">0</span></div>
+                <div id="inv-equipped-list" class="inv-equipped-container"></div>
+            </div>
+            <div class="inv-items-pane">
+                <div class="inv-tabs">
+                    <button class="active" onclick="switchInvTab('equipments', this)">Equipamentos</button>
+                    <button onclick="switchInvTab('consumables', this)">Consumíveis</button>
+                </div>
+                <div id="inv-grid-equipments" class="inv-grid active"></div>
+                <div id="inv-grid-consumables" class="inv-grid"></div>
+            </div>
+        </div>
+    </div>
+</div>

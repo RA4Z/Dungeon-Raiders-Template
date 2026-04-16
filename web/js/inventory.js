@@ -1,3 +1,5 @@
+// web/js/inventory.js
+
 function openInventory() {
     if(!window.activePlayer) {
         alert("Nenhum personagem selecionado para o inventário!");
@@ -20,6 +22,16 @@ function switchInvTab(tabName, btn) {
     document.getElementById(`inv-grid-${tabName}`).classList.add('active');
 }
 
+// NOVA FUNÇÃO: Facilita salvar tudo no banco de dados do Save atual
+async function syncInventoryToDB() {
+    await window.pywebview.api.sync_player_state(
+        window.activeSaveId, // <- Aqui usamos o ID do Save, não do personagem base
+        window.playerHP, 
+        JSON.stringify(window.playerInventory), 
+        JSON.stringify(window.activePlayer.equipment_data)
+    );
+}
+
 function renderInventory() {
     // 1. Atualiza Status
     document.getElementById('inv-hp').innerText = `${window.playerHP} / ${window.activePlayer.hp}`;
@@ -30,14 +42,14 @@ function renderInventory() {
         buildBattleCharacter(window.activePlayer, 'f', 'NULL', 'inv-doll-preview');
     }
 
-    // 3. NOVO: Renderiza as peças EQUIPADAS no corpo do personagem
+    // 3. Renderiza as peças EQUIPADAS no corpo do personagem
     const eqContainer = document.getElementById('inv-equipped-list');
     if (eqContainer) {
         eqContainer.innerHTML = '';
         let eqDataMap = typeof window.activePlayer.equipment_data === 'string' ? JSON.parse(window.activePlayer.equipment_data) : window.activePlayer.equipment_data;
 
         window.EQUIP_SLOTS.forEach(slot => {
-            if(slot === 'base') return; // Não dá pra desequipar o corpo (ficar sem pele)
+            if(slot === 'base') return; // Não dá pra desequipar o corpo base
 
             const itemId = eqDataMap[slot];
             if (itemId) {
@@ -68,7 +80,7 @@ function renderInventory() {
         const itemObj = window.gameData.equipments.find(e => e.id == itemId);
         if(itemObj) {
             gridEq.innerHTML += `
-                <div class="inv-item-card" onclick="equipItem(${idx})" title="Atk:${itemObj.bonus_str} | Def:${itemObj.def_phys}\nEquipar">
+                <div class="inv-item-card" onclick="equipItem(${idx})" title="Atk:${itemObj.bonus_str} | Def:${itemObj.def_phys}\nClique para Equipar">
                     <img src="${itemObj.img_front || 'assets/no_image.png'}" onerror="this.style.display='none'">
                     <span class="inv-item-name">${itemObj.name}</span>
                     <span class="inv-item-qty">${itemObj.type.toUpperCase()}</span>
@@ -86,7 +98,7 @@ function renderInventory() {
             const itemObj = window.gameData.consumables.find(c => c.id == cId);
             if(itemObj) {
                 gridCons.innerHTML += `
-                    <div class="inv-item-card" onclick="useConsumable(${cId})" title="Efeito: ${itemObj.effect_type} +${itemObj.effect_value}\nUsar Poção">
+                    <div class="inv-item-card" onclick="useConsumable(${cId})" title="Efeito: ${itemObj.effect_type} +${itemObj.effect_value}\nClique para Usar">
                         <img src="${itemObj.img_path || 'assets/potion.png'}" onerror="this.style.display='none'">
                         <span class="inv-item-name">${itemObj.name}</span>
                         <span class="inv-item-qty">Qtde: ${qty}</span>
@@ -97,12 +109,8 @@ function renderInventory() {
     }
 }
 
-// FUNÇÃO PARA EQUIPAR (Já existia, mas melhorada)
+// FUNÇÃO PARA EQUIPAR UM ITEM DA MOCHILA
 async function equipItem(invIndex) {
-    if(window.activePlayer.race !== 'humano') {
-        alert("Monstros não podem equipar roupas/armas!"); return;
-    }
-
     const newItemId = window.playerInventory.equipments[invIndex];
     const newItemDef = window.gameData.equipments.find(e => e.id == newItemId);
     if (!newItemDef) return;
@@ -110,7 +118,7 @@ async function equipItem(invIndex) {
     // Tira do inventário
     window.playerInventory.equipments.splice(invIndex, 1);
     
-    // Verifica slot e joga o item velho pra mochila
+    // Verifica slot e joga o item velho pra mochila, se houver
     const slot = newItemDef.type;
     let eqDataMap = typeof window.activePlayer.equipment_data === 'string' ? JSON.parse(window.activePlayer.equipment_data) : window.activePlayer.equipment_data;
     
@@ -118,25 +126,24 @@ async function equipItem(invIndex) {
         window.playerInventory.equipments.push(eqDataMap[slot]);
     }
     
+    // Equipa o item novo
     eqDataMap[slot] = newItemId;
     window.activePlayer.equipment_data = eqDataMap;
 
-    await window.pywebview.api.sync_player_state(
-        window.activePlayer.id, window.playerHP, 
-        JSON.stringify(window.playerInventory), JSON.stringify(window.activePlayer.equipment_data)
-    );
+    // Salva no Banco de Dados do Save Game
+    await syncInventoryToDB();
 
+    // Recarrega a tela do inventário
     renderInventory();
     
+    // Se a tela de combate estiver no fundo, atualiza a imagem do jogador
     if(document.getElementById('combat-screen').classList.contains('active-view')) {
         buildBattleCharacter(window.activePlayer, 'b', 'player-image', 'player-layers');
     }
 }
 
-// NOVA: FUNÇÃO PARA DESEQUIPAR
+// FUNÇÃO PARA DESEQUIPAR UMA PEÇA DO CORPO
 async function unequipItem(slot) {
-    if(window.activePlayer.race !== 'humano') return;
-
     let eqDataMap = typeof window.activePlayer.equipment_data === 'string' ? JSON.parse(window.activePlayer.equipment_data) : window.activePlayer.equipment_data;
 
     // Verifica se realmente existe algo equipado no slot
@@ -151,13 +158,8 @@ async function unequipItem(slot) {
     delete eqDataMap[slot];
     window.activePlayer.equipment_data = eqDataMap;
 
-    // Salva a alteração no Banco de Dados
-    await window.pywebview.api.sync_player_state(
-        window.activePlayer.id, 
-        window.playerHP, 
-        JSON.stringify(window.playerInventory), 
-        JSON.stringify(window.activePlayer.equipment_data)
-    );
+    // Salva no Banco de Dados do Save Game
+    await syncInventoryToDB();
 
     // Recarrega a tela para a roupa sumir da prévia
     renderInventory();
@@ -176,19 +178,19 @@ async function useConsumable(cId) {
 
     const itemObj = window.gameData.consumables.find(c => c.id == cId);
     if(itemObj && itemObj.effect_type === 'heal_hp') {
+        // Cura e limita no HP Máximo do personagem
         window.playerHP = Math.min(window.activePlayer.hp, window.playerHP + itemObj.effect_value);
         
+        // Remove 1 poção do inventário
         window.playerInventory.consumables[cId]--;
         if(window.playerInventory.consumables[cId] <= 0) {
             delete window.playerInventory.consumables[cId];
         }
 
-        await window.pywebview.api.sync_player_state(
-            window.activePlayer.id, window.playerHP, 
-            JSON.stringify(window.playerInventory), 
-            typeof window.activePlayer.equipment_data === 'string' ? window.activePlayer.equipment_data : JSON.stringify(window.activePlayer.equipment_data)
-        );
+        // Salva as mudanças no Banco de Dados
+        await syncInventoryToDB();
 
+        // Recarrega a tela
         renderInventory();
     }
 }

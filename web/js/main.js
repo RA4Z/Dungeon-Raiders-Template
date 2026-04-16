@@ -1,55 +1,64 @@
-window.addEventListener('pywebviewready', async function() {
-    console.log("API Python Pronta.");
-    await window.refreshData();
+let isHtmlLoaded = false;
+let isApiReady = false;
+
+// 1. Carrega os pedaços de HTML assim que a tela abre
+window.addEventListener('DOMContentLoaded', async () => {
+    const pages =[
+        { id: 'menu-tab', file: 'pages/menu.html' },
+        { id: 'game-tab', file: 'pages/game.html' },
+        { id: 'admin-tab', file: 'pages/forge.html' },
+        { id: 'char-tab', file: 'pages/builder.html' },
+        { id: 'crud-tab', file: 'pages/database.html' }
+    ];
+
+    for (let p of pages) {
+        try {
+            const res = await fetch(p.file);
+            if(res.ok) {
+                document.getElementById(p.id).innerHTML = await res.text();
+            } else {
+                console.error(`Falha ao carregar ${p.file}`);
+            }
+        } catch(e) {
+            console.error(e);
+        }
+    }
+    
+    isHtmlLoaded = true;
+    checkReady();
 });
 
-window.refreshData = async function() {
-    console.log("Solicitando dados ao Banco...");
-    try {
-        window.gameData = await window.pywebview.api.load_data();
-        console.log("Dados recebidos:", window.gameData);
+// 2. Aguarda a comunicação com o Python estar pronta
+window.addEventListener('pywebviewready', () => {
+    isApiReady = true;
+    checkReady();
+});
 
-        // Atualiza Dropdown da Cidade (quem o jogador controla)
-        const selCity = document.getElementById('active-character-select');
-        if (selCity) {
-            const currentVal = selCity.value;
-            selCity.innerHTML = '<option value="">-- Selecionar Herói --</option>';
-            window.gameData.characters.forEach(c => {
-                selCity.innerHTML += `<option value="${c.id}">${c.name}</option>`;
-            });
-            selCity.value = currentVal;
-        }
-
-        // Atualiza os dropdowns da tela de Montagem de Personagem
-        if (typeof buildSelects === "function") {
-            buildSelects();
-        }
-
-        // Atualiza tabela do CRUD se estiver nela
-        if (typeof renderCrudTable === "function") {
-            renderCrudTable();
-        }
-
-    } catch (err) {
-        console.error("Erro ao carregar dados:", err);
+// 3. Quando TUDO estiver pronto, pede os dados ao banco
+async function checkReady() {
+    if (isHtmlLoaded && isApiReady) {
+        await window.refreshData();
     }
-};
+}
 
+// 4. Função global para buscar os dados no banco
+window.refreshData = async function() {
+    window.gameData = await window.pywebview.api.load_data();
+    
+    // Alimenta as telas que precisam dos dados imediatamente
+    if (typeof loadMenuSaves === "function") loadMenuSaves();
+    if (typeof buildSelects === "function") buildSelects();
+    if (typeof renderCrudTable === "function") renderCrudTable();
+}
+
+// 5. Sistema de Navegação (Abas)
 window.showTab = function(tabId, btnElement) {
-    // Esconde todas as abas
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    // Mostra a selecionada
     document.getElementById(tabId).classList.add('active');
     
-    // Estilo dos botões
     document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
     if (btnElement) btnElement.classList.add('active');
     
-    // Toda vez que mudar de aba, atualizamos os dados para garantir que itens novos apareçam
-    window.refreshData();
-
-    // Lógicas específicas de aba
-    if (tabId === 'game-tab' && typeof updateCityUI === "function") {
-        updateCityUI();
-    }
+    // Atualiza os dados sempre que mudar de tela
+    if (isApiReady) window.refreshData();
 };

@@ -1,0 +1,58 @@
+<h1>Montagem de Personagem / Monstro</h1>
+<div class="forms-grid" style="align-items: flex-start;">
+    <div class="form-card" style="flex: 2;" id="form-char">
+        <div class="attr-grid">
+            <label>Nome <input type="text" id="ch-name"></label>
+            <label>Raça:
+                <select id="ch-race" onchange="toggleRaceFields()">
+                    <option value="humano">Humanoide (Montar por Peças)</option>
+                    <option value="monstro">Monstro Único (Simples)</option>
+                </select>
+            </label>
+            <label>HP Máximo <input type="number" id="ch-hp" value="100"></label>
+            <label>Ataque Base <input type="number" id="ch-atk" value="10"></label>
+        </div>
+
+        <div id="simple-fields" style="display:none; margin-top: 15px;">
+            <label>Img Frente (Corpo inteiro)</label>
+            <div class="file-input-group"><input type="text" id="ch-img-f" oninput="updateMiniPrev(this.id, 'prev-ch-f'); toggleRaceFields();"><img id="prev-ch-f" class="mini-preview" src=""></div>
+            <label>Img Verso (Costas)</label>
+            <div class="file-input-group"><input type="text" id="ch-img-b" oninput="updateMiniPrev(this.id, 'prev-ch-b')"><img id="prev-ch-b" class="mini-preview" src=""></div>
+            <div style="background: #222; padding: 15px; border-radius: 8px; margin-top: 15px; border: 1px solid #444;">
+                <h4 style="color: #3498db; margin-bottom: 10px;">Loot do Monstro</h4>
+                <div class="attr-grid" style="align-items: end;">
+                    <label>Item / Equipamento:<select id="cd-item"></select></label>
+                    <label>Chance de Drop (%):<input type="number" id="cd-chance" value="50" min="1" max="100"></label>
+                </div>
+                <button onclick="addCustomDrop()" style="background:#2980b9; padding:8px; margin-bottom:10px;">+ Adicionar à Lista de Loot</button>
+                <ul id="cd-list" style="list-style: none; padding: 0; font-size: 0.9em;"></ul>
+            </div>
+        </div>
+
+        <div id="human-fields" style="margin-top: 15px;">
+            <div class="attr-grid">
+                <label>Corpo Base: <select id="sel-base" onchange="updateDollPreview()"></select></label>
+                <label>Rosto: <select id="sel-face" onchange="updateDollPreview()"></select></label>
+                <label>Cabelo: <select id="sel-hair" onchange="updateDollPreview()"></select></label>
+                <label>Camisa: <select id="sel-shirt" onchange="updateDollPreview()"></select></label>
+                <label>Calças: <select id="sel-pants" onchange="updateDollPreview()"></select></label>
+                <label>Capacete: <select id="sel-helmet" onchange="updateDollPreview()"></select></label>
+                <label>Luvas: <select id="sel-gloves" onchange="updateDollPreview()"></select></label>
+                <label>Botas: <select id="sel-boots" onchange="updateDollPreview()"></select></label>
+                <label>Mão Direita: <select id="sel-hand_r" onchange="updateDollPreview()"></select></label>
+                <label>Mão Esquerda: <select id="sel-hand_l" onchange="updateDollPreview()"></select></label>
+                <label style="grid-column: span 2;">Acessório: <select id="sel-accessory" onchange="updateDollPreview()"></select></label>
+            </div>
+        </div>
+        <button onclick="saveCharacter()" style="margin-top:20px;">Salvar no Banco de Dados</button>
+        <p id="char-msg" class="msg-alert"></p>
+    </div>
+
+    <div class="form-card" style="flex: 1;" id="preview-panel">
+        <h3>Pré-Visualização</h3>
+        <div class="preview-boxes" style="display:flex; justify-content:space-around; background:#111; padding:20px; border-radius:5px;">
+            <div class="paper-doll-container" id="prev-front"></div>
+            <div class="paper-doll-container" id="prev-back"></div>
+        </div>
+    </div>
+</div>

@@ -150,14 +150,13 @@ async function enemyReviveTurn() {
 }
 
 async function winBattle() {
-    document.getElementById('combat-dialogue').innerText = "Inimigo derrotado! Coletando os espólios...";
+    document.getElementById('combat-dialogue').innerText = "VITÓRIA! Buscando loots...";
     document.getElementById('enemy-layers').innerHTML = '';
     document.getElementById('enemy-image').style.display = 'none';
 
-    // MODIFICAÇÃO AQUI: Passamos o ID do inimigo atual (window.currentEnemy.id)
-    const lootRes = await window.pywebview.api.generate_loot(window.currentEnemy.id);
+    // IMPORTANTE: Agora enviamos o ID do SAVE ATIVO para o Python
+    const lootRes = await window.pywebview.api.generate_loot(window.currentEnemy.id, window.activeSaveId);
     
-    // Atualiza o estado do inventário e ouro com o que o Python processou
     window.playerInventory = lootRes.new_inventory;
     window.playerGold = lootRes.new_gold;
 
