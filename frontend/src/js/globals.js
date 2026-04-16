@@ -4,9 +4,12 @@ window.EQUIP_SLOTS =['base', 'face', 'hair', 'pants', 'shirt', 'boots', 'gloves'
 window.activeSaveId = null;
 window.activePlayer = null;
 
-// Gestão de Recursos Atuais (Player e Inimigo)
+// Gestão de Recursos Atuais do Player
 window.playerHP = 100; window.playerMana = 100; window.playerStamina = 100;
-window.enemyHP = 0;    window.enemyMana = 0;    window.enemyStamina = 0;
+
+// === NOVO SISTEMA MULTI-INIMIGOS ===
+window.MAX_ENEMIES_IN_COMBAT = 3; // Mude este número facilmente no futuro
+window.currentEnemies =[]; // Array que guardará objetos dos inimigos vivos/mortos
 
 window.isTurnBusy = false;
 window.playerInventory = { equipments:[], consumables: {} };
@@ -18,23 +21,18 @@ window.playerAttacks = [1];
 window.playerHotbar =[1, null, null, null, null, null, null, null, null, null];
 window.attackExp = { "1": { xp: 0, level: 1 } };
 
-// Sincroniza HUD de Topo, Cidade e Inventário
 window.updateHUD = function() {
-    // Atualiza status na barra inferior da cidade
     const statusEl = document.getElementById('session-status');
     if (statusEl && window.activePlayer) {
         statusEl.innerText = `Herói: ${window.activePlayer.name} | Ouro: ${window.playerGold}`;
     }
     
-    // Atualiza dias na barra inferior da cidade
     const daysEl = document.getElementById('session-days');
     if (daysEl) daysEl.innerText = `Dia: ${window.playerDays}`;
     
-    // Atualiza ouro no inventário
     const invGold = document.getElementById('inv-gold');
     if (invGold) invGold.innerText = window.playerGold;
 
-    // Atualiza HP/MP/SP no inventário
     const invHp = document.getElementById('inv-hp');
     const invMp = document.getElementById('inv-mp');
     const invSp = document.getElementById('inv-sp');

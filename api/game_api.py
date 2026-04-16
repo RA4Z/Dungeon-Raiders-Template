@@ -6,7 +6,6 @@ import random
 import sqlite3
 
 class GameAPI:
-    # ATUALIZADO: Retorna custos e informa se houve esquiva
     def process_battle_turn(self, attacker_stats, defender_stats, attack_id, attack_level=1):
         attacks = get_all_items("attacks")
         atk = next((a for a in attacks if str(a['id']) == str(attack_id)), None)
@@ -19,28 +18,23 @@ class GameAPI:
         mana_cost = int(atk.get('mana_cost', 0))
         stamina_cost = int(atk.get('stamina_cost', 0))
         
-        # O level aumenta o dano base em 0.1 por nível
         base_power = float(atk.get('base_power', 0)) + ((int(attack_level) - 1) * 0.1)
         
-        try:
-            scaling = json.loads(atk.get('scaling', '{}'))
-        except:
-            scaling = {}
+        try: scaling = json.loads(atk.get('scaling', '{}'))
+        except: scaling = {}
 
-        # 1. SISTEMA DE ESQUIVA (Dodge)
-        # Chance Base: 5%. Diferença de Destreza concede 2% de chance por ponto
         def_des = float(defender_stats['base'].get('des', 1))
         atk_des = float(attacker_stats['base'].get('des', 1))
         dodge_chance = 5.0 + ((def_des - atk_des) * 2.0)
-        dodge_chance = max(5.0, min(80.0, dodge_chance)) # Limitado entre 5% e 80%
+        dodge_chance = max(5.0, min(80.0, dodge_chance))
 
         is_dodged = random.uniform(0, 100) <= dodge_chance
 
         if is_dodged:
             msg = f"{atk['name']} errou! O alvo se esquivou rapidamente!"
-            return {"damage": 0, "msg": msg, "dodged": True, "hp_cost": hp_cost, "mana_cost": mana_cost, "stamina_cost": stamina_cost}
+            # ATUALIZADO: Retornando is_crit e atk_type
+            return {"damage": 0, "msg": msg, "dodged": True, "hp_cost": hp_cost, "mana_cost": mana_cost, "stamina_cost": stamina_cost, "is_crit": False, "atk_type": atk_type}
 
-        # 2. CÁLCULO DE DANO (Se não esquivou)
         stat_dmg = base_power
         for stat, mult in scaling.items():
             stat_dmg += float(attacker_stats['base'].get(stat, 1)) * float(mult)
@@ -53,15 +47,15 @@ class GameAPI:
             defense = defender_stats['computed']['mag_res'] * 0.5
 
         raw_dmg = raw_dmg - defense
-        
         is_crit = random.uniform(0, 100) <= attacker_stats['computed']['crit_rate']
         crit_mult = (attacker_stats['computed']['crit_dmg'] / 100.0) if is_crit else 1.0
 
         damage = max(1, int(raw_dmg * random.uniform(0.9, 1.1) * crit_mult))
-        
         msg = f"Usou {atk['name']}! Causou {damage} de dano{(' crítico!' if is_crit else '.')}"
-        return {"damage": damage, "msg": msg, "dodged": False, "hp_cost": hp_cost, "mana_cost": mana_cost, "stamina_cost": stamina_cost}
-
+        
+        # ATUALIZADO: Retornando is_crit e atk_type
+        return {"damage": damage, "msg": msg, "dodged": False, "hp_cost": hp_cost, "mana_cost": mana_cost, "stamina_cost": stamina_cost, "is_crit": is_crit, "atk_type": atk_type}
+    
     def compute_full_stats(self, base_stats, equipment_ids, overrides=None):
         bonus = {}
         equipments_db = get_all_items("equipments")

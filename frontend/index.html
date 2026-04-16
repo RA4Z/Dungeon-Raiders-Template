@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>RPG Clicker</title>
-    <!-- Caminhos atualizados para a nova estrutura -->
     <link rel="stylesheet" href="src/css/base.css">
     <link rel="stylesheet" href="src/css/admin.css">
     <link rel="stylesheet" href="src/css/game.css">
@@ -19,23 +18,26 @@
         <button onclick="showTab('crud-tab', this)">Banco de Dados</button>
     </nav>
 
-    <!-- OS CONTEÚDOS SERÃO INJETADOS AQUI PELO MAIN.JS -->
     <div id="menu-tab" class="tab-content active" style="padding: 0;"></div>
     <div id="game-tab" class="tab-content" style="padding: 0;"></div>
     <div id="admin-tab" class="tab-content"></div>
     <div id="char-tab" class="tab-content"></div>
     <div id="crud-tab" class="tab-content"></div>
 
-    <!-- SCRIPTS - Caminhos atualizados para a nova estrutura -->
+    <!-- SCRIPTS ATUALIZADOS -->
     <script src="src/js/globals.js"></script>
     <script src="src/js/admin.js"></script>
     <script src="src/js/main_menu.js"></script>
     <script src="src/js/stats_system.js"></script>
     <script src="src/js/builder.js"></script>
     <script src="src/js/game_city.js"></script>
-    <script src="src/js/game_combat.js"></script>
     <script src="src/js/inventory.js"></script>
     <script src="src/js/level_system.js"></script>
+    
+    <!-- NOVOS ARQUIVOS DE COMBATE AQUI -->
+    <script src="src/js/combat_ui.js"></script>
+    <script src="src/js/combat_core.js"></script>
+    
     <script src="src/js/main.js"></script>
 </body>
 </html>
