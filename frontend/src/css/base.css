@@ -9,3 +9,19 @@ body { background-color: #1a1a1a; color: #fff; height: 100vh; display: flex; fle
 
 .tab-content { display: none; height: calc(100vh - 60px); padding: 20px; overflow-y: auto;}
 .tab-content.active { display: block; }
+
+/* Feedback Visual / Toasts */
+#toast-container {
+    position: fixed; top: 20px; right: 20px; z-index: 99999;
+    display: flex; flex-direction: column; gap: 10px; pointer-events: none;
+}
+.toast {
+    background: #2c3e50; border-left: 5px solid #2ecc71; color: #fff;
+    padding: 15px 25px; border-radius: 5px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    font-weight: bold; font-size: 1rem; display: flex; align-items: center; gap: 10px;
+    animation: slideInRight 0.3s ease, fadeOut 0.5s ease 2.5s forwards;
+    pointer-events: auto;
+}
+.toast.error { border-left-color: #e74c3c; }
+@keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-10px); } }

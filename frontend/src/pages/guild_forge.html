@@ -1,0 +1,103 @@
+<!-- Incluir dentro de forge.html ou como página separada no admin-tab -->
+<!-- Seção de Guildas para a Forja -->
+
+<div style="margin-top:30px; border-top:2px solid #e67e22; padding-top:20px;">
+    <h2 style="color:#e67e22; font-family:serif; margin-bottom:15px;">🏰 Gerenciar Guildas</h2>
+
+    <div class="forms-grid" style="align-items:flex-start;">
+
+        <!-- CRIAR / EDITAR GUILDA -->
+        <div class="form-card" id="form-guild">
+            <input type="hidden" id="edit-guild-id" value="">
+            <h3>Nova Guilda</h3>
+            <label>Nome da Guilda</label>
+            <input type="text" id="guild-name" placeholder="Ex: Ordem do Aço">
+
+            <label>Descrição</label>
+            <textarea id="guild-description" rows="2" style="width:100%; padding:8px; margin-bottom:10px; border-radius:4px; border:1px solid #555; background:#111; color:white;"></textarea>
+
+            <div class="attr-grid">
+                <label>Cor do Emblema
+                    <input type="color" id="guild-color" value="#e74c3c" style="padding:2px; height:35px;">
+                </label>
+                <label>Ícone do Emblema
+                    <input type="text" id="guild-icon" value="⚔️" placeholder="Emoji ou símbolo">
+                </label>
+            </div>
+
+            <h4 style="color:#f39c12; margin-top:10px; margin-bottom:8px;">Nomes dos Ranks</h4>
+            <div class="attr-grid">
+                <label>Rank 1 (0 rep) <input type="text" id="guild-rank1" value="Recruta"></label>
+                <label>Rank 2 (20 rep) <input type="text" id="guild-rank2" value="Veterano"></label>
+                <label>Rank 3 (75 rep) <input type="text" id="guild-rank3" value="Elite"></label>
+                <label>Rank 4 (200 rep)<input type="text" id="guild-rank4" value="Campeão"></label>
+                <label style="grid-column:span 2;">Rank 5 (500 rep)<input type="text" id="guild-rank5" value="Lendário"></label>
+            </div>
+
+            <button onclick="saveGuild()" style="background:#e67e22; margin-top:10px;">Salvar Guilda</button>
+            <p id="guild-msg" class="msg-alert"></p>
+        </div>
+
+        <!-- CRIAR QUEST -->
+        <div class="form-card" id="form-guild-quest">
+            <input type="hidden" id="edit-gquest-id" value="">
+            <h3>Nova Quest de Guilda</h3>
+
+            <label>Guilda</label>
+            <select id="gq-guild-id" style="width:100%; padding:8px; margin-bottom:10px; border-radius:4px; border:1px solid #555; background:#111; color:white;"></select>
+
+            <label>Nome da Quest</label>
+            <input type="text" id="gq-name" placeholder="Ex: Caçada ao Ogro">
+
+            <label>Descrição</label>
+            <textarea id="gq-description" rows="2" style="width:100%; padding:8px; margin-bottom:10px; border-radius:4px; border:1px solid #555; background:#111; color:white;"></textarea>
+
+            <div class="attr-grid">
+                <label>Dificuldade (1-5)
+                    <input type="number" id="gq-difficulty" value="1" min="1" max="5">
+                </label>
+                <label>Recompensa em Ouro
+                    <input type="number" id="gq-gold" value="50" min="0">
+                </label>
+                <label>Reputação Ganha
+                    <input type="number" id="gq-rep" value="10" min="1">
+                </label>
+                <label>Limite de Dias (0=sem limite)
+                    <input type="number" id="gq-days" value="0" min="0">
+                </label>
+            </div>
+
+            <label>Kills necessários (0 = sem matar)</label>
+            <input type="number" id="gq-kills" value="0" min="0">
+
+            <label>Alvo (Personagem específico, ou 0 = qualquer)</label>
+            <select id="gq-target" style="width:100%; padding:8px; margin-bottom:10px; border-radius:4px; border:1px solid #555; background:#111; color:white;"></select>
+
+            <button onclick="saveGuildQuest()" style="background:#2980b9; margin-top:10px;">Salvar Quest</button>
+        </div>
+
+        <!-- ADICIONAR MEMBRO RECRUTÁVEL -->
+        <div class="form-card" id="form-guild-member">
+            <input type="hidden" id="edit-gmember-id" value="">
+            <h3>Adicionar Aliado Recrutável</h3>
+
+            <label>Guilda</label>
+            <select id="gm-guild-id" style="width:100%; padding:8px; margin-bottom:10px; border-radius:4px; border:1px solid #555; background:#111; color:white;"></select>
+
+            <label>Personagem (do Banco)</label>
+            <select id="gm-char-id" style="width:100%; padding:8px; margin-bottom:10px; border-radius:4px; border:1px solid #555; background:#111; color:white;"></select>
+
+            <div class="attr-grid">
+                <label>Custo de Contratação (🪙)
+                    <input type="number" id="gm-hire-cost" value="100" min="0">
+                </label>
+                <label>Salário Diário (🪙)
+                    <input type="number" id="gm-wage" value="10" min="0">
+                </label>
+            </div>
+
+            <button onclick="saveGuildMember()" style="background:#27ae60; margin-top:10px;">Adicionar à Guilda</button>
+        </div>
+
+    </div>
+</div>

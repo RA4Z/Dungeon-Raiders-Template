@@ -21,11 +21,11 @@ async function saveBody() {
         is_playable: (playableCheckbox && playableCheckbox.checked) ? 1 : 0
     };
 
-    if(!data.name) return alert("Preencha o nome do corpo!");
+    if(!data.name) return window.showToast("Preencha o nome do corpo!", "error");
     if (editId) await window.pywebview.api.update_entity('bodies', editId, data);
     else await window.pywebview.api.add_entity('bodies', data);
     
-    document.getElementById('admin-msg').innerText = "Corpo Salvo!";
+    window.showToast("Corpo Salvo com sucesso!", "success");
     clearInputs('form-body'); 
     if(playableCheckbox) playableCheckbox.checked = false;
     await window.refreshData();
@@ -47,10 +47,11 @@ async function saveEquipment() {
         stats_modifiers: JSON.stringify(mods)
     };
 
-    if(!data.name) return alert("Nome obrigatório!");
+    if(!data.name) return window.showToast("Nome obrigatório!", "error");
     if (editId) await window.pywebview.api.update_entity('equipments', editId, data);
     else await window.pywebview.api.add_entity('equipments', data);
 
+    window.showToast("Equipamento Forjado com sucesso!", "success");
     clearInputs('form-equip'); 
     window.renderForgeStats(); 
     await window.refreshData();
@@ -66,11 +67,11 @@ async function saveConsumable() {
         drop_chance: parseInt(document.getElementById('cons-drop').value) || 20
     };
 
-    if(!data.name) return alert("Nome obrigatório!");
+    if(!data.name) return window.showToast("Nome obrigatório!", "error");
     if (editId) await window.pywebview.api.update_entity('consumables', editId, data);
     else await window.pywebview.api.add_entity('consumables', data);
 
-    document.getElementById('admin-msg').innerText = "Consumível Salvo!"; 
+    window.showToast("Item Consumível Salvo!", "success");
     clearInputs('form-consumable'); 
     await window.refreshData();
 }
@@ -94,13 +95,13 @@ async function saveAttack() {
         base_power: parseFloat(document.getElementById('atk-base').value) || 0,
         scaling: JSON.stringify(scaling)
     };
-
-    if(!data.name) return alert("O Nome do Ataque é obrigatório!");
+    
+    if(!data.name) return window.showToast("O Nome do Ataque é obrigatório!", "error");
 
     if (editId) await window.pywebview.api.update_entity('attacks', editId, data);
     else await window.pywebview.api.add_entity('attacks', data);
 
-    document.getElementById('admin-msg').innerText = "Habilidade Salva!";
+    window.showToast("Habilidade Registrada!", "success");
     clearInputs('form-attack');
     await window.refreshData();
 }

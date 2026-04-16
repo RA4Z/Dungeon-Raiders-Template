@@ -148,17 +148,16 @@ async function saveCharacter() {
     const name = document.getElementById('ch-name').value;
     const race = document.getElementById('ch-race').value;
     
-    if (!name) return alert("Dê um nome ao personagem!");
+    if (!name) return window.showToast("Dê um nome ao personagem!", "error");
 
     let base = {};
     document.querySelectorAll('.char-base-stat').forEach(i => {
         base[i.dataset.stat] = parseInt(i.value) || 1;
     });
     
-    // Coletando as Habilidades Atribuídas
-    let selectedAttacks =[];
+    let selectedAttacks = [];
     document.querySelectorAll('.ch-atk-cb:checked').forEach(cb => selectedAttacks.push(parseInt(cb.value)));
-    if (selectedAttacks.length === 0) selectedAttacks = [1]; // Força a ter ao menos o ataque ID 1
+    if (selectedAttacks.length === 0) selectedAttacks = [1]; 
 
     let data = {
         name: name,
@@ -198,13 +197,13 @@ async function saveCharacter() {
     }
 
     if (res.status === "success") {
-        alert(res.message);
+        window.showToast("Personagem Salvo!", "success");
         document.getElementById('edit-char-id').value = "";
         document.getElementById('ch-name').value = "";
-        window.currentCustomDrops =[];
+        window.currentCustomDrops = [];
         renderCustomDrops();
         await window.refreshData();
     } else {
-        alert("Erro: " + res.message);
+        window.showToast("Erro: " + res.message, "error");
     }
 }

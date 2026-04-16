@@ -1,0 +1,89 @@
+<div id="guild-list-screen" class="guild-screen active-guild-screen">
+    <div class="guild-header">
+        <button class="btn-voltar" onclick="backToCity()">⬅ Voltar à Cidade</button>
+        <h1 class="guild-title">🏰 Guildas da Capital</h1>
+        <p style="color:#bdc3c7; font-size:0.95em;">Escolha uma guilda para interagir, aceitar quests e contratar aliados.</p>
+    </div>
+    <div id="guild-cards-container" class="guild-cards-grid"></div>
+</div>
+
+<div id="guild-detail-screen" class="guild-screen">
+    <div class="guild-header" style="flex-direction:row; justify-content:space-between; align-items:center;">
+        <button class="btn-voltar" onclick="backToGuildList()">⬅ Guildas</button>
+        <div style="text-align:center;">
+            <span id="guild-detail-emblem" style="font-size:2.5rem;"></span>
+            <h2 id="guild-detail-name" style="color:#f1c40f; font-family:serif;"></h2>
+        </div>
+        <div id="guild-rep-display" style="text-align:right;">
+            <div style="font-size:0.8em; color:#bdc3c7;">Sua Reputação</div>
+            <div id="guild-rep-value" style="font-size:1.4em; font-weight:bold; color:#2ecc71;">0</div>
+            <div id="guild-rank-badge" style="background:#444; padding:3px 10px; border-radius:12px; font-size:0.8em; margin-top:3px;"></div>
+        </div>
+    </div>
+
+    <div class="guild-tabs">
+        <button class="guild-tab-btn active" onclick="switchGuildTab('quests', this)">📜 Quests</button>
+        <button class="guild-tab-btn" onclick="switchGuildTab('members', this)">⚔️ Recrutar Aliados</button>
+        <button class="guild-tab-btn" onclick="switchGuildTab('ranking', this)">🏆 Ranking</button>
+    </div>
+
+    <!-- QUESTS -->
+    <div id="guild-tab-quests" class="guild-tab-content active-guild-tab">
+        <div style="display:flex; gap:15px; height:calc(100% - 10px);">
+            <div style="flex:1;">
+                <h3 style="color:#f39c12; margin-bottom:10px;">Quests Disponíveis</h3>
+                <div id="guild-quest-list" style="display:flex; flex-direction:column; gap:8px; overflow-y:auto; max-height:350px; padding-right:5px;"></div>
+            </div>
+            <div style="flex:1; background:#1a1a2e; border-radius:8px; padding:15px; border:1px solid #444;">
+                <h3 style="color:#3498db; margin-bottom:10px;">Quests Ativas</h3>
+                <div id="guild-active-quests" style="display:flex; flex-direction:column; gap:8px; overflow-y:auto; max-height:350px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MEMBERS / RECRUTAR -->
+    <div id="guild-tab-members" class="guild-tab-content">
+        <h3 style="color:#2ecc71; margin-bottom:10px;">Aliados Disponíveis para Contratar</h3>
+        <div id="guild-members-list" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:12px; overflow-y:auto; max-height:400px;"></div>
+
+        <h3 style="color:#e67e22; margin-top:20px; margin-bottom:10px;">Seus Aliados Contratados</h3>
+        <div id="guild-hired-list" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:12px; overflow-y:auto; max-height:250px;"></div>
+    </div>
+
+    <!-- RANKING -->
+    <div id="guild-tab-ranking" class="guild-tab-content">
+        <h3 style="color:#f1c40f; margin-bottom:15px;">🏆 Progressão de Rank</h3>
+        <div id="guild-ranking-ladder" style="display:flex; flex-direction:column; gap:8px; max-width:500px; margin: 0 auto;"></div>
+    </div>
+</div>
+
+<!-- MODAL: CONFIGURAR ALIADO -->
+<div id="ally-config-modal" class="modal-overlay" style="display:none;">
+    <div class="loot-box" style="min-width:520px; max-width:680px; text-align:left; padding:25px;">
+        <button class="inv-close" onclick="closeAllyConfig()" style="top:12px; right:15px;">X</button>
+        <h2 style="color:#f39c12; margin-bottom:5px;">⚙️ Configurar Aliado</h2>
+        <h3 id="ally-config-name" style="color:#3498db; margin-bottom:15px; font-size:1.1em;"></h3>
+
+        <div style="display:flex; gap:20px; flex-wrap:wrap;">
+            <!-- Rotina -->
+            <div style="flex:1; min-width:200px;">
+                <h4 style="color:#bdc3c7; margin-bottom:8px;">🗓️ Rotina Diária</h4>
+                <div style="display:flex; flex-direction:column; gap:6px;" id="routine-btns"></div>
+            </div>
+
+            <!-- Hotbar de habilidades -->
+            <div style="flex:2; min-width:280px;">
+                <h4 style="color:#bdc3c7; margin-bottom:8px;">⚔️ Barra de Habilidades do Aliado</h4>
+                <p style="font-size:0.8em; color:#7f8c8d; margin-bottom:8px;">Clique para adicionar/remover habilidades da barra deste aliado.</p>
+                <div id="ally-config-hotbar" class="bg3-hotbar" style="justify-content:flex-start; flex-wrap:wrap; gap:6px;"></div>
+                <h5 style="color:#bdc3c7; margin:10px 0 6px 0;">Habilidades Disponíveis:</h5>
+                <div id="ally-config-skills" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+            </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; margin-top:20px;">
+            <button onclick="saveAllyConfig()" style="background:#27ae60; padding:10px 25px; border:none; border-radius:5px; color:#fff; font-weight:bold; cursor:pointer;">💾 Salvar</button>
+            <button onclick="fireAlly()" style="background:#c0392b; padding:10px 25px; border:none; border-radius:5px; color:#fff; font-weight:bold; cursor:pointer;">🔥 Dispensar</button>
+        </div>
+    </div>
+</div>

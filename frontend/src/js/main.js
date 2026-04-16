@@ -1,3 +1,5 @@
+// frontend/src/js/main.js
+
 let isHtmlLoaded = false;
 let isApiReady = false;
 
@@ -11,6 +13,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         { id: 'crud-tab', file: 'src/pages/database.html' }
     ];
 
+    // Carrega as abas principais
     for (let p of pages) {
         try {
             const res = await fetch(p.file);
@@ -22,6 +25,30 @@ window.addEventListener('DOMContentLoaded', async () => {
         } catch(e) {
             console.error(e);
         }
+    }
+    
+    // 1.5. Injeta as sub-telas de Guilda
+    try {
+        // Tela In-Game da Guilda
+        const guildRes = await fetch('src/pages/guild.html');
+        if (guildRes.ok) {
+            const guildScreen = document.getElementById('guild-screen');
+            if (guildScreen) {
+                guildScreen.innerHTML = await guildRes.text();
+            }
+        }
+        
+        // Tela de Criação da Guilda na Forja (Administração)
+        const guildForgeRes = await fetch('src/pages/guild_forge.html');
+        if (guildForgeRes.ok) {
+            const adminTab = document.getElementById('admin-tab');
+            if (adminTab) {
+                // Anexa ao final dos formulários de forja existentes
+                adminTab.insertAdjacentHTML('beforeend', await guildForgeRes.text());
+            }
+        }
+    } catch(e) {
+        console.error("Erro ao carregar arquivos de guilda:", e);
     }
     
     isHtmlLoaded = true;

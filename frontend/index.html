@@ -2,12 +2,13 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>RPG Clicker</title>
+    <title>RPG Clicker Novel</title>
     <link rel="stylesheet" href="src/css/base.css">
     <link rel="stylesheet" href="src/css/admin.css">
     <link rel="stylesheet" href="src/css/game.css">
     <link rel="stylesheet" href="src/css/inventory.css">
     <link rel="stylesheet" href="src/css/menu.css">
+    <link rel="stylesheet" href="src/css/guild.css">
 </head>
 <body>
     <nav class="tabs">
@@ -18,13 +19,12 @@
         <button onclick="showTab('crud-tab', this)">Banco de Dados</button>
     </nav>
 
-    <div id="menu-tab" class="tab-content active" style="padding: 0;"></div>
-    <div id="game-tab" class="tab-content" style="padding: 0;"></div>
+    <div id="menu-tab" class="tab-content active" style="padding:0;"></div>
+    <div id="game-tab" class="tab-content" style="padding:0;"></div>
     <div id="admin-tab" class="tab-content"></div>
     <div id="char-tab" class="tab-content"></div>
     <div id="crud-tab" class="tab-content"></div>
 
-    <!-- SCRIPTS ATUALIZADOS -->
     <script src="src/js/globals.js"></script>
     <script src="src/js/admin.js"></script>
     <script src="src/js/main_menu.js"></script>
@@ -33,11 +33,11 @@
     <script src="src/js/game_city.js"></script>
     <script src="src/js/inventory.js"></script>
     <script src="src/js/level_system.js"></script>
-    
-    <!-- NOVOS ARQUIVOS DE COMBATE AQUI -->
     <script src="src/js/combat_ui.js"></script>
     <script src="src/js/combat_core.js"></script>
-    
+    <script src="src/js/dungeon_floors.js"></script>
+    <script src="src/js/guild.js"></script>
+    <script src="src/js/guild_admin.js"></script>
     <script src="src/js/main.js"></script>
 </body>
 </html>

@@ -65,11 +65,13 @@ window.updateATBBars = function() {
     if (!window.combatants) return;
     window.combatants.forEach(c => {
         if (c.isDead) return;
-        // Limita a barra de 0 a 100%
         let pct = Math.min(100, Math.max(0, (c.actionValue / 1000) * 100));
         
         if (c.isPlayer) {
             let el = document.getElementById('player-atb-fill');
+            if (el) el.style.width = `${pct}%`;
+        } else if (c.isAlly) {
+            let el = document.getElementById(`ally-atb-fill-${c.memberId}`);
             if (el) el.style.width = `${pct}%`;
         } else {
             let el = document.getElementById(`enemy-atb-fill-${c.id}`);
