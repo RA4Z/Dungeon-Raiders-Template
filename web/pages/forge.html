@@ -1,22 +1,22 @@
 <h1>Forja de Componentes do Mundo</h1>
 <p id="admin-msg" class="msg-alert"></p>
 <div class="forms-grid">
+    <!-- OS OUTROS FORMS CONTINUAM IGUAIS ATÉ O DE ATAQUE... -->
+    
     <div class="form-card" id="form-body">
         <input type="hidden" id="edit-bd-id" value="">
-        
         <h3>Corpo Base (Manequim)</h3>
         <label>Nome do Corpo</label><input type="text" id="bd-name">
         <label>Img Frente</label><div class="file-input-group"><input type="text" id="bd-img-f" oninput="updateMiniPrev(this.id, 'prev-bd-f')"><img id="prev-bd-f" class="mini-preview" src=""></div>
         <label>Img Verso</label><div class="file-input-group"><input type="text" id="bd-img-b" oninput="updateMiniPrev(this.id, 'prev-bd-b')"><img id="prev-bd-b" class="mini-preview" src=""></div>
         <label style="color:#f1c40f; display:flex; flex-direction:row; align-items:center; gap:10px; margin-top:15px; background:#111; padding:10px; border-radius:5px;">
-            <input type="checkbox" id="bd-playable" style="width:20px; height:20px;"> Este Corpo é Jogável (Novo Jogo)
+            <input type="checkbox" id="bd-playable" style="width:20px; height:20px;"> Este Corpo é Jogável
         </label>
         <button onclick="saveBody()">Salvar Corpo</button>
     </div>
     
     <div class="form-card" id="form-equip">
         <input type="hidden" id="edit-eq-id" value="">
-        
         <h3>Nova Peça / Equipamento</h3>
         <label>Nome</label><input type="text" id="eq-name">
         <label>Tipo</label>
@@ -33,13 +33,11 @@
         
         <label style="margin-top:10px;">Chance de Drop (%)</label>
         <input type="number" id="eq-drop" value="5">
-        
         <button onclick="saveEquipment()" style="margin-top:10px;">Salvar Equipamento</button>
     </div>
 
     <div class="form-card" id="form-consumable">
         <input type="hidden" id="edit-cons-id" value="">
-        
         <h3>Item Consumível</h3>
         <label>Nome</label><input type="text" id="cons-name">
         <label>Tipo de Efeito</label><select id="cons-type"><option value="heal_hp">Curar HP</option><option value="buff_atk">Aumentar Ataque</option></select>
@@ -54,12 +52,23 @@
         
         <h3>Nova Habilidade / Magia</h3>
         <label>Nome do Ataque</label><input type="text" id="atk-name">
-        <label>Tipo de Dano</label>
-        <select id="atk-type">
-            <option value="phys">Físico</option>
-            <option value="mag">Mágico</option>
-        </select>
-        <label>Dano Base Fixo</label><input type="number" id="atk-base" value="5">
+        
+        <!-- O CAMPO DO CUSTO DE MANA/STAMINA FOI ADICIONADO AQUI -->
+        <div style="display: flex; gap: 10px;">
+            <div style="flex: 1;">
+                <label>Tipo de Dano</label>
+                <select id="atk-type">
+                    <option value="phys">Físico (Custa Stamina)</option>
+                    <option value="mag">Mágico (Custa Mana)</option>
+                </select>
+            </div>
+            <div style="flex: 1;">
+                <label>Custo Base de Execução</label>
+                <input type="number" id="atk-cost" value="5">
+            </div>
+        </div>
+
+        <label>Dano Base Fixo Inicial</label><input type="number" id="atk-base" value="5">
         
         <label style="color:#3498db; margin-top:10px;">Escalonamento (Ex: 1.5 = Dano adicional de 150% do Status Base)</label>
         <div class="attr-grid" style="background:#111; padding:10px; border-radius:5px;">

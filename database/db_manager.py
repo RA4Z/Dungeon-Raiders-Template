@@ -33,12 +33,14 @@ def init_db():
 
     c.execute('''CREATE TABLE IF NOT EXISTS consumables (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, effect_type TEXT, effect_value INTEGER, img_path TEXT, drop_chance INTEGER DEFAULT 20)''')
     
-    c.execute('''CREATE TABLE IF NOT EXISTS attacks (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, atk_type TEXT, base_power REAL DEFAULT 0, scaling TEXT DEFAULT '{}')''')
+    # Adicionada a coluna de custo (cost) na tabela de ataques
+    c.execute('''CREATE TABLE IF NOT EXISTS attacks (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, atk_type TEXT, base_power REAL DEFAULT 0, cost INTEGER DEFAULT 5, scaling TEXT DEFAULT '{}')''')
+    run_migration(conn, "ALTER TABLE attacks ADD COLUMN cost INTEGER DEFAULT 5")
     
     c.execute("SELECT COUNT(*) FROM attacks")
     if c.fetchone()[0] == 0:
-        c.execute("INSERT INTO attacks (name, atk_type, base_power, scaling) VALUES ('Soco Simples', 'phys', 5, '{\"for\": 1.0}')")
-        c.execute("INSERT INTO attacks (name, atk_type, base_power, scaling) VALUES ('Míssil Mágico', 'mag', 8, '{\"int\": 1.2}')")
+        c.execute("INSERT INTO attacks (name, atk_type, base_power, cost, scaling) VALUES ('Soco Simples', 'phys', 5, 5, '{\"for\": 1.0}')")
+        c.execute("INSERT INTO attacks (name, atk_type, base_power, cost, scaling) VALUES ('Míssil Mágico', 'mag', 8, 8, '{\"int\": 1.2}')")
     
     c.execute('''CREATE TABLE IF NOT EXISTS characters (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, race TEXT, img_front TEXT, img_back TEXT, equipment_data TEXT, custom_drops TEXT DEFAULT '[]', base_stats TEXT DEFAULT '{}', custom_substats TEXT DEFAULT '{}', attacks TEXT DEFAULT '[1]')''')
     run_migration(conn, "ALTER TABLE characters ADD COLUMN custom_drops TEXT DEFAULT '[]'")
@@ -53,8 +55,8 @@ def init_db():
     c_save = conn_save.cursor()
     c_save.execute('''CREATE TABLE IF NOT EXISTS saves (
         id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, body_id INTEGER, gold INTEGER DEFAULT 0,
-        current_hp INTEGER DEFAULT 100, equipment_data TEXT DEFAULT '{}',
-        inventory_data TEXT DEFAULT '{"equipments":[], "consumables": {}}',
+        current_hp INTEGER DEFAULT 100, current_mana INTEGER DEFAULT 9999, current_stamina INTEGER DEFAULT 9999,
+        equipment_data TEXT DEFAULT '{}', inventory_data TEXT DEFAULT '{"equipments":[], "consumables": {}}',
         base_stats TEXT DEFAULT '{"for":1,"int":1,"des":1,"car":1,"res":1}',
         last_played TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         days_passed INTEGER DEFAULT 1,
@@ -63,13 +65,17 @@ def init_db():
         hotbar_data TEXT DEFAULT '[1, null, null, null, null, null, null, null, null, null]',
         attack_exp TEXT DEFAULT '{"1": {"xp": 0, "level": 1}}'
     )''')
+    
     run_migration(conn_save, "ALTER TABLE saves ADD COLUMN base_stats TEXT DEFAULT '{\"for\":1,\"int\":1,\"des\":1,\"car\":1,\"res\":1}'")
     run_migration(conn_save, "ALTER TABLE saves ADD COLUMN days_passed INTEGER DEFAULT 1")
     run_migration(conn_save, "ALTER TABLE saves ADD COLUMN stat_exp TEXT DEFAULT '{\"for\":0,\"int\":0,\"des\":0,\"car\":0,\"res\":0}'")
     run_migration(conn_save, "ALTER TABLE saves ADD COLUMN attacks TEXT DEFAULT '[1]'")
-    # Novas colunas para sistema de XP de Ataques e Hotbar do Jogador
     run_migration(conn_save, "ALTER TABLE saves ADD COLUMN hotbar_data TEXT DEFAULT '[1, null, null, null, null, null, null, null, null, null]'")
     run_migration(conn_save, "ALTER TABLE saves ADD COLUMN attack_exp TEXT DEFAULT '{\"1\": {\"xp\": 0, \"level\": 1}}'")
+    
+    # NOVAS COLUNAS DE MANA E STAMINA NO SAVE
+    run_migration(conn_save, "ALTER TABLE saves ADD COLUMN current_mana INTEGER DEFAULT 9999")
+    run_migration(conn_save, "ALTER TABLE saves ADD COLUMN current_stamina INTEGER DEFAULT 9999")
     
     conn_save.commit()
     conn_save.close()

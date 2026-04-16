@@ -205,13 +205,17 @@ async function loadGameSession(save) {
 
     await window.refreshPlayerStats();
 
+    // CARREGA OS RECURSOS CORRETAMENTE
     if (save.current_hp === null || isNaN(save.current_hp) || save.current_hp === 9999) {
         window.playerHP = window.playerFullStats.computed.hp;
+        window.playerMana = window.playerFullStats.computed.mana;
+        window.playerStamina = window.playerFullStats.computed.stamina;
     } else {
         window.playerHP = save.current_hp;
+        window.playerMana = save.current_mana !== undefined ? save.current_mana : window.playerFullStats.computed.mana;
+        window.playerStamina = save.current_stamina !== undefined ? save.current_stamina : window.playerFullStats.computed.stamina;
     }
 
-    // Chama a função global que corrige o Gold e HUD
     window.updateHUD();
     
     const gameBtn = document.getElementById('btn-tab-game');

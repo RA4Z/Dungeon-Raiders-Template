@@ -38,8 +38,8 @@ async function goToLocation(locType) {
 
     if(locType === 'casa') {
         title.innerText = "Sua Casa";
-        text.innerText = "Um lugar seguro e aconchegante. Você pode descansar aqui para recuperar todo o seu HP.";
-        actBox.innerHTML = `<button onclick="healPlayer()" style="padding:10px 20px; background:#27ae60; color:white; border:none; cursor:pointer; font-weight:bold; border-radius:5px;">Dormir (Recuperar HP / Passar 1 Dia)</button>`;
+        text.innerText = "Um lugar seguro e aconchegante. Você pode descansar aqui para recuperar completamente suas Forças (HP, Mana e Stamina).";
+        actBox.innerHTML = `<button onclick="healPlayer()" style="padding:10px 20px; background:#27ae60; color:white; border:none; cursor:pointer; font-weight:bold; border-radius:5px;">Dormir (Recuperar Tudo / Passar 1 Dia)</button>`;
     } 
     else if(locType === 'quartel') {
         title.innerText = "Quartel General (Treinamento)";
@@ -80,12 +80,15 @@ async function goToLocation(locType) {
 async function healPlayer() {
     if(window.activePlayer && window.playerFullStats) {
         window.playerHP = window.playerFullStats.computed.hp; 
+        window.playerMana = window.playerFullStats.computed.mana; 
+        window.playerStamina = window.playerFullStats.computed.stamina; 
+        
         window.playerDays += 1; 
         
         window.updateHUD();
         await window.saveGameState(); 
         
-        alert("Você dormiu profundamente. HP completamente restaurado!\n1 Dia se passou.");
+        alert("Você dormiu profundamente. HP, Mana e Stamina completamente restaurados!\n1 Dia se passou.");
     }
 }
 
@@ -100,7 +103,7 @@ window.trainStat = async function(statKey) {
     
     window.playerGold -= COST;
     window.playerDays += 1;
-    window.updateHUD(); // Sincroniza visualmente
+    window.updateHUD(); 
     
     let statName = window.STAT_MAP.base[statKey];
     let leveledUp = await window.addStatExp(statKey, XP_GAIN);

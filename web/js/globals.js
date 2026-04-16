@@ -1,40 +1,43 @@
-window.gameData = { bodies:[], equipments:[], consumables: [], characters: [], attacks: [] };
+window.gameData = { bodies:[], equipments:[], consumables: [], characters:[], attacks: [] };
 window.EQUIP_SLOTS =['base', 'face', 'hair', 'pants', 'shirt', 'boots', 'gloves', 'helmet', 'accessory', 'hand_l', 'hand_r'];
 
 window.activeSaveId = null;
 window.activePlayer = null;
-window.playerHP = 100;
-window.enemyHP = 0;
+
+// Gestão de Recursos Atuais (Player e Inimigo)
+window.playerHP = 100; window.playerMana = 100; window.playerStamina = 100;
+window.enemyHP = 0;    window.enemyMana = 0;    window.enemyStamina = 0;
+
 window.isTurnBusy = false;
 window.playerInventory = { equipments:[], consumables: {} };
 window.playerGold = 0;
 window.playerDays = 1;
 window.playerStatExp = { 'for': 0, 'int': 0, 'des': 0, 'car': 0, 'res': 0 };
 
-// Novas estruturas para o Grimório e Hotbar (Estilo BG3)
 window.playerAttacks = [1]; 
 window.playerHotbar =[1, null, null, null, null, null, null, null, null, null];
 window.attackExp = { "1": { xp: 0, level: 1 } };
 
-// Função Global Corrigida e Unificada para atualizar o HUD em todas as telas
+// Sincroniza HUD de Topo, Cidade e Inventário
 window.updateHUD = function() {
-    // Tela da Cidade
     const cityHud = document.getElementById('session-status');
     if (cityHud && window.activePlayer) {
         cityHud.innerText = `Herói: ${window.activePlayer.name} | Ouro: ${window.playerGold}`;
     }
     
-    // Tela da Cidade (Dias)
     const daysEl = document.getElementById('session-days');
-    if (daysEl) {
-        daysEl.innerText = `Dia: ${window.playerDays}`;
-    }
+    if (daysEl) daysEl.innerText = `Dia: ${window.playerDays}`;
     
-    // Inventário
     const invGold = document.getElementById('inv-gold');
-    if (invGold) {
-        invGold.innerText = window.playerGold;
-    }
+    if (invGold) invGold.innerText = window.playerGold;
+
+    // Atualiza status extras no inventário
+    const invHp = document.getElementById('inv-hp');
+    const invMp = document.getElementById('inv-mp');
+    const invSp = document.getElementById('inv-sp');
+    if(invHp && window.playerFullStats) invHp.innerText = `${window.playerHP} / ${window.playerFullStats.computed.hp}`;
+    if(invMp && window.playerFullStats) invMp.innerText = `${window.playerMana} / ${window.playerFullStats.computed.mana}`;
+    if(invSp && window.playerFullStats) invSp.innerText = `${window.playerStamina} / ${window.playerFullStats.computed.stamina}`;
 };
 
 window.updateMiniPrev = function (inputId, imgId) {
@@ -92,7 +95,9 @@ window.saveGameState = async function () {
 
     try {
         await window.pywebview.api.sync_player_state(
-            window.activeSaveId, window.playerHP, window.playerGold,
+            window.activeSaveId, 
+            window.playerHP, window.playerMana, window.playerStamina, 
+            window.playerGold,
             JSON.stringify(window.playerInventory), eqStr,
             window.playerDays, baseStr, JSON.stringify(window.playerStatExp),
             JSON.stringify(window.playerAttacks),

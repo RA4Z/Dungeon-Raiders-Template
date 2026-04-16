@@ -51,7 +51,11 @@ async function spawnRandomEnemy() {
     window.currentEnemy = enemyData;
     await window.refreshEnemyStats(enemyData.id);
 
+    // Inimigo surge com recursos 100%
     window.enemyHP = window.enemyFullStats.computed.hp;
+    window.enemyMana = window.enemyFullStats.computed.mana;
+    window.enemyStamina = window.enemyFullStats.computed.stamina;
+
     document.getElementById('enemy-name').innerText = window.currentEnemy.name;
 
     await buildBattleCharacter(window.currentEnemy, 'f', 'enemy-image', 'enemy-layers');
@@ -64,20 +68,40 @@ async function spawnRandomEnemy() {
     toggleCombatButtons(false);
 }
 
+// Atualiza todas as barras do HUD do Combate
 function updateBattleUI() {
+    // ---- PLAYER BARS ----
     if (window.playerFullStats && window.playerFullStats.computed) {
-        const pMax = window.playerFullStats.computed.hp;
-        let pHP = (isNaN(window.playerHP) || window.playerHP === null) ? pMax : window.playerHP;
-        document.getElementById('player-hp-text').innerText = `HP: ${pHP}/${pMax}`;
-        document.getElementById('player-hp-fill').style.width = `${Math.max(0, (pHP / pMax) * 100)}%`;
+        const c = window.playerFullStats.computed;
+        let hp = window.playerHP; let mp = window.playerMana; let sp = window.playerStamina;
+
+        document.getElementById('player-hp-text').innerText = `HP: ${Math.floor(hp)}/${c.hp}`;
+        document.getElementById('player-hp-fill').style.width = `${Math.max(0, (hp / c.hp) * 100)}%`;
+        
+        document.getElementById('player-mp-text').innerText = `MP: ${Math.floor(mp)}/${c.mana}`;
+        document.getElementById('player-mp-fill').style.width = `${Math.max(0, (mp / c.mana) * 100)}%`;
+        
+        document.getElementById('player-sp-text').innerText = `SP: ${Math.floor(sp)}/${c.stamina}`;
+        document.getElementById('player-sp-fill').style.width = `${Math.max(0, (sp / c.stamina) * 100)}%`;
     }
 
+    // ---- ENEMY BARS ----
     if (window.currentEnemy && window.enemyFullStats && window.enemyFullStats.computed) {
-        const eMax = window.enemyFullStats.computed.hp;
-        let eHP = (isNaN(window.enemyHP) || window.enemyHP === null) ? 0 : window.enemyHP;
-        document.getElementById('enemy-hp-text').innerText = `HP: ${eHP}/${eMax}`;
-        document.getElementById('enemy-hp-fill').style.width = `${Math.max(0, (eHP / eMax) * 100)}%`;
+        const c = window.enemyFullStats.computed;
+        let hp = window.enemyHP; let mp = window.enemyMana; let sp = window.enemyStamina;
+
+        document.getElementById('enemy-hp-text').innerText = `HP: ${Math.floor(hp)}/${c.hp}`;
+        document.getElementById('enemy-hp-fill').style.width = `${Math.max(0, (hp / c.hp) * 100)}%`;
+        
+        document.getElementById('enemy-mp-text').innerText = `MP: ${Math.floor(mp)}/${c.mana}`;
+        document.getElementById('enemy-mp-fill').style.width = `${Math.max(0, (mp / c.mana) * 100)}%`;
+        
+        document.getElementById('enemy-sp-text').innerText = `SP: ${Math.floor(sp)}/${c.stamina}`;
+        document.getElementById('enemy-sp-fill').style.width = `${Math.max(0, (sp / c.stamina) * 100)}%`;
     }
+
+    // Refresca visualmente os botões (Se o player não tem recursos, o botão apaga)
+    if (!window.isTurnBusy) toggleCombatButtons(false);
 }
 
 // === SISTEMA DE HOTBAR E DRAG & DROP === //
@@ -93,8 +117,10 @@ function renderCombatHotbar() {
             const atk = window.gameData.attacks.find(a => a.id == atkId);
             if(atk) {
                 btn.className = `hotbar-slot hb-atk-${atk.atk_type}`;
+                btn.dataset.atkId = atkId; // Adicionado para facilitar filtro de disable
                 let expObj = window.attackExp[atkId] || { xp: 0, level: 1 };
-                btn.innerHTML = `<span class="hb-atk-name">${atk.name}</span><div class="hb-atk-lvl">Lv${expObj.level}</div>`;
+                let cost = atk.cost || 5;
+                btn.innerHTML = `<span class="hb-atk-name">${atk.name}</span><div class="hb-atk-lvl">Lv${expObj.level} | ${cost}⚡</div>`;
                 btn.onclick = () => startTurnSequence(atk.id);
             } else {
                 btn.className = 'hotbar-slot empty';
@@ -108,57 +134,107 @@ function renderCombatHotbar() {
 }
 
 function toggleCombatButtons(state) {
-    document.querySelectorAll('.hotbar-slot:not(.empty)').forEach(btn => btn.disabled = state);
+    document.querySelectorAll('.hotbar-slot:not(.empty)').forEach(btn => {
+        if (state) {
+            btn.disabled = true;
+        } else {
+            const atkId = btn.dataset.atkId;
+            const atk = window.gameData.attacks.find(a => a.id == atkId);
+            if (atk) {
+                let cost = atk.cost || 5;
+                if (atk.atk_type === 'phys' && window.playerStamina < cost) btn.disabled = true;
+                else if (atk.atk_type === 'mag' && window.playerMana < cost) btn.disabled = true;
+                else btn.disabled = false;
+            }
+        }
+    });
+
     const btnFlee = document.getElementById('flee-btn');
     if (btnFlee) btnFlee.disabled = state;
 }
 
-// === LÓGICA DE COMBATE COM SISTEMA DE NÍVEL DE HABILIDADE === //
+// === LÓGICA DE COMBATE COMPLETA (DODGE, XP, MANA/STAMINA) === //
 async function startTurnSequence(attackId) {
     if (window.isTurnBusy) return;
     window.isTurnBusy = true;
 
     toggleCombatButtons(true);
 
-    // Obtém Nível e adiciona XP ao ataque
+    // Obtém Nível
     if (!window.attackExp[attackId]) window.attackExp[attackId] = { xp: 0, level: 1 };
     let expObj = window.attackExp[attackId];
     
     const res = await window.pywebview.api.process_battle_turn(window.playerFullStats, window.enemyFullStats, attackId, expObj.level);
-    window.enemyHP = Math.max(0, window.enemyHP - res.damage);
-    updateBattleUI();
     
-    // CÁLCULO DE XP
-    let reqXp = expObj.level * 100;
-    expObj.xp += 35; // 35 de XP por uso
+    // Subtração de Recursos Locais Baseado no Python
+    window.playerStamina = Math.max(0, window.playerStamina - res.stamina_cost);
+    window.playerMana = Math.max(0, window.playerMana - res.mana_cost);
+
     let levelUpMsg = "";
     
-    if (expObj.xp >= reqXp) {
-        expObj.xp -= reqXp;
-        expObj.level += 1;
-        levelUpMsg = ` \n🌟 O ataque alcançou o Nível ${expObj.level} (Dano Bônus)!`;
-        renderCombatHotbar(); // Atualiza UI para refletir novo level
+    // O inimigo tomou dano? (Ou desviou?)
+    if (!res.dodged) {
+        window.enemyHP = Math.max(0, window.enemyHP - res.damage);
+        
+        // XP APENAS SE ACERTAR OU SÓ POR TENTAR? No RPG tradicional, tentativa já dá XP.
+        let reqXp = expObj.level * 100;
+        expObj.xp += 35; // 35 de XP por uso
+        
+        if (expObj.xp >= reqXp) {
+            expObj.xp -= reqXp;
+            expObj.level += 1;
+            levelUpMsg = ` \n🌟 A habilidade subiu para o Nível ${expObj.level} (Dano Adicional)!`;
+            renderCombatHotbar(); 
+        }
     }
 
+    updateBattleUI();
     document.getElementById('combat-dialogue').innerText = res.msg + levelUpMsg;
 
     setTimeout(async () => {
         if (window.enemyHP <= 0) {
             winBattle();
         } else {
+            // === TURNO DO INIMIGO (INTELIGÊNCIA DE RECURSOS) ===
             let enemyAtkIds = [1];
             try { enemyAtkIds = typeof window.currentEnemy.attacks === "string" ? JSON.parse(window.currentEnemy.attacks) : window.currentEnemy.attacks; } catch(e){}
             if (!enemyAtkIds || enemyAtkIds.length === 0) enemyAtkIds =[1];
-            let randomAtkId = enemyAtkIds[Math.floor(Math.random() * enemyAtkIds.length)];
-
-            const resE = await window.pywebview.api.process_battle_turn(window.enemyFullStats, window.playerFullStats, randomAtkId, 1);
-            window.playerHP = Math.max(0, window.playerHP - resE.damage);
             
-            const pContainer = document.getElementById('player-container');
-            if(pContainer) { pContainer.classList.add('enemy-hit'); setTimeout(() => pContainer.classList.remove('enemy-hit'), 200); }
+            // Filtra os ataques que ele tem recurso para usar
+            let affordable = enemyAtkIds.filter(id => {
+                const ea = window.gameData.attacks.find(a => a.id == id);
+                if(!ea) return false;
+                let c = ea.cost !== undefined ? ea.cost : 5;
+                if(ea.atk_type === 'phys') return window.enemyStamina >= c;
+                return window.enemyMana >= c;
+            });
+
+            if (affordable.length > 0) {
+                // Tem recurso, ataca
+                let randomAtkId = affordable[Math.floor(Math.random() * affordable.length)];
+                const resE = await window.pywebview.api.process_battle_turn(window.enemyFullStats, window.playerFullStats, randomAtkId, 1);
+                
+                window.enemyStamina = Math.max(0, window.enemyStamina - resE.stamina_cost);
+                window.enemyMana = Math.max(0, window.enemyMana - resE.mana_cost);
+                
+                if (!resE.dodged) {
+                    window.playerHP = Math.max(0, window.playerHP - resE.damage);
+                    const pContainer = document.getElementById('player-container');
+                    if(pContainer) { pContainer.classList.add('enemy-hit'); setTimeout(() => pContainer.classList.remove('enemy-hit'), 200); }
+                }
+                document.getElementById('combat-dialogue').innerText = `Turno do Inimigo: ${resE.msg}`;
+
+            } else {
+                // Sem recursos, ele descansa o turno!
+                let maxESp = window.enemyFullStats.computed.stamina;
+                let maxEMp = window.enemyFullStats.computed.mana;
+                window.enemyStamina = Math.min(maxESp, window.enemyStamina + 20);
+                window.enemyMana = Math.min(maxEMp, window.enemyMana + 20);
+                
+                document.getElementById('combat-dialogue').innerText = `${window.currentEnemy.name} ofegante... Recuperou o fôlego neste turno!`;
+            }
 
             updateBattleUI();
-            document.getElementById('combat-dialogue').innerText = `${window.currentEnemy.name} revidou e ${resE.msg}`;
 
             if (window.playerHP <= 0) {
                 let ouroPerdido = Math.floor(window.playerGold / 2);
@@ -221,26 +297,30 @@ async function fleeBattle() {
     let roll = Math.random() * 100;
 
     if (roll <= fleeChance) {
-        document.getElementById('combat-dialogue').innerText = "Você conseguiu despistar o inimigo e fugir!";
+        document.getElementById('combat-dialogue').innerText = "Você conseguiu despistar o inimigo e fugir com sucesso!";
         setTimeout(() => { window.isTurnBusy = false; backToCity(); }, 1500);
     } else {
-        document.getElementById('combat-dialogue').innerText = "O inimigo é muito rápido e bloqueou sua rota de fuga!";
+        document.getElementById('combat-dialogue').innerText = "O inimigo previu seus movimentos e cortou sua rota de fuga!";
         setTimeout(async () => {
             let enemyAtkIds = [1];
             try { enemyAtkIds = JSON.parse(window.currentEnemy.attacks || '[1]'); } catch(e){}
             let randomAtkId = enemyAtkIds[Math.floor(Math.random() * enemyAtkIds.length)];
 
             const resE = await window.pywebview.api.process_battle_turn(window.enemyFullStats, window.playerFullStats, randomAtkId, 1);
-            window.playerHP = Math.max(0, window.playerHP - resE.damage);
+            
+            if (!resE.dodged) {
+                window.playerHP = Math.max(0, window.playerHP - resE.damage);
+            }
+            
             updateBattleUI();
-            document.getElementById('combat-dialogue').innerText = `${window.currentEnemy.name} atacou sua retaguarda e ${resE.msg}`;
+            document.getElementById('combat-dialogue').innerText = `${window.currentEnemy.name} contra-atacou: ${resE.msg}`;
 
             await window.saveGameState();
 
             if (window.playerHP <= 0) {
                 let ouroPerdido = Math.floor(window.playerGold / 2);
                 window.playerGold -= ouroPerdido;
-                document.getElementById('combat-dialogue').innerText = `Você morreu tentando fugir. Perdeu ${ouroPerdido} de Ouro!`;
+                document.getElementById('combat-dialogue').innerText = `Você morreu nas costas. Perdeu ${ouroPerdido} de Ouro!`;
                 window.updateHUD();
                 await window.saveGameState(); 
 
@@ -280,7 +360,6 @@ function renderSkillbook() {
     sourceDiv.innerHTML = '';
     hotbarDiv.innerHTML = '';
 
-    // Renderiza Ataques Conhecidos
     let attacks =[];
     try { attacks = typeof window.playerAttacks === "string" ? JSON.parse(window.playerAttacks) : window.playerAttacks; } catch(e){}
     
@@ -301,7 +380,6 @@ function renderSkillbook() {
         }
     });
 
-    // Renderiza Slots da Hotbar Interativa
     window.playerHotbar.forEach((atkId, index) => {
         const slotDiv = document.createElement('div');
         slotDiv.className = 'hotbar-slot ' + (atkId ? '' : 'empty');
@@ -344,12 +422,10 @@ window.sbDrop = function(ev, targetIndex) {
 
     if (origin !== 'source') {
         const originIndex = parseInt(origin);
-        // Troca de posição dentro da própria Hotbar
         const temp = window.playerHotbar[targetIndex];
         window.playerHotbar[targetIndex] = atkId;
         window.playerHotbar[originIndex] = temp;
     } else {
-        // Vem do Grimório
         window.playerHotbar[targetIndex] = atkId;
     }
     

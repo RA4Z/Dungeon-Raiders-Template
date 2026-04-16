@@ -11,11 +11,12 @@ class GameAPI:
         atk = next((a for a in attacks if str(a['id']) == str(attack_id)), None)
         
         if not atk:
-            atk = {"name": "Ataque Básico", "atk_type": "phys", "base_power": 5, "scaling": "{}"}
+            atk = {"name": "Ataque Básico", "atk_type": "phys", "base_power": 5, "cost": 5, "scaling": "{}"}
             
         atk_type = atk.get('atk_type', 'phys')
+        cost = int(atk.get('cost', 5))
         
-        # O level aumenta o dano base em 0.1 por nível!
+        # O level aumenta o dano base em 0.1 por nível
         base_power = float(atk.get('base_power', 0)) + ((int(attack_level) - 1) * 0.1)
         
         try:
@@ -23,6 +24,24 @@ class GameAPI:
         except:
             scaling = {}
 
+        # 1. CÁLCULO DE CUSTO (Stamina para phys, Mana para mag)
+        stamina_cost = cost if atk_type == 'phys' else 0
+        mana_cost = cost if atk_type == 'mag' else 0
+
+        # 2. SISTEMA DE ESQUIVA (Dodge)
+        # Chance Base: 5%. Diferença de Destreza concede 2% de chance por ponto
+        def_des = float(defender_stats['base'].get('des', 1))
+        atk_des = float(attacker_stats['base'].get('des', 1))
+        dodge_chance = 5.0 + ((def_des - atk_des) * 2.0)
+        dodge_chance = max(5.0, min(80.0, dodge_chance)) # Limitado entre 5% e 80%
+
+        is_dodged = random.uniform(0, 100) <= dodge_chance
+
+        if is_dodged:
+            msg = f"{atk['name']} errou! O alvo se esquivou rapidamente!"
+            return {"damage": 0, "msg": msg, "dodged": True, "mana_cost": mana_cost, "stamina_cost": stamina_cost}
+
+        # 3. CÁLCULO DE DANO (Se não esquivou)
         stat_dmg = base_power
         for stat, mult in scaling.items():
             stat_dmg += float(attacker_stats['base'].get(stat, 1)) * float(mult)
@@ -42,7 +61,7 @@ class GameAPI:
         damage = max(1, int(raw_dmg * random.uniform(0.9, 1.1) * crit_mult))
         
         msg = f"Usou {atk['name']}! Causou {damage} de dano{(' crítico!' if is_crit else '.')}"
-        return {"damage": damage, "msg": msg}
+        return {"damage": damage, "msg": msg, "dodged": False, "mana_cost": mana_cost, "stamina_cost": stamina_cost}
 
     def compute_full_stats(self, base_stats, equipment_ids, overrides=None):
         bonus = {}
@@ -123,7 +142,7 @@ class GameAPI:
 
             save_data = {
                 "name": name, "body_id": int(body_id), "equipment_data": json.dumps(eq_data),
-                "gold": 0, "current_hp": 9999,
+                "gold": 0, "current_hp": 9999, "current_mana": 9999, "current_stamina": 9999,
                 "base_stats": json.dumps(base_stats),
                 "inventory_data": '{"equipments":[], "consumables": {}}',
                 "days_passed": 1,
@@ -143,9 +162,12 @@ class GameAPI:
             return {"status": "success", "save": new_save}
         except Exception as e: return {"status": "error", "message": str(e)}
 
-    def sync_player_state(self, save_id, current_hp, gold, inventory_json_str, equipment_data_str, days_passed, base_stats_str, stat_exp_str, attacks_str, hotbar_str, attack_exp_str):
+    # Atualizado com novos recursos
+    def sync_player_state(self, save_id, current_hp, current_mana, current_stamina, gold, inventory_json_str, equipment_data_str, days_passed, base_stats_str, stat_exp_str, attacks_str, hotbar_str, attack_exp_str):
         update_item('saves', save_id, {
             'current_hp': current_hp, 
+            'current_mana': current_mana,
+            'current_stamina': current_stamina,
             'gold': gold,
             'inventory_data': inventory_json_str, 
             'equipment_data': equipment_data_str,
@@ -160,7 +182,6 @@ class GameAPI:
 
     def update_entity(self, table, item_id, data):
         try:
-            from database.db_manager import update_item
             update_item(table, item_id, data)
             return {"status": "success", "message": "Atualizado com sucesso!"}
         except Exception as e:
