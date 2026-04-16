@@ -2,8 +2,9 @@
 import sqlite3
 import os
 
-GAME_DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'game_data.db')
-SAVE_DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'saves.db')
+# GAME_DB_PATH = resource_path('game_data.db')
+GAME_DB_PATH = os.path.join(os.path.abspath(os.getcwd()), 'game_data.db')
+SAVE_DB_PATH = os.path.join(os.path.abspath(os.getcwd()), 'saves.db')
 
 def get_game_connection():
     os.makedirs(os.path.dirname(GAME_DB_PATH), exist_ok=True)
