@@ -188,9 +188,14 @@ async function loadGameSession(save) {
     try { window.playerStatExp = JSON.parse(save.stat_exp); }
     catch(e) { window.playerStatExp = { 'for': 0, 'int': 0, 'des': 0, 'car': 0, 'res': 0 }; }
 
-    // CARREGA OS ATAQUES DO PLAYER NA SESSION
     try { window.playerAttacks = JSON.parse(save.attacks || '[1]'); } 
     catch(e) { window.playerAttacks = [1]; }
+    
+    try { window.playerHotbar = JSON.parse(save.hotbar_data || '[1, null, null, null, null, null, null, null, null, null]'); } 
+    catch(e) { window.playerHotbar =[1, null, null, null, null, null, null, null, null, null]; }
+    
+    try { window.attackExp = JSON.parse(save.attack_exp || '{"1": {"xp": 0, "level": 1}}'); } 
+    catch(e) { window.attackExp = {"1": {xp: 0, level: 1}}; }
 
     window.activePlayer = {
         id: save.id, name: save.name, race: 'humano',
@@ -206,14 +211,12 @@ async function loadGameSession(save) {
         window.playerHP = save.current_hp;
     }
 
-    const statusEl = document.getElementById('session-status');
-    if (statusEl) statusEl.innerText = `Herói: ${save.name} | Ouro: ${window.playerGold}`;
-    
-    const daysEl = document.getElementById('session-days');
-    if (daysEl) daysEl.innerText = `Dia: ${window.playerDays}`;
+    // Chama a função global que corrige o Gold e HUD
+    window.updateHUD();
     
     const gameBtn = document.getElementById('btn-tab-game');
     if (gameBtn) { gameBtn.style.display = 'block'; if (typeof showTab === "function") showTab('game-tab', gameBtn); }
+    
     if (typeof window.saveGameState === "function") await window.saveGameState();
     if (typeof backToCity === "function") backToCity();
 }

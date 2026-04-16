@@ -1,5 +1,3 @@
-/* Adicione as seguintes classes ao fim do seu game.css atual para os botões novos */
-
 .game-view { display: none; width: 100%; height: 100%; position: relative; }
 .active-view { display: block; }
 
@@ -10,47 +8,48 @@
 .location-btn:hover { transform: scale(1.05); border-color: #f39c12;}
 #player-status-bar { position: absolute; bottom: 0; width: 100%; background: #111; padding: 15px; border-top: 2px solid #f39c12; }
 
-#combat-screen { background-color: #111; background-image: radial-gradient(circle, #333, #000); overflow: hidden;}
-#battlefield { position: absolute; bottom: 200px; width: 100%; height: calc(100% - 200px); }
+#combat-screen { background-color: #111; background-image: radial-gradient(circle, #222, #000); overflow: hidden;}
 
+/* --- NOVA HUD DE TOPO DO COMBATE --- */
+.combat-top-hud { position: absolute; top: 0; width: 100%; display: flex; justify-content: space-between; padding: 15px 30px; background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent); z-index: 50; }
+.combat-stat-block { width: 35%; background: rgba(10,10,10,0.8); padding: 10px 15px; border-radius: 5px; border: 2px solid #555; box-shadow: 0 4px 10px rgba(0,0,0,0.5);}
+.player-stat { border-left: 5px solid #3498db; }
+.enemy-stat { border-right: 5px solid #e74c3c; text-align: right; }
+.hp-bar-bg { width: 100%; height: 22px; background: #222; border-radius: 4px; overflow: hidden; margin: 8px 0; border: 1px solid #000; box-shadow: inset 0 2px 5px rgba(0,0,0,0.8);}
+.hp-bar-fill { height: 100%; width: 100%; background: #e74c3c; transition: width 0.4s ease; }
+.player-hp { background: #3498db; }
+#player-name-ui, #enemy-name { font-size: 1.2rem; font-weight: bold; color: #ecf0f1; text-transform: uppercase; }
+
+#battlefield { position: absolute; bottom: 200px; width: 100%; height: calc(100% - 200px); }
 #player-container { position: absolute; bottom: 5%; left: 25%; transform: translateX(-50%) scale(2.2); transform-origin: bottom center; z-index: 10; }
 #enemy-container { position: absolute; bottom: 30%; left: 75%; transform: translateX(-50%) scale(1.8); transform-origin: bottom center; z-index: 5; }
 #enemy-image, #player-image { max-height: 250px; filter: drop-shadow(0px 0px 10px rgba(0,0,0,0.5)); }
 
-#visual-novel-ui { position: absolute; bottom: 0; width: 100%; height: 200px; background: rgba(0,0,0,0.9); border-top: 3px solid #8e44ad; display: flex; flex-direction: column; padding: 15px; z-index: 20;}
+/* UI INFERIOR EXCLUSIVA PARA AÇÕES */
+#visual-novel-ui { position: absolute; bottom: 0; width: 100%; height: 230px; background: linear-gradient(to top, rgba(0,0,0,1) 60%, rgba(0,0,0,0.7) 100%); border-top: 2px solid #c0392b; display: flex; flex-direction: column; justify-content: center; padding: 15px; z-index: 20;}
+.dialogue-box { text-align: center; font-size: 1.3rem; color: #f1c40f; font-style: italic; font-family: serif; text-shadow: 1px 1px 2px #000; }
 
-.battle-stats { display: flex; flex-direction: row; justify-content: space-between; gap: 20px; margin-bottom: 5px; }
-.stat-block { flex: 1; background: rgba(255,255,255,0.1); padding: 5px 10px; border-radius: 5px; border-left: 4px solid #3498db; }
-.player-stat { text-align: left; border-left-color: #3498db;} 
-.enemy-stat { text-align: right; border-left-color: #e74c3c; border-left: none; border-right: 4px solid #e74c3c;}
+/* === ESTILO BG3 HOTBAR === */
+.bg3-hotbar { display: flex; gap: 8px; justify-content: center; background: rgba(20,20,20,0.8); padding: 10px; border-radius: 8px; border: 2px solid #8e44ad; box-shadow: 0 5px 15px rgba(0,0,0,0.8); }
+.hotbar-slot { width: 55px; height: 55px; background: #222; border: 2px solid #555; border-radius: 6px; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; transition: 0.1s; box-shadow: inset 0 0 10px #000; overflow: hidden; }
+.hotbar-slot.empty { opacity: 0.5; border-style: dashed; }
+.hotbar-slot:hover { border-color: #f1c40f; transform: scale(1.05); }
+.hotbar-slot:disabled { opacity: 0.3; cursor: not-allowed; border-color: #333; transform: none; }
+.hotbar-slot.drag-over { border-color: #2ecc71; background: #27ae60; opacity: 0.8; }
 
-.hp-bar-bg { width: 100%; height: 18px; background: #222; border-radius: 6px; overflow: hidden; margin: 4px 0; border: 1px solid #444; }
-.hp-bar-fill { height: 100%; width: 100%; background: #e74c3c; transition: width 0.4s ease; }
-.player-hp { background: #3498db; }
-.dialogue-box { flex-grow: 1; margin-top: 10px; font-size: 1.2rem; color: #ecf0f1; text-align: center; font-style: italic;}
+/* Tipos de Magia na Hotbar */
+.hb-atk-phys { background: radial-gradient(circle, #e74c3c, #c0392b); }
+.hb-atk-mag { background: radial-gradient(circle, #3498db, #2980b9); }
+.hb-atk-name { font-size: 0.65rem; color: white; font-weight: bold; text-align: center; text-shadow: 1px 1px 2px #000; line-height: 1.1; padding: 2px; }
+.hb-atk-lvl { position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.8); color: #f1c40f; font-size: 0.6rem; padding: 1px 3px; border-radius: 3px; font-weight: bold; border: 1px solid #f1c40f; }
 
-/* === ESTILOS DOS NOVOS BOTÕES DE HABILIDADE === */
-.skill-btn { 
-    padding: 10px 25px; 
-    border: none; 
-    border-radius: 5px; 
-    font-weight: bold; 
-    cursor: pointer; 
-    font-size: 1.1rem; 
-    color: white; 
-    transition: transform 0.2s, border 0.2s; 
-    border: 2px solid transparent; 
-    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-}
-.skill-btn.phys { background: #c0392b; }
-.skill-btn.mag { background: #2980b9; }
-.skill-btn:hover:not(:disabled) { transform: scale(1.05); border-color: #fff; }
-.skill-btn:disabled { background: #555 !important; cursor: not-allowed; box-shadow: none; transform: none;}
+/* Itens arrastáveis no modal de grimório */
+.drag-skill-item { width: 60px; height: 60px; border-radius: 5px; border: 2px solid #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: grab; user-select: none; position: relative;}
+.drag-skill-item:active { cursor: grabbing; }
 
-/* Botoões Antigos (ainda usado pelo fugir e genéricos) */
-.actions button { padding: 12px 30px; background: #c0392b; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 1.1rem; transition: 0.2s;}
+.actions button { padding: 10px 25px; background: #555; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 1rem; transition: 0.2s;}
 .actions button:hover:not(:disabled) { filter: brightness(1.2); }
-.actions button:disabled { background: #555 !important; cursor: not-allowed; }
+.actions button:disabled { background: #333 !important; cursor: not-allowed; }
 
 .modal-overlay { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.9); z-index: 100; display: flex; align-items: center; justify-content: center; }
 .loot-box { background: #2c3e50; border: 3px solid #f1c40f; padding: 40px; border-radius: 10px; text-align: center; min-width: 450px;}
@@ -60,13 +59,6 @@
 .loot-actions button { padding: 10px 15px; border: none; color: white; font-weight: bold; cursor: pointer; border-radius: 5px;}
 
 .player-attack { animation: lungeRight 0.2s; }
-@keyframes lungeRight { 
-    0% {transform: translateX(-50%) scale(2.2);} 
-    50% {transform: translateX(-30%) scale(2.2);} 
-    100% {transform: translateX(-50%) scale(2.2);} 
-}
+@keyframes lungeRight { 0% {transform: translateX(-50%) scale(2.2);} 50% {transform: translateX(-30%) scale(2.2);} 100% {transform: translateX(-50%) scale(2.2);} }
 .enemy-hit { filter: brightness(200%) drop-shadow(0 0 10px red) !important; animation: shakeEnemy 0.2s; }
-@keyframes shakeEnemy { 
-    0%, 100% {transform: translateX(-50%) scale(1.8) rotate(0deg);} 
-    50% {transform: translateX(-48%) scale(1.8) rotate(5deg);} 
-}
+@keyframes shakeEnemy { 0%, 100% {transform: translateX(-50%) scale(1.8) rotate(0deg);} 50% {transform: translateX(-48%) scale(1.8) rotate(5deg);} }

@@ -33,10 +33,8 @@ def init_db():
 
     c.execute('''CREATE TABLE IF NOT EXISTS consumables (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, effect_type TEXT, effect_value INTEGER, img_path TEXT, drop_chance INTEGER DEFAULT 20)''')
     
-    # NOVA TABELA DE ATAQUES E MAGIAS
     c.execute('''CREATE TABLE IF NOT EXISTS attacks (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, atk_type TEXT, base_power REAL DEFAULT 0, scaling TEXT DEFAULT '{}')''')
     
-    # Semeando os ataques iniciais caso a tabela esteja vazia
     c.execute("SELECT COUNT(*) FROM attacks")
     if c.fetchone()[0] == 0:
         c.execute("INSERT INTO attacks (name, atk_type, base_power, scaling) VALUES ('Soco Simples', 'phys', 5, '{\"for\": 1.0}')")
@@ -61,12 +59,17 @@ def init_db():
         last_played TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         days_passed INTEGER DEFAULT 1,
         stat_exp TEXT DEFAULT '{"for":0,"int":0,"des":0,"car":0,"res":0}',
-        attacks TEXT DEFAULT '[1]'
+        attacks TEXT DEFAULT '[1]',
+        hotbar_data TEXT DEFAULT '[1, null, null, null, null, null, null, null, null, null]',
+        attack_exp TEXT DEFAULT '{"1": {"xp": 0, "level": 1}}'
     )''')
     run_migration(conn_save, "ALTER TABLE saves ADD COLUMN base_stats TEXT DEFAULT '{\"for\":1,\"int\":1,\"des\":1,\"car\":1,\"res\":1}'")
     run_migration(conn_save, "ALTER TABLE saves ADD COLUMN days_passed INTEGER DEFAULT 1")
     run_migration(conn_save, "ALTER TABLE saves ADD COLUMN stat_exp TEXT DEFAULT '{\"for\":0,\"int\":0,\"des\":0,\"car\":0,\"res\":0}'")
     run_migration(conn_save, "ALTER TABLE saves ADD COLUMN attacks TEXT DEFAULT '[1]'")
+    # Novas colunas para sistema de XP de Ataques e Hotbar do Jogador
+    run_migration(conn_save, "ALTER TABLE saves ADD COLUMN hotbar_data TEXT DEFAULT '[1, null, null, null, null, null, null, null, null, null]'")
+    run_migration(conn_save, "ALTER TABLE saves ADD COLUMN attack_exp TEXT DEFAULT '{\"1\": {\"xp\": 0, \"level\": 1}}'")
     
     conn_save.commit()
     conn_save.close()

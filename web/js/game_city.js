@@ -7,6 +7,7 @@ function setView(viewId) {
 
 function backToCity() {
     setView('city-screen');
+    window.updateHUD();
 }
 
 async function goToLocation(locType) {
@@ -24,9 +25,8 @@ async function goToLocation(locType) {
         return;
     }
 
-    // TRAVA: Impede de treinar se o HP for menor que 20
     if (locType === 'quartel' && window.playerHP < 20) {
-        alert("Você está muito cansado e machucado para treinar! Vá para casa descansar primeiro (HP atual menor que 20).");
+        alert("Você está muito cansado e machucado para treinar! Vá para casa descansar primeiro.");
         return;
     }
 
@@ -71,10 +71,6 @@ async function goToLocation(locType) {
         html += `</div>`;
         actBox.innerHTML = html;
     }
-    else if(locType === 'centro') {
-        title.innerText = "Praça Central";
-        text.innerText = "Mercadores gritam promovendo novos armamentos. O vento traz cheiro de pão fresco.";
-    }
     else if(locType === 'bar') {
         title.innerText = "Taverna do Javali";
         text.innerText = "Ouvindo as conversas, você descobre que as cavernas estão cheias de monstros ricos em Ouro e Equipamentos.";
@@ -83,46 +79,29 @@ async function goToLocation(locType) {
 
 async function healPlayer() {
     if(window.activePlayer && window.playerFullStats) {
-        
         window.playerHP = window.playerFullStats.computed.hp; 
-        
-        // AVANÇA 1 DIA AO DORMIR
         window.playerDays += 1; 
         
-        // Atualiza a barrinha inferior da UI
-        const daysEl = document.getElementById('session-days');
-        if (daysEl) daysEl.innerText = `Dia: ${window.playerDays}`;
-        
-        // Salva tudo no banco de dados para garantir
+        window.updateHUD();
         await window.saveGameState(); 
         
         alert("Você dormiu profundamente. HP completamente restaurado!\n1 Dia se passou.");
-    } else {
-        alert("Erro ao ler os status do personagem.");
     }
 }
 
 window.trainStat = async function(statKey) {
     const COST = 20;
-    const XP_GAIN = 50; // Cada treino dá 50 de experiência
+    const XP_GAIN = 50; 
     
     if (window.playerGold < COST) {
         alert("Você não tem ouro suficiente! Custo: " + COST + " moedas.");
         return;
     }
     
-    // Desconta ouro e avança o tempo
     window.playerGold -= COST;
     window.playerDays += 1;
+    window.updateHUD(); // Sincroniza visualmente
     
-    // Atualiza barra do menu da cidade
-    const statusEl = document.getElementById('session-status');
-    if (statusEl) statusEl.innerText = `Herói: ${window.activePlayer.name} | Ouro: ${window.playerGold}`;
-    
-    const daysEl = document.getElementById('session-days');
-    if (daysEl) daysEl.innerText = `Dia: ${window.playerDays}`;
-    
-    // Adiciona o XP e verifica o Level Up
     let statName = window.STAT_MAP.base[statKey];
     let leveledUp = await window.addStatExp(statKey, XP_GAIN);
     
@@ -132,6 +111,5 @@ window.trainStat = async function(statKey) {
     }
     alert(msg);
     
-    // Recarrega a tela do quartel para mostrar a barra de XP atualizada e garantir que se a vida/dano subir, atualize a UI
     goToLocation('quartel'); 
 };
