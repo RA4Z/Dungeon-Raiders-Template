@@ -4,18 +4,17 @@ function buildSelects() {
     const data = window.gameData;
     if (!data) return;
 
-    // 1. Popula Selects de Roupas (isso pode rodar sempre)
     const createOptions = (arr, selId) => {
         const sel = document.getElementById(selId);
         if (!sel) return;
-        const currentVal = sel.value; // Salva o que estava selecionado
+        const currentVal = sel.value; 
         sel.innerHTML = '<option value="">-- Vazio --</option>';
         if (arr) arr.forEach(item => {
             const opt = document.createElement('option');
             opt.value = item.id; opt.textContent = item.name;
             sel.appendChild(opt);
         });
-        sel.value = currentVal; // Restaura após reconstruir
+        sel.value = currentVal; 
     };
 
     createOptions(data.bodies, 'sel-base');
@@ -25,22 +24,33 @@ function buildSelects() {
         });
     }
 
-    // 2. GERA OS CAMPOS DE STATUS (Apenas se a grid estiver vazia!)
     const baseGrid = document.getElementById('builder-base-stats');
-    if (baseGrid && baseGrid.innerHTML === "") { // SÓ CRIA SE ESTIVER VAZIO
+    if (baseGrid && baseGrid.innerHTML === "") {
         for(let k in window.STAT_MAP.base) {
             baseGrid.innerHTML += `<label>${window.STAT_MAP.base[k]} <input type="number" class="char-base-stat" data-stat="${k}" value="1" min="1" oninput="updateLivePreview()"></label>`;
         }
     }
 
     const subGrid = document.getElementById('builder-sub-stats');
-    if (subGrid && subGrid.innerHTML === "") { // SÓ CRIA SE ESTIVER VAZIO
+    if (subGrid && subGrid.innerHTML === "") {
         for(let k in window.STAT_MAP.derived) {
             subGrid.innerHTML += `<label>${window.STAT_MAP.derived[k]} <input type="number" class="char-sub-stat" data-stat="${k}" placeholder="Auto" oninput="updateLivePreview()"></label>`;
         }
     }
     
-    // Atualiza o select de itens de loot
+    // GERA A LISTA DE CHECKBOXES DE ATAQUES
+    const attacksContainer = document.getElementById('ch-attacks-list');
+    if (attacksContainer && data.attacks) {
+        attacksContainer.innerHTML = '';
+        data.attacks.forEach(a => {
+            attacksContainer.innerHTML += `
+                <label style="display:flex; align-items:center; gap:5px; color:#bdc3c7; font-size:0.9em; background:#111; padding:5px; border-radius:3px; cursor:pointer;">
+                    <input type="checkbox" class="ch-atk-cb" value="${a.id}"> ${a.name} (${a.atk_type === 'phys' ? 'Físico' : 'Mágico'})
+                </label>
+            `;
+        });
+    }
+
     const cdItem = document.getElementById('cd-item');
     if (cdItem) {
         const currentLootVal = cdItem.value;
@@ -61,7 +71,6 @@ function toggleRaceFields() {
 }
 
 function updateLivePreview() {
-    // 1. ATUALIZA A IMAGEM
     const race = document.getElementById('ch-race').value;
     const cF = document.getElementById('prev-front');
     const cB = document.getElementById('prev-back');
@@ -85,7 +94,6 @@ function updateLivePreview() {
         if(iB) cB.innerHTML = `<img src="${iB}" style="position:absolute;">`;
     }
 
-    // 2. ATUALIZA A PRÉVIA DE STATUS (Live Stats)
     let base = {};
     document.querySelectorAll('.char-base-stat').forEach(i => base[i.dataset.stat] = parseInt(i.value) || 1);
     
@@ -123,7 +131,6 @@ function updateLivePreview() {
     }
 }
 
-// Drops para monstros (mantido igual)
 function addCustomDrop() {
     const el = document.getElementById('cd-item');
     const ch = document.getElementById('cd-chance').value;
@@ -137,22 +144,27 @@ function renderCustomDrops() {
 }
 
 async function saveCharacter() {
-    const editId = document.getElementById('edit-char-id').value; // Pega o ID
+    const editId = document.getElementById('edit-char-id').value;
     const name = document.getElementById('ch-name').value;
     const race = document.getElementById('ch-race').value;
     
     if (!name) return alert("Dê um nome ao personagem!");
 
-    // Coleta Atributos Base
     let base = {};
     document.querySelectorAll('.char-base-stat').forEach(i => {
         base[i.dataset.stat] = parseInt(i.value) || 1;
     });
+    
+    // Coletando as Habilidades Atribuídas
+    let selectedAttacks =[];
+    document.querySelectorAll('.ch-atk-cb:checked').forEach(cb => selectedAttacks.push(parseInt(cb.value)));
+    if (selectedAttacks.length === 0) selectedAttacks = [1]; // Força a ter ao menos o ataque ID 1
 
     let data = {
         name: name,
         race: race,
-        base_stats: JSON.stringify(base)
+        base_stats: JSON.stringify(base),
+        attacks: JSON.stringify(selectedAttacks)
     };
 
     if (race === 'humano') {
@@ -180,19 +192,16 @@ async function saveCharacter() {
 
     let res;
     if (editId) {
-        // SE TIVER ID, CHAMA UPDATE
         res = await window.pywebview.api.update_entity('characters', editId, data);
     } else {
-        // SE NÃO, CHAMA ADD
         res = await window.pywebview.api.add_entity('characters', data);
     }
 
     if (res.status === "success") {
         alert(res.message);
-        // Limpar tudo após salvar
         document.getElementById('edit-char-id').value = "";
         document.getElementById('ch-name').value = "";
-        window.currentCustomDrops = [];
+        window.currentCustomDrops =[];
         renderCustomDrops();
         await window.refreshData();
     } else {

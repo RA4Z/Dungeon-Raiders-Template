@@ -4,7 +4,7 @@ function clearInputs(formId) {
     const el = document.getElementById(formId);
     if(!el) return;
     el.querySelectorAll('input').forEach(i => { 
-        if(i.type !== 'checkbox') i.value = ''; // Limpa os text, number e hidden
+        if(i.type !== 'checkbox') i.value = ''; 
     });
     el.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
     el.querySelectorAll('.mini-preview').forEach(img => img.src = '');
@@ -91,6 +91,37 @@ async function saveConsumable() {
     await window.refreshData();
 }
 
+// NOVA FUNÇÃO: Salvar um Ataque Criado na Forja
+async function saveAttack() {
+    const editId = document.getElementById('edit-atk-id').value;
+    let scaling = {};
+    
+    document.querySelectorAll('.atk-scale-input').forEach(i => {
+        const val = parseFloat(i.value);
+        if (val > 0) scaling[i.dataset.stat] = val;
+    });
+
+    let data = {
+        name: document.getElementById('atk-name').value,
+        atk_type: document.getElementById('atk-type').value,
+        base_power: parseFloat(document.getElementById('atk-base').value) || 0,
+        scaling: JSON.stringify(scaling)
+    };
+
+    if(!data.name) return alert("O Nome do Ataque é obrigatório!");
+
+    if (editId) {
+        await window.pywebview.api.update_entity('attacks', editId, data);
+        document.getElementById('admin-msg').innerText = "Habilidade Atualizada!";
+    } else {
+        await window.pywebview.api.add_entity('attacks', data);
+        document.getElementById('admin-msg').innerText = "Habilidade Criada e Salva!";
+    }
+
+    clearInputs('form-attack');
+    await window.refreshData();
+}
+
 async function renderCrudTable() {
     const table = document.getElementById('crud-table-select').value;
     const data = window.gameData[table] ||[];
@@ -123,20 +154,16 @@ async function renderCrudTable() {
     });
 }
 
-// NOVO: Função Global para Puxar os dados e preencher os formulários!
 window.editItem = function(table, id) {
     const item = window.gameData[table].find(i => i.id == id);
     if (!item) return;
 
-    // Primeiro, mudamos para a aba correta
-    if (table === 'bodies' || table === 'equipments' || table === 'consumables') {
+    if (table === 'bodies' || table === 'equipments' || table === 'consumables' || table === 'attacks') {
         showTab('admin-tab');
     } else if (table === 'characters') {
         showTab('char-tab');
     }
 
-    // Agora, usamos um pequeno atraso (setTimeout) para garantir que 
-    // o showTab terminou de rodar e não vai resetar nossos campos.
     setTimeout(() => {
         if (table === 'bodies') {
             document.getElementById('edit-bd-id').value = id;
@@ -157,6 +184,25 @@ window.editItem = function(table, id) {
             let mods = JSON.parse(item.stats_modifiers || '{}');
             document.querySelectorAll('.stat-mod-input').forEach(i => {
                 i.value = mods[i.dataset.stat] || 0;
+            });
+        }
+        else if (table === 'consumables') {
+            document.getElementById('edit-cons-id').value = id;
+            document.getElementById('cons-name').value = item.name;
+            document.getElementById('cons-type').value = item.effect_type;
+            document.getElementById('cons-value').value = item.effect_value;
+            document.getElementById('cons-img').value = item.img_path;
+            document.getElementById('cons-drop').value = item.drop_chance;
+        }
+        else if (table === 'attacks') {
+            document.getElementById('edit-atk-id').value = id;
+            document.getElementById('atk-name').value = item.name;
+            document.getElementById('atk-type').value = item.atk_type;
+            document.getElementById('atk-base').value = item.base_power;
+            
+            let scaling = JSON.parse(item.scaling || '{}');
+            document.querySelectorAll('.atk-scale-input').forEach(i => {
+                i.value = scaling[i.dataset.stat] || 0;
             });
         }
         else if (table === 'characters') {
@@ -185,10 +231,18 @@ window.editItem = function(table, id) {
                     if (sel) sel.value = eq[s] || "";
                 });
             }
+            
+            // Re-carrega as skills setadas para o monstro/personagem
+            let atks =[];
+            try { atks = JSON.parse(item.attacks || '[1]'); } catch(e){}
+            document.querySelectorAll('.ch-atk-cb').forEach(cb => {
+                cb.checked = atks.includes(parseInt(cb.value));
+            });
+            
             toggleRaceFields();
             updateLivePreview();
         }
-    }, 100); // 100 milissegundos é o suficiente para evitar o conflito
+    }, 100); 
 };
 
 window.renderForgeStats = function() {

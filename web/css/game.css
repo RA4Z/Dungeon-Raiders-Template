@@ -1,3 +1,5 @@
+/* Adicione as seguintes classes ao fim do seu game.css atual para os botões novos */
+
 .game-view { display: none; width: 100%; height: 100%; position: relative; }
 .active-view { display: block; }
 
@@ -8,19 +10,15 @@
 .location-btn:hover { transform: scale(1.05); border-color: #f39c12;}
 #player-status-bar { position: absolute; bottom: 0; width: 100%; background: #111; padding: 15px; border-top: 2px solid #f39c12; }
 
-/* COMBATE: AJUSTE DE TAMANHOS E POSIÇÕES INVERTIDAS */
 #combat-screen { background-color: #111; background-image: radial-gradient(circle, #333, #000); overflow: hidden;}
 #battlefield { position: absolute; bottom: 200px; width: 100%; height: calc(100% - 200px); }
 
-/* PLAYER NA ESQUERDA (Tamanho Maior) */
 #player-container { position: absolute; bottom: 5%; left: 25%; transform: translateX(-50%) scale(2.2); transform-origin: bottom center; z-index: 10; }
-/* INIMIGO NA DIREITA (Tamanho Maior) */
 #enemy-container { position: absolute; bottom: 30%; left: 75%; transform: translateX(-50%) scale(1.8); transform-origin: bottom center; z-index: 5; }
 #enemy-image, #player-image { max-height: 250px; filter: drop-shadow(0px 0px 10px rgba(0,0,0,0.5)); }
 
 #visual-novel-ui { position: absolute; bottom: 0; width: 100%; height: 200px; background: rgba(0,0,0,0.9); border-top: 3px solid #8e44ad; display: flex; flex-direction: column; padding: 15px; z-index: 20;}
 
-/* UI: Inversão das Caixas */
 .battle-stats { display: flex; flex-direction: row; justify-content: space-between; gap: 20px; margin-bottom: 5px; }
 .stat-block { flex: 1; background: rgba(255,255,255,0.1); padding: 5px 10px; border-radius: 5px; border-left: 4px solid #3498db; }
 .player-stat { text-align: left; border-left-color: #3498db;} 
@@ -31,11 +29,29 @@
 .player-hp { background: #3498db; }
 .dialogue-box { flex-grow: 1; margin-top: 10px; font-size: 1.2rem; color: #ecf0f1; text-align: center; font-style: italic;}
 
-.actions { display: flex; gap: 10px; justify-content: center;}
-.actions button { padding: 15px 40px; background: #c0392b; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 1.1rem;}
-.actions button:disabled { background: #555; cursor: not-allowed; }
+/* === ESTILOS DOS NOVOS BOTÕES DE HABILIDADE === */
+.skill-btn { 
+    padding: 10px 25px; 
+    border: none; 
+    border-radius: 5px; 
+    font-weight: bold; 
+    cursor: pointer; 
+    font-size: 1.1rem; 
+    color: white; 
+    transition: transform 0.2s, border 0.2s; 
+    border: 2px solid transparent; 
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+.skill-btn.phys { background: #c0392b; }
+.skill-btn.mag { background: #2980b9; }
+.skill-btn:hover:not(:disabled) { transform: scale(1.05); border-color: #fff; }
+.skill-btn:disabled { background: #555 !important; cursor: not-allowed; box-shadow: none; transform: none;}
 
-/* Modal Genérico */
+/* Botoões Antigos (ainda usado pelo fugir e genéricos) */
+.actions button { padding: 12px 30px; background: #c0392b; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 1.1rem; transition: 0.2s;}
+.actions button:hover:not(:disabled) { filter: brightness(1.2); }
+.actions button:disabled { background: #555 !important; cursor: not-allowed; }
+
 .modal-overlay { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.9); z-index: 100; display: flex; align-items: center; justify-content: center; }
 .loot-box { background: #2c3e50; border: 3px solid #f1c40f; padding: 40px; border-radius: 10px; text-align: center; min-width: 450px;}
 .loot-box h2 { color: #f1c40f; margin-bottom: 20px; font-size: 2rem;}
@@ -43,7 +59,6 @@
 .loot-actions { display: flex; justify-content: center; gap: 10px;}
 .loot-actions button { padding: 10px 15px; border: none; color: white; font-weight: bold; cursor: pointer; border-radius: 5px;}
 
-/* Animações (O player agora ataca para a direita) */
 .player-attack { animation: lungeRight 0.2s; }
 @keyframes lungeRight { 
     0% {transform: translateX(-50%) scale(2.2);} 

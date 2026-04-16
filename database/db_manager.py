@@ -33,10 +33,21 @@ def init_db():
 
     c.execute('''CREATE TABLE IF NOT EXISTS consumables (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, effect_type TEXT, effect_value INTEGER, img_path TEXT, drop_chance INTEGER DEFAULT 20)''')
     
-    c.execute('''CREATE TABLE IF NOT EXISTS characters (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, race TEXT, img_front TEXT, img_back TEXT, equipment_data TEXT, custom_drops TEXT DEFAULT '[]', base_stats TEXT DEFAULT '{}', custom_substats TEXT DEFAULT '{}')''')
+    # NOVA TABELA DE ATAQUES E MAGIAS
+    c.execute('''CREATE TABLE IF NOT EXISTS attacks (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, atk_type TEXT, base_power REAL DEFAULT 0, scaling TEXT DEFAULT '{}')''')
+    
+    # Semeando os ataques iniciais caso a tabela esteja vazia
+    c.execute("SELECT COUNT(*) FROM attacks")
+    if c.fetchone()[0] == 0:
+        c.execute("INSERT INTO attacks (name, atk_type, base_power, scaling) VALUES ('Soco Simples', 'phys', 5, '{\"for\": 1.0}')")
+        c.execute("INSERT INTO attacks (name, atk_type, base_power, scaling) VALUES ('Míssil Mágico', 'mag', 8, '{\"int\": 1.2}')")
+    
+    c.execute('''CREATE TABLE IF NOT EXISTS characters (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, race TEXT, img_front TEXT, img_back TEXT, equipment_data TEXT, custom_drops TEXT DEFAULT '[]', base_stats TEXT DEFAULT '{}', custom_substats TEXT DEFAULT '{}', attacks TEXT DEFAULT '[1]')''')
     run_migration(conn, "ALTER TABLE characters ADD COLUMN custom_drops TEXT DEFAULT '[]'")
     run_migration(conn, "ALTER TABLE characters ADD COLUMN base_stats TEXT DEFAULT '{}'")
     run_migration(conn, "ALTER TABLE characters ADD COLUMN custom_substats TEXT DEFAULT '{}'")
+    run_migration(conn, "ALTER TABLE characters ADD COLUMN attacks TEXT DEFAULT '[1]'")
+    
     conn.commit()
     conn.close()
 
@@ -47,13 +58,15 @@ def init_db():
         current_hp INTEGER DEFAULT 100, equipment_data TEXT DEFAULT '{}',
         inventory_data TEXT DEFAULT '{"equipments":[], "consumables": {}}',
         base_stats TEXT DEFAULT '{"for":1,"int":1,"des":1,"car":1,"res":1}',
-        last_played TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        last_played TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        days_passed INTEGER DEFAULT 1,
+        stat_exp TEXT DEFAULT '{"for":0,"int":0,"des":0,"car":0,"res":0}',
+        attacks TEXT DEFAULT '[1]'
     )''')
     run_migration(conn_save, "ALTER TABLE saves ADD COLUMN base_stats TEXT DEFAULT '{\"for\":1,\"int\":1,\"des\":1,\"car\":1,\"res\":1}'")
-    
-    # NOVAS COLUNAS PARA O SISTEMA DE DIAS E XP
     run_migration(conn_save, "ALTER TABLE saves ADD COLUMN days_passed INTEGER DEFAULT 1")
     run_migration(conn_save, "ALTER TABLE saves ADD COLUMN stat_exp TEXT DEFAULT '{\"for\":0,\"int\":0,\"des\":0,\"car\":0,\"res\":0}'")
+    run_migration(conn_save, "ALTER TABLE saves ADD COLUMN attacks TEXT DEFAULT '[1]'")
     
     conn_save.commit()
     conn_save.close()

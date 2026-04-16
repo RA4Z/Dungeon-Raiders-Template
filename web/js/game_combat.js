@@ -1,4 +1,5 @@
-// Renderizador Oficial do Boneco
+// web/js/game_combat.js
+
 function buildBattleCharacter(characterData, side, imgId, layersId) {
     const imgEl = document.getElementById(imgId);
     const layersEl = document.getElementById(layersId);
@@ -39,6 +40,9 @@ async function enterDungeon() {
     setView('combat-screen');
     document.getElementById('combat-dialogue').innerText = "Você adentra a caverna... procurando um inimigo.";
 
+    // Renderiza a Interface de Magias Ativas que o Jogador possuí
+    renderCombatActions();
+
     toggleCombatButtons(true);
 
     document.getElementById('player-name-ui').innerText = window.activePlayer.name;
@@ -47,7 +51,6 @@ async function enterDungeon() {
     await spawnRandomEnemy();
 }
 
-// Separado em função para permitir repetição infinita do Loop
 async function spawnRandomEnemy() {
     const enemyData = await window.pywebview.api.get_random_enemy();
     if (!enemyData) return;
@@ -71,7 +74,6 @@ async function spawnRandomEnemy() {
 function updateBattleUI() {
     if (window.playerFullStats && window.playerFullStats.computed) {
         const pMax = window.playerFullStats.computed.hp;
-        // Segurança contra os NULL do passado
         let pHP = (isNaN(window.playerHP) || window.playerHP === null) ? pMax : window.playerHP;
         document.getElementById('player-hp-text').innerText = `HP: ${pHP}/${pMax}`;
         document.getElementById('player-hp-fill').style.width = `${Math.max(0, (pHP / pMax) * 100)}%`;
@@ -85,25 +87,69 @@ function updateBattleUI() {
     }
 }
 
-async function startTurnSequence(atkType) {
+// NOVO: Gerar Lista de Magias Visual no Combate
+function renderCombatActions() {
+    const container = document.getElementById('combat-skills-list');
+    if (!container) return;
+    container.innerHTML = '';
+    
+    let attacks = [1]; // ID fallback
+    try { attacks = typeof window.playerAttacks === "string" ? JSON.parse(window.playerAttacks) : window.playerAttacks; } catch(e){}
+
+    attacks.forEach(atkId => {
+        const atk = window.gameData.attacks.find(a => a.id == atkId);
+        if(atk) {
+            const btn = document.createElement('button');
+            btn.className = `skill-btn ${atk.atk_type}`; // phys ou mag p/ CSS
+            btn.innerText = atk.name;
+            btn.onclick = () => startTurnSequence(atk.id);
+            container.appendChild(btn);
+        }
+    });
+}
+
+function toggleCombatButtons(state) {
+    document.querySelectorAll('.skill-btn').forEach(btn => btn.disabled = state);
+    const btnFlee = document.getElementById('flee-btn');
+    if (btnFlee) btnFlee.disabled = state;
+}
+
+// AGORA RECEBE O ID DO ATAQUE DIRETO DO BANCO DE DADOS
+async function startTurnSequence(attackId) {
     if (window.isTurnBusy) return;
     window.isTurnBusy = true;
 
     toggleCombatButtons(true);
 
-    const res = await window.pywebview.api.process_battle_turn(window.playerFullStats, window.enemyFullStats, atkType);
+    const res = await window.pywebview.api.process_battle_turn(window.playerFullStats, window.enemyFullStats, attackId);
     window.enemyHP = Math.max(0, window.enemyHP - res.damage);
     updateBattleUI();
-    document.getElementById('combat-dialogue').innerText = `Você usou ${atkType === 'phys' ? 'Ataque Físico' : 'Magia'}: ${res.msg}`;
+    document.getElementById('combat-dialogue').innerText = res.msg;
 
     setTimeout(async () => {
         if (window.enemyHP <= 0) {
             winBattle();
         } else {
-            const resE = await window.pywebview.api.process_battle_turn(window.enemyFullStats, window.playerFullStats, 'phys');
+            // TURNO DO INIMIGO: Seleciona um ataque aleatório da pool dele
+            let enemyAtkIds = [1];
+            try { 
+                enemyAtkIds = typeof window.currentEnemy.attacks === "string" ? JSON.parse(window.currentEnemy.attacks) : window.currentEnemy.attacks; 
+            } catch(e){}
+            if (!enemyAtkIds || enemyAtkIds.length === 0) enemyAtkIds =[1];
+            let randomAtkId = enemyAtkIds[Math.floor(Math.random() * enemyAtkIds.length)];
+
+            const resE = await window.pywebview.api.process_battle_turn(window.enemyFullStats, window.playerFullStats, randomAtkId);
             window.playerHP = Math.max(0, window.playerHP - resE.damage);
+            
+            // Animação e Sombras
+            const pContainer = document.getElementById('player-container');
+            if(pContainer) {
+                pContainer.classList.add('enemy-hit');
+                setTimeout(() => pContainer.classList.remove('enemy-hit'), 200);
+            }
+
             updateBattleUI();
-            document.getElementById('combat-dialogue').innerText = `${window.currentEnemy.name} revidou: ${resE.msg}`;
+            document.getElementById('combat-dialogue').innerText = `${window.currentEnemy.name} revidou e ${resE.msg}`;
 
             // --- MORTE DO PLAYER ---
             if (window.playerHP <= 0) {
@@ -111,54 +157,19 @@ async function startTurnSequence(atkType) {
                 window.playerGold -= ouroPerdido;
                 document.getElementById('combat-dialogue').innerText = `Você desmaiou e perdeu ${ouroPerdido} moedas!`;
 
-                await window.saveGameState(); // USA A FUNÇÃO GLOBAL CORRIGIDA
+                await window.saveGameState(); 
 
                 setTimeout(() => {
                     window.playerHP = window.playerFullStats.computed.hp;
                     backToCity();
                 }, 3500);
             } else {
-                // --- PLAYER SOBREVIVEU AO REVIDE ---
-                await window.saveGameState(); // SALVA O HP ATUALIZADO
+                await window.saveGameState(); 
                 window.isTurnBusy = false;
                 toggleCombatButtons(false);
             }
         }
-    }, 1000);
-}
-
-async function enemyReviveTurn() {
-    setTimeout(async () => {
-        document.getElementById('combat-dialogue').innerText = `${window.currentEnemy.name} ataca!`;
-        const pContainer = document.getElementById('player-container');
-        pContainer.classList.add('enemy-hit');
-
-        const res = await window.pywebview.api.process_battle_turn(
-            window.activePlayer.attack, window.currentEnemy.attack, window.playerHP, window.enemyHP, 'enemy'
-        );
-        window.playerHP = res.new_hp;
-
-        // Sincroniza HP caso apanhe
-        await window.pywebview.api.sync_player_state(
-            window.activePlayer.id, window.playerHP,
-            JSON.stringify(window.playerInventory), JSON.stringify(window.activePlayer.equipment_data)
-        );
-
-        updateBattleUI();
-        document.getElementById('combat-dialogue').innerText = res.msg;
-
-        setTimeout(() => {
-            pContainer.classList.remove('enemy-hit');
-            if (window.playerHP <= 0) {
-                document.getElementById('combat-dialogue').innerText = "Você morreu e perdeu sua mochila de ouro...";
-                setTimeout(() => { window.playerHP = window.activePlayer.hp; backToCity(); }, 3000);
-            } else {
-                window.isTurnBusy = false;
-                document.getElementById('attack-btn').disabled = false;
-                document.getElementById('flee-btn').disabled = false;
-            }
-        }, 500);
-    }, 1000);
+    }, 1200);
 }
 
 async function winBattle() {
@@ -166,7 +177,6 @@ async function winBattle() {
     document.getElementById('enemy-layers').innerHTML = '';
     document.getElementById('enemy-image').style.display = 'none';
 
-    // IMPORTANTE: Agora enviamos o ID do SAVE ATIVO para o Python
     const lootRes = await window.pywebview.api.generate_loot(window.currentEnemy.id, window.activeSaveId);
 
     window.playerInventory = lootRes.new_inventory;
@@ -178,7 +188,6 @@ async function winBattle() {
     }, 1000);
 }
 
-// LOOP DUNGEON INFINITO
 function continueDungeon() {
     document.getElementById('loot-modal').style.display = 'none';
     if (document.getElementById('enemy-layers')) document.getElementById('enemy-layers').innerHTML = '';
@@ -195,16 +204,11 @@ async function fleeBattle() {
     window.isTurnBusy = true;
     toggleCombatButtons(true);
 
-    // CÁLCULO DE FUGA BASEADO EM DESTREZA
     let pDes = window.playerFullStats.base.des;
     let eDes = window.enemyFullStats.base.des;
 
-    // Base de 50%. A cada 1 ponto de diferença de destreza, muda 5%
     let fleeChance = 50 + ((pDes - eDes) * 5);
-
-    // Limita a chance entre 10% (mínimo) e 90% (máximo)
     fleeChance = Math.max(10, Math.min(90, fleeChance));
-
     let roll = Math.random() * 100;
 
     if (roll <= fleeChance) {
@@ -216,24 +220,25 @@ async function fleeBattle() {
     } else {
         document.getElementById('combat-dialogue').innerText = "O inimigo é muito rápido e bloqueou sua rota de fuga!";
 
-        // Se falhar na fuga, o inimigo ganha um turno grátis!
+        // Se falhar, o inimigo bate
         setTimeout(async () => {
-            const resE = await window.pywebview.api.process_battle_turn(window.enemyFullStats, window.playerFullStats, 'phys');
+            let enemyAtkIds = [1];
+            try { enemyAtkIds = JSON.parse(window.currentEnemy.attacks || '[1]'); } catch(e){}
+            let randomAtkId = enemyAtkIds[Math.floor(Math.random() * enemyAtkIds.length)];
+
+            const resE = await window.pywebview.api.process_battle_turn(window.enemyFullStats, window.playerFullStats, randomAtkId);
             window.playerHP = Math.max(0, window.playerHP - resE.damage);
             updateBattleUI();
-            document.getElementById('combat-dialogue').innerText = `${window.currentEnemy.name} aproveitou a brecha: ${resE.msg}`;
+            document.getElementById('combat-dialogue').innerText = `${window.currentEnemy.name} atacou sua retaguarda e ${resE.msg}`;
 
-            await window.pywebview.api.sync_player_state(
-                window.activeSaveId, window.playerHP, window.playerGold,
-                JSON.stringify(window.playerInventory), JSON.stringify(window.activePlayer.equipment_data)
-            );
+            await window.saveGameState();
 
             if (window.playerHP <= 0) {
                 let ouroPerdido = Math.floor(window.playerGold / 2);
                 window.playerGold -= ouroPerdido;
                 document.getElementById('combat-dialogue').innerText = `Você morreu tentando fugir. Perdeu ${ouroPerdido} de Ouro!`;
 
-                await window.saveGameState(); // USA A FUNÇÃO GLOBAL CORRIGIDA
+                await window.saveGameState(); 
 
                 setTimeout(() => {
                     window.playerHP = window.playerFullStats.computed.hp;
@@ -262,16 +267,15 @@ window.buildBattleCharacter = async function (characterData, side, imgId, layers
         if (imgEl) imgEl.style.display = 'none';
         if (layersEl) {
             layersEl.style.display = 'block';
-            layersEl.innerHTML = ''; // Limpa antes de re-desenhar
+            layersEl.innerHTML = ''; 
         }
 
         let eqDataMap = typeof characterData.equipment_data === 'string'
             ? JSON.parse(characterData.equipment_data) : characterData.equipment_data;
 
         let skinColor = eqDataMap.skin_color || "#ffffff";
-        let finalHtml = ""; // Acumula o HTML para não piscar a tela
+        let finalHtml = ""; 
 
-        // Precisa usar for-of porque forEach não lida bem com await interno
         for (let index = 0; index < window.EQUIP_SLOTS.length; index++) {
             const slot = window.EQUIP_SLOTS[index];
             const itemId = eqDataMap[slot];
@@ -283,11 +287,9 @@ window.buildBattleCharacter = async function (characterData, side, imgId, layers
                     let imgSrc = side === 'f' ? itemData.img_front : itemData.img_back;
 
                     if (imgSrc) {
-                        // Aplica o Shader APENAS no Corpo e Rosto
                         if (slot === 'base' || slot === 'face') {
                             imgSrc = await window.applyShaderTint(imgSrc, skinColor);
                         }
-
                         finalHtml += `<img src="${imgSrc}" style="z-index: ${index};">`;
                     }
                 }
@@ -297,21 +299,10 @@ window.buildBattleCharacter = async function (characterData, side, imgId, layers
         if (layersEl) layersEl.innerHTML = finalHtml;
 
     } else {
-        // MONSTRO SIMPLES
         if (layersEl) layersEl.style.display = 'none';
         if (imgEl) {
             imgEl.style.display = 'block';
             imgEl.src = side === 'f' ? characterData.img_front : characterData.img_back;
         }
     }
-}
-
-function toggleCombatButtons(state) {
-    const btn1 = document.getElementById('attack-phys-btn');
-    const btn2 = document.getElementById('attack-mag-btn');
-    const btn3 = document.getElementById('flee-btn');
-
-    if (btn1) btn1.disabled = state;
-    if (btn2) btn2.disabled = state;
-    if (btn3) btn3.disabled = state;
 }

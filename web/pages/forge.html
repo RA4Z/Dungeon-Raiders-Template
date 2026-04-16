@@ -2,7 +2,6 @@
 <p id="admin-msg" class="msg-alert"></p>
 <div class="forms-grid">
     <div class="form-card" id="form-body">
-        <!-- CAMPO INVISÍVEL DE EDIÇÃO -->
         <input type="hidden" id="edit-bd-id" value="">
         
         <h3>Corpo Base (Manequim)</h3>
@@ -16,7 +15,6 @@
     </div>
     
     <div class="form-card" id="form-equip">
-        <!-- CAMPO INVISÍVEL DE EDIÇÃO -->
         <input type="hidden" id="edit-eq-id" value="">
         
         <h3>Nova Peça / Equipamento</h3>
@@ -40,7 +38,6 @@
     </div>
 
     <div class="form-card" id="form-consumable">
-        <!-- CAMPO INVISÍVEL DE EDIÇÃO -->
         <input type="hidden" id="edit-cons-id" value="">
         
         <h3>Item Consumível</h3>
@@ -50,5 +47,28 @@
         <label>Imagem</label><div class="file-input-group"><input type="text" id="cons-img" oninput="updateMiniPrev(this.id, 'prev-cons')"><img id="prev-cons" class="mini-preview" src=""></div>
         <label>Chance de Drop (%)</label><input type="number" id="cons-drop" value="20">
         <button onclick="saveConsumable()" style="background:#9b59b6;">Salvar Consumível</button>
+    </div>
+
+    <div class="form-card" id="form-attack">
+        <input type="hidden" id="edit-atk-id" value="">
+        
+        <h3>Nova Habilidade / Magia</h3>
+        <label>Nome do Ataque</label><input type="text" id="atk-name">
+        <label>Tipo de Dano</label>
+        <select id="atk-type">
+            <option value="phys">Físico</option>
+            <option value="mag">Mágico</option>
+        </select>
+        <label>Dano Base Fixo</label><input type="number" id="atk-base" value="5">
+        
+        <label style="color:#3498db; margin-top:10px;">Escalonamento (Ex: 1.5 = Dano adicional de 150% do Status Base)</label>
+        <div class="attr-grid" style="background:#111; padding:10px; border-radius:5px;">
+            <label>Força (x)<input type="number" step="0.1" class="atk-scale-input" data-stat="for" value="0"></label>
+            <label>Inteligência (x)<input type="number" step="0.1" class="atk-scale-input" data-stat="int" value="0"></label>
+            <label>Destreza (x)<input type="number" step="0.1" class="atk-scale-input" data-stat="des" value="0"></label>
+            <label>Carisma (x)<input type="number" step="0.1" class="atk-scale-input" data-stat="car" value="0"></label>
+            <label>Resistência (x)<input type="number" step="0.1" class="atk-scale-input" data-stat="res" value="0"></label>
+        </div>
+        <button onclick="saveAttack()" style="background:#e74c3c; margin-top:10px;">Salvar Habilidade</button>
     </div>
 </div>

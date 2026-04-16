@@ -6,24 +6,48 @@ import random
 import sqlite3
 
 class GameAPI:
-    def process_battle_turn(self, attacker_stats, defender_stats, atk_type='phys'):
-        # atk_type pode ser 'phys' (Físico) ou 'mag' (Mágico)
+    def process_battle_turn(self, attacker_stats, defender_stats, attack_id):
+        # Localiza o ataque selecionado no DB
+        attacks = get_all_items("attacks")
+        atk = next((a for a in attacks if str(a['id']) == str(attack_id)), None)
+        
+        # Fallback de segurança se falhar
+        if not atk:
+            atk = {"name": "Ataque Básico", "atk_type": "phys", "base_power": 5, "scaling": "{}"}
+            
+        atk_type = atk.get('atk_type', 'phys')
+        base_power = float(atk.get('base_power', 0))
+        
+        try:
+            scaling = json.loads(atk.get('scaling', '{}'))
+        except:
+            scaling = {}
+
+        # Dano originário unicamente do peso dos status
+        stat_dmg = base_power
+        for stat, mult in scaling.items():
+            # A base já contém o status base real + bônus fixos de armas
+            stat_dmg += float(attacker_stats['base'].get(stat, 1)) * float(mult)
+
+        # Adiciona o bônus geral computado pelas fórmulas (phys_dmg ou mag_dmg)
+        if atk_type == 'phys':
+            raw_dmg = stat_dmg + attacker_stats['computed']['phys_dmg']
+            defense = defender_stats['computed']['phys_res'] * 0.5
+        else:
+            raw_dmg = stat_dmg + attacker_stats['computed']['mag_dmg']
+            defense = defender_stats['computed']['mag_res'] * 0.5
+
+        raw_dmg = raw_dmg - defense
+        
         is_crit = random.uniform(0, 100) <= attacker_stats['computed']['crit_rate']
         crit_mult = (attacker_stats['computed']['crit_dmg'] / 100.0) if is_crit else 1.0
 
-        if atk_type == 'phys':
-            raw_dmg = attacker_stats['computed']['phys_dmg'] - (defender_stats['computed']['phys_res'] * 0.5)
-        else:
-            raw_dmg = attacker_stats['computed']['mag_dmg'] - (defender_stats['computed']['mag_res'] * 0.5)
-
-        # Dano tem flutuação de 10% e nunca é menor que 1
         damage = max(1, int(raw_dmg * random.uniform(0.9, 1.1) * crit_mult))
         
-        msg = f"Causou {damage} de Dano {('Crítico!' if is_crit else '')}"
+        msg = f"Usou {atk['name']}! Causou {damage} de dano{(' crítico!' if is_crit else '.')}"
         return {"damage": damage, "msg": msg}
 
     def compute_full_stats(self, base_stats, equipment_ids, overrides=None):
-        # Soma bônus de todos os equipamentos usando JSON
         bonus = {}
         equipments_db = get_all_items("equipments")
         for eq_id in equipment_ids:
@@ -69,7 +93,6 @@ class GameAPI:
         b, c = self.compute_full_stats(base, eq_ids, overrides)
         return {"base": b, "computed": c}
 
-    # === DEMAIS FUNÇÕES ===
     def add_entity(self, table, data):
         try:
             insert_item(table, data)
@@ -88,7 +111,8 @@ class GameAPI:
             "bodies": get_all_items("bodies"),
             "equipments": get_all_items("equipments"),
             "consumables": get_all_items("consumables"),
-            "characters": get_all_items("characters")
+            "characters": get_all_items("characters"),
+            "attacks": get_all_items("attacks")
         }
 
     def get_saves(self):
@@ -106,7 +130,8 @@ class GameAPI:
                 "base_stats": json.dumps(base_stats),
                 "inventory_data": '{"equipments":[], "consumables": {}}',
                 "days_passed": 1,
-                "stat_exp": '{"for":0,"int":0,"des":0,"car":0,"res":0}'
+                "stat_exp": '{"for":0,"int":0,"des":0,"car":0,"res":0}',
+                "attacks": "[1]" # Inicia com soco simples
             }
             insert_item('saves', save_data)
             
@@ -119,7 +144,7 @@ class GameAPI:
             return {"status": "success", "save": new_save}
         except Exception as e: return {"status": "error", "message": str(e)}
 
-    def sync_player_state(self, save_id, current_hp, gold, inventory_json_str, equipment_data_str, days_passed, base_stats_str, stat_exp_str):
+    def sync_player_state(self, save_id, current_hp, gold, inventory_json_str, equipment_data_str, days_passed, base_stats_str, stat_exp_str, attacks_str):
         update_item('saves', save_id, {
             'current_hp': current_hp, 
             'gold': gold,
@@ -127,14 +152,14 @@ class GameAPI:
             'equipment_data': equipment_data_str,
             'days_passed': days_passed,
             'base_stats': base_stats_str,
-            'stat_exp': stat_exp_str
+            'stat_exp': stat_exp_str,
+            'attacks': attacks_str
         })
         return {"status": "success"}
 
     def update_entity(self, table, item_id, data):
         try:
             from database.db_manager import update_item
-            # Se houver dados complexos, o update_item já lida com o dicionário
             update_item(table, item_id, data)
             return {"status": "success", "message": "Atualizado com sucesso!"}
         except Exception as e:
@@ -150,7 +175,6 @@ class GameAPI:
         return dict(enemy) if enemy else None
 
     def generate_loot(self, defeated_enemy_id, save_id):
-        # Mesmo código da versão anterior para loot
         saves = get_all_items("saves")
         player_save = next((s for s in saves if s['id'] == save_id), None)
         if not player_save: return {"loot_list":[], "new_inventory": {}, "new_gold": 0}

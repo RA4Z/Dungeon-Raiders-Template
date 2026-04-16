@@ -21,7 +21,6 @@ async function loadMenuSaves() {
         div.className = 'save-card';
         div.onclick = () => loadGameSession(save);
 
-        // Exibe "Cheio" se for a primeira vez jogando, para evitar o "9999" do DB
         let hpExibido = save.current_hp === 9999 ? "Cheio" : save.current_hp;
 
         div.innerHTML = `
@@ -45,29 +44,25 @@ function openNewGameModal() {
     modal.style.display = 'flex';
     document.getElementById('ng-name').value = '';
 
-    // 1. Popula Corpo
     const selBody = document.getElementById('ng-body');
     selBody.innerHTML = '<option value="">-- Corpo Base --</option>';
     window.gameData.bodies.forEach(b => {
         if (b.is_playable === 1) selBody.innerHTML += `<option value="${b.id}">${b.name}</option>`;
     });
 
-    // 2. Popula Rosto
     const selFace = document.getElementById('ng-face');
     selFace.innerHTML = '<option value="">-- Sem Rosto --</option>';
     window.gameData.equipments.filter(e => e.type === 'face').forEach(f => {
         selFace.innerHTML += `<option value="${f.id}">${f.name}</option>`;
     });
 
-    // 3. Popula Cabelo
     const selHair = document.getElementById('ng-hair');
     selHair.innerHTML = '<option value="">-- Careca --</option>';
     window.gameData.equipments.filter(e => e.type === 'hair').forEach(h => {
         selHair.innerHTML += `<option value="${h.id}">${h.name}</option>`;
     });
 
-    // 4. Paleta de Cores (Shader)
-    const colors = [
+    const colors =[
         { code: '#ffffff', name: 'Original' }, { code: '#ffdfc4', name: 'Pálida' },
         { code: '#d4a373', name: 'Morena' }, { code: '#8d5524', name: 'Escura' },
         { code: '#4b3621', name: 'Muito Escura' }, { code: '#7cb342', name: 'Orc' },
@@ -92,11 +87,10 @@ function openNewGameModal() {
     newGameStats = { 'for': 1, 'int': 1, 'des': 1, 'car': 1, 'res': 1 };
     renderNewGameStats();
 
-    currentSkinColor = "#ffffff"; // reseta
+    currentSkinColor = "#ffffff"; 
     updateNewGamePreview();
 }
 
-// A função que usa o Shader Async para montar o boneco no Novo Jogo
 async function updateNewGamePreview() {
     const bodyId = document.getElementById('ng-body').value;
     const faceId = document.getElementById('ng-face').value;
@@ -108,7 +102,6 @@ async function updateNewGamePreview() {
 
     if (!bodyId) return;
 
-    // Constrói uma Fake Equipment Data pra passar no renderizador universal
     const fakeEq = { base: bodyId, skin_color: currentSkinColor };
     if (faceId) fakeEq.face = faceId;
     if (hairId) fakeEq.hair = hairId;
@@ -148,8 +141,8 @@ window.changeNewGameStat = function (key, val) {
     let spent = Object.values(newGameStats).reduce((a, b) => a + b, 0);
     let left = MAX_POINTS - spent;
 
-    if (val > 0 && left <= 0) return; // Limite máximo
-    if (val < 0 && newGameStats[key] <= 1) return; // Mínimo é 1
+    if (val > 0 && left <= 0) return; 
+    if (val < 0 && newGameStats[key] <= 1) return; 
 
     newGameStats[key] += val;
     renderNewGameStats();
@@ -187,13 +180,17 @@ async function deleteSave(id) {
 async function loadGameSession(save) {
     window.activeSaveId = save.id;
     window.playerGold = save.gold;
-    window.playerDays = save.days_passed || 1; // Carrega os dias
+    window.playerDays = save.days_passed || 1;
     
     try { window.playerInventory = JSON.parse(save.inventory_data); } 
     catch(e) { window.playerInventory = { equipments:[], consumables: {} }; }
 
     try { window.playerStatExp = JSON.parse(save.stat_exp); }
     catch(e) { window.playerStatExp = { 'for': 0, 'int': 0, 'des': 0, 'car': 0, 'res': 0 }; }
+
+    // CARREGA OS ATAQUES DO PLAYER NA SESSION
+    try { window.playerAttacks = JSON.parse(save.attacks || '[1]'); } 
+    catch(e) { window.playerAttacks = [1]; }
 
     window.activePlayer = {
         id: save.id, name: save.name, race: 'humano',

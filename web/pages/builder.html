@@ -2,7 +2,7 @@
 <div class="forms-grid" style="align-items: flex-start;">
     <div class="form-card" style="flex: 2;" id="form-char">
         <div class="attr-grid">
-            <input type="hidden" id="edit-char-id" value=""> <!-- NOVO AQUI -->
+            <input type="hidden" id="edit-char-id" value="">
             <label>Nome <input type="text" id="ch-name" oninput="updateLivePreview()"></label>
             <label>Raça:
                 <select id="ch-race" onchange="toggleRaceFields()">
@@ -24,6 +24,14 @@
             <h4 style="margin-top:10px; color:#e74c3c;">Sub-Status (Overrides para Monstros)</h4>
             <p style="font-size:0.8em; color:#777; margin-bottom:5px;">Deixe em branco para usar a fórmula automática baseada nos atributos acima.</p>
             <div id="builder-sub-stats" class="attr-grid" style="background:#111; padding:10px; border-radius:5px; max-height:150px; overflow-y:auto;"></div>
+
+            <!-- NOVA SEÇÃO PARA OS GOLPES DO PERSONAGEM/MONSTRO -->
+            <div style="background: #222; padding: 15px; border-radius: 8px; margin-top: 15px; border: 1px solid #444;">
+                <h4 style="color: #e74c3c; margin-bottom: 10px;">Habilidades e Ataques do Inimigo</h4>
+                <div id="ch-attacks-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: 150px; overflow-y: auto;">
+                    <!-- Preenchido via JS -->
+                </div>
+            </div>
 
             <div style="background: #222; padding: 15px; border-radius: 8px; margin-top: 15px; border: 1px solid #444;">
                 <h4 style="color: #3498db; margin-bottom: 10px;">Loot do Monstro</h4>
