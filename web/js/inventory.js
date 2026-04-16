@@ -1,7 +1,7 @@
 // web/js/inventory.js
 
 function openInventory() {
-    if(!window.activePlayer) {
+    if (!window.activePlayer) {
         alert("Nenhum personagem selecionado para o inventário!");
         return;
     }
@@ -12,7 +12,7 @@ function openInventory() {
 
 function closeInventory() {
     document.getElementById('inventory-modal').style.display = 'none';
-    if(typeof updateBattleUI === "function") updateBattleUI();
+    if (typeof updateBattleUI === "function") updateBattleUI();
 }
 
 function switchInvTab(tabName, btn) {
@@ -26,8 +26,8 @@ function switchInvTab(tabName, btn) {
 async function syncInventoryToDB() {
     await window.pywebview.api.sync_player_state(
         window.activeSaveId, // <- Aqui usamos o ID do Save, não do personagem base
-        window.playerHP, 
-        JSON.stringify(window.playerInventory), 
+        window.playerHP,
+        JSON.stringify(window.playerInventory),
         JSON.stringify(window.activePlayer.equipment_data)
     );
 }
@@ -39,7 +39,7 @@ function renderInventory() {
 
     // 2. Renderiza a Paper Doll no Modal
     if (typeof buildBattleCharacter === "function") {
-        buildBattleCharacter(window.activePlayer, 'f', 'NULL', 'inv-doll-preview');
+        await buildBattleCharacter(window.activePlayer, 'f', null, 'inv-doll-preview');
     }
 
     // 3. Renderiza as peças EQUIPADAS no corpo do personagem
@@ -49,7 +49,7 @@ function renderInventory() {
         let eqDataMap = typeof window.activePlayer.equipment_data === 'string' ? JSON.parse(window.activePlayer.equipment_data) : window.activePlayer.equipment_data;
 
         window.EQUIP_SLOTS.forEach(slot => {
-            if(slot === 'base') return; // Não dá pra desequipar o corpo base
+            if (slot === 'base') return; // Não dá pra desequipar o corpo base
 
             const itemId = eqDataMap[slot];
             if (itemId) {
@@ -78,7 +78,7 @@ function renderInventory() {
     gridEq.innerHTML = '';
     window.playerInventory.equipments.forEach((itemId, idx) => {
         const itemObj = window.gameData.equipments.find(e => e.id == itemId);
-        if(itemObj) {
+        if (itemObj) {
             gridEq.innerHTML += `
                 <div class="inv-item-card" onclick="equipItem(${idx})" title="Atk:${itemObj.bonus_str} | Def:${itemObj.def_phys}\nClique para Equipar">
                     <img src="${itemObj.img_front || 'assets/no_image.png'}" onerror="this.style.display='none'">
@@ -92,11 +92,11 @@ function renderInventory() {
     // 5. Grid de Consumíveis
     const gridCons = document.getElementById('inv-grid-consumables');
     gridCons.innerHTML = '';
-    for(let cId in window.playerInventory.consumables) {
+    for (let cId in window.playerInventory.consumables) {
         const qty = window.playerInventory.consumables[cId];
-        if(qty > 0) {
+        if (qty > 0) {
             const itemObj = window.gameData.consumables.find(c => c.id == cId);
-            if(itemObj) {
+            if (itemObj) {
                 gridCons.innerHTML += `
                     <div class="inv-item-card" onclick="useConsumable(${cId})" title="Efeito: ${itemObj.effect_type} +${itemObj.effect_value}\nClique para Usar">
                         <img src="${itemObj.img_path || 'assets/potion.png'}" onerror="this.style.display='none'">
@@ -114,18 +114,18 @@ async function equipItem(invIndex) {
     const newItemId = window.playerInventory.equipments[invIndex];
     const newItemDef = window.gameData.equipments.find(e => e.id == newItemId);
     if (!newItemDef) return;
-    
+
     // Tira do inventário
     window.playerInventory.equipments.splice(invIndex, 1);
-    
+
     // Verifica slot e joga o item velho pra mochila, se houver
     const slot = newItemDef.type;
     let eqDataMap = typeof window.activePlayer.equipment_data === 'string' ? JSON.parse(window.activePlayer.equipment_data) : window.activePlayer.equipment_data;
-    
-    if(eqDataMap[slot]) {
+
+    if (eqDataMap[slot]) {
         window.playerInventory.equipments.push(eqDataMap[slot]);
     }
-    
+
     // Equipa o item novo
     eqDataMap[slot] = newItemId;
     window.activePlayer.equipment_data = eqDataMap;
@@ -135,9 +135,9 @@ async function equipItem(invIndex) {
 
     // Recarrega a tela do inventário
     renderInventory();
-    
+
     // Se a tela de combate estiver no fundo, atualiza a imagem do jogador
-    if(document.getElementById('combat-screen').classList.contains('active-view')) {
+    if (document.getElementById('combat-screen').classList.contains('active-view')) {
         buildBattleCharacter(window.activePlayer, 'b', 'player-image', 'player-layers');
     }
 }
@@ -147,7 +147,7 @@ async function unequipItem(slot) {
     let eqDataMap = typeof window.activePlayer.equipment_data === 'string' ? JSON.parse(window.activePlayer.equipment_data) : window.activePlayer.equipment_data;
 
     // Verifica se realmente existe algo equipado no slot
-    if(!eqDataMap[slot]) return; 
+    if (!eqDataMap[slot]) return;
 
     const itemId = eqDataMap[slot];
 
@@ -163,27 +163,27 @@ async function unequipItem(slot) {
 
     // Recarrega a tela para a roupa sumir da prévia
     renderInventory();
-    
+
     // Se a aba de combate estiver atrás do modal, atualiza a imagem do herói nela
-    if(document.getElementById('combat-screen').classList.contains('active-view')) {
+    if (document.getElementById('combat-screen').classList.contains('active-view')) {
         buildBattleCharacter(window.activePlayer, 'b', 'player-image', 'player-layers');
     }
 }
 
 // USA ITEM DE CURA
 async function useConsumable(cId) {
-    if(window.playerHP >= window.activePlayer.hp) {
+    if (window.playerHP >= window.activePlayer.hp) {
         alert("Seu HP já está no máximo!"); return;
     }
 
     const itemObj = window.gameData.consumables.find(c => c.id == cId);
-    if(itemObj && itemObj.effect_type === 'heal_hp') {
+    if (itemObj && itemObj.effect_type === 'heal_hp') {
         // Cura e limita no HP Máximo do personagem
         window.playerHP = Math.min(window.activePlayer.hp, window.playerHP + itemObj.effect_value);
-        
+
         // Remove 1 poção do inventário
         window.playerInventory.consumables[cId]--;
-        if(window.playerInventory.consumables[cId] <= 0) {
+        if (window.playerInventory.consumables[cId] <= 0) {
             delete window.playerInventory.consumables[cId];
         }
 

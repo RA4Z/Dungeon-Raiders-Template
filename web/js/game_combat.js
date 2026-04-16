@@ -188,3 +188,58 @@ function closeLootAndReturn() {
     document.getElementById('loot-modal').style.display = 'none';
     backToCity();
 }
+
+window.buildBattleCharacter = async function(characterData, side, imgId, layersId) {
+    const imgEl = imgId ? document.getElementById(imgId) : null;
+    const layersEl = layersId ? document.getElementById(layersId) : null;
+    
+    if (!characterData) return;
+
+    if (characterData.race === 'humano') {
+        if(imgEl) imgEl.style.display = 'none';
+        if(layersEl) {
+            layersEl.style.display = 'block';
+            layersEl.innerHTML = ''; // Limpa antes de re-desenhar
+        }
+        
+        let eqDataMap = typeof characterData.equipment_data === 'string' 
+            ? JSON.parse(characterData.equipment_data) : characterData.equipment_data;
+        
+        let skinColor = eqDataMap.skin_color || "#ffffff";
+        let finalHtml = ""; // Acumula o HTML para não piscar a tela
+
+        // Precisa usar for-of porque forEach não lida bem com await interno
+        for (let index = 0; index < window.EQUIP_SLOTS.length; index++) {
+            const slot = window.EQUIP_SLOTS[index];
+            const itemId = eqDataMap[slot];
+            
+            if (itemId) {
+                let itemData = slot === 'base' ? window.gameData.bodies.find(b => b.id == itemId) : window.gameData.equipments.find(e => e.id == itemId);
+                
+                if (itemData) {
+                    let imgSrc = side === 'f' ? itemData.img_front : itemData.img_back;
+                    
+                    if (imgSrc) {
+                        // Aplica o Shader APENAS no Corpo e Rosto
+                        if (slot === 'base' || slot === 'face') {
+                            imgSrc = await window.applyShaderTint(imgSrc, skinColor);
+                        }
+                        
+                        finalHtml += `<img src="${imgSrc}" style="z-index: ${index};">`;
+                    }
+                }
+            }
+        }
+        
+        if (layersEl) layersEl.innerHTML = finalHtml;
+
+    } else {
+        // MONSTRO SIMPLES
+        if(layersEl) layersEl.style.display = 'none';
+        if(imgEl) {
+            imgEl.style.display = 'block';
+            imgEl.src = side === 'f' ? characterData.img_front : characterData.img_back;
+        }
+    }
+}
+

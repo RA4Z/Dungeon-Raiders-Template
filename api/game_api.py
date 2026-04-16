@@ -41,9 +41,16 @@ class GameAPI:
     def get_saves(self):
         return get_all_items("saves")
 
-    def create_save(self, name, body_id):
+    def create_save(self, name, body_id, face_id, hair_id, skin_color):
         try:
-            eq_data = {"base": int(body_id)}
+            # Estrutura do equipamento inicial com a cor de pele embutida
+            eq_data = {
+                "base": int(body_id),
+                "skin_color": skin_color
+            }
+            if face_id: eq_data["face"] = int(face_id)
+            if hair_id: eq_data["hair"] = int(hair_id)
+
             save_data = {
                 "name": name,
                 "body_id": int(body_id),
@@ -53,7 +60,6 @@ class GameAPI:
             }
             insert_item('saves', save_data)
             
-            # Retorna o save recém-criado buscando o último ID
             conn = get_save_connection()
             conn.row_factory = sqlite3.Row
             cur = conn.cursor()
@@ -63,7 +69,7 @@ class GameAPI:
             return {"status": "success", "save": new_save}
         except Exception as e:
             return {"status": "error", "message": str(e)}
-
+        
     def sync_player_state(self, save_id, current_hp, inventory_json_str, equipment_data_str):
         update_item('saves', save_id, {
             'current_hp': current_hp, 
