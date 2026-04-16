@@ -38,10 +38,14 @@
             </div>
         </div>
         <div class="dialogue-box"><p id="combat-dialogue">Buscando Inimigo...</p></div>
+        
+        <!-- CORRIGIDO: Adicionado IDs nos botões -->
         <div class="actions">
-            <button id="attack-btn" onclick="startTurnSequence()">ATACAR</button>
-            <button id="flee-btn" onclick="fleeBattle()" style="background:#8e44ad;">FUGIR</button>
+            <button id="attack-phys-btn" onclick="startTurnSequence('phys')">Ataque Físico</button>
+            <button id="attack-mag-btn" onclick="startTurnSequence('mag')" style="background:#2980b9;">Ataque Mágico</button>
+            <button id="flee-btn" onclick="fleeBattle()" style="background:#8e44ad;">Fugir</button>
         </div>
+
     </div>
 </div>
 

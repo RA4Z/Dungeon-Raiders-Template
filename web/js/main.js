@@ -45,10 +45,14 @@ async function checkReady() {
 window.refreshData = async function() {
     window.gameData = await window.pywebview.api.load_data();
     
-    // Alimenta as telas que precisam dos dados imediatamente
+    // Injeta os dados nas abas correspondentes
     if (typeof loadMenuSaves === "function") loadMenuSaves();
     if (typeof buildSelects === "function") buildSelects();
     if (typeof renderCrudTable === "function") renderCrudTable();
+    
+    // Desenha as grids dinâmicas do STAT_MAP
+    if (typeof window.renderForgeStats === "function") window.renderForgeStats();
+    if (typeof updateLivePreview === "function") updateLivePreview();
 }
 
 // 5. Sistema de Navegação (Abas)

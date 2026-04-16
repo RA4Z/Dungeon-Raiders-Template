@@ -7,15 +7,15 @@
         <label>Img Frente</label><div class="file-input-group"><input type="text" id="bd-img-f" oninput="updateMiniPrev(this.id, 'prev-bd-f')"><img id="prev-bd-f" class="mini-preview" src=""></div>
         <label>Img Verso</label><div class="file-input-group"><input type="text" id="bd-img-b" oninput="updateMiniPrev(this.id, 'prev-bd-b')"><img id="prev-bd-b" class="mini-preview" src=""></div>
         <label style="color:#f1c40f; display:flex; flex-direction:row; align-items:center; gap:10px; margin-top:15px; background:#111; padding:10px; border-radius:5px;">
-            <input type="checkbox" id="bd-playable" style="width:20px; height:20px;"> Este Corpo é Jogável (Aparece no Novo Jogo)
+            <input type="checkbox" id="bd-playable" style="width:20px; height:20px;"> Este Corpo é Jogável (Novo Jogo)
         </label>
         <button onclick="saveBody()">Salvar Corpo</button>
     </div>
     
     <div class="form-card" id="form-equip">
-        <h3>Criar Nova Peça / Equipamento</h3>
+        <h3>Nova Peça / Equipamento</h3>
         <label>Nome</label><input type="text" id="eq-name">
-        <label>Tipo (Aonde equipa)</label>
+        <label>Tipo</label>
         <select id="eq-type">
             <option value="face">Rosto / Expressão</option><option value="hair">Cabelo</option><option value="helmet">Capacete / Chapéu</option>
             <option value="shirt">Tronco / Camisa</option><option value="pants">Calças</option><option value="gloves">Luvas</option>
@@ -23,21 +23,22 @@
         </select>
         <label>Img Frente</label><div class="file-input-group"><input type="text" id="eq-img-f" oninput="updateMiniPrev(this.id, 'prev-eq-f')"><img id="prev-eq-f" class="mini-preview" src=""></div>
         <label>Img Verso</label><div class="file-input-group"><input type="text" id="eq-img-b" oninput="updateMiniPrev(this.id, 'prev-eq-b')"><img id="prev-eq-b" class="mini-preview" src=""></div>
-        <label>Atk / DefF / DefM / Drop(%)</label>
-        <div class="attr-grid">
-            <input type="number" id="eq-str" placeholder="Força/Ataque" value="0">
-            <input type="number" id="eq-pdef" placeholder="Def Fis" value="0">
-            <input type="number" id="eq-mdef" placeholder="Def Mag" value="0">
-            <input type="number" id="eq-drop" placeholder="Drop %" value="5">
+        
+        <label style="color:#e74c3c; margin-top:10px;">Modificadores de Status do Equipamento</label>
+        <div id="forge-stats-grid" class="attr-grid" style="background:#111; padding:10px; border-radius:5px; max-height:200px; overflow-y:auto; font-size:0.85em;">
+            <!-- Preenchido via JS -->
         </div>
-        <button onclick="saveEquipment()">Salvar Equipamento</button>
+        
+        <label style="margin-top:10px;">Chance de Drop (%)</label>
+        <input type="number" id="eq-drop" value="5">
+        
+        <button onclick="saveEquipment()" style="margin-top:10px;">Salvar Equipamento</button>
     </div>
 
     <div class="form-card" id="form-consumable">
         <h3>Item Consumível</h3>
-        <label>Nome</label><input type="text" id="cons-name" placeholder="Ex: Poção de Vida">
-        <label>Tipo de Efeito</label>
-        <select id="cons-type"><option value="heal_hp">Curar HP</option><option value="buff_atk">Aumentar Ataque</option></select>
+        <label>Nome</label><input type="text" id="cons-name">
+        <label>Tipo de Efeito</label><select id="cons-type"><option value="heal_hp">Curar HP</option><option value="buff_atk">Aumentar Ataque</option></select>
         <label>Valor do Efeito</label><input type="number" id="cons-value" value="50">
         <label>Imagem</label><div class="file-input-group"><input type="text" id="cons-img" oninput="updateMiniPrev(this.id, 'prev-cons')"><img id="prev-cons" class="mini-preview" src=""></div>
         <label>Chance de Drop (%)</label><input type="number" id="cons-drop" value="20">

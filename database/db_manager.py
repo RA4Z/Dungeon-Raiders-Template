@@ -1,7 +1,7 @@
+# database/db_manager.py
 import sqlite3
 import os
 
-# DOIS BANCOS DE DADOS SEPARADOS
 GAME_DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'game_data.db')
 SAVE_DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'saves.db')
 
@@ -14,79 +14,52 @@ def get_save_connection():
     return sqlite3.connect(SAVE_DB_PATH)
 
 def _get_conn(table):
-    # Se a tabela for 'saves', conecta no banco de saves. Se não, no banco do jogo.
     if table == 'saves': return get_save_connection()
     return get_game_connection()
 
+def run_migration(conn, sql):
+    try: conn.cursor().execute(sql)
+    except sqlite3.OperationalError: pass
+
 def init_db():
-    # ==== 1. INICIALIZA BANCO DO JOGO (Peças, Monstros, Cenários) ====
     conn = get_game_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute('''CREATE TABLE IF NOT EXISTS scenarios (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, image_path TEXT, description TEXT
-    )''')
-    
-    cursor.execute('''CREATE TABLE IF NOT EXISTS bodies (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, img_front TEXT, img_back TEXT, is_playable INTEGER DEFAULT 0
-    )''')
-    
-    # Migração segura para adicionar a coluna caso o banco já exista
-    try: cursor.execute("ALTER TABLE bodies ADD COLUMN is_playable INTEGER DEFAULT 0")
-    except sqlite3.OperationalError: pass
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS scenarios (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, image_path TEXT, description TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS bodies (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, img_front TEXT, img_back TEXT, is_playable INTEGER DEFAULT 0)''')
+    run_migration(conn, "ALTER TABLE bodies ADD COLUMN is_playable INTEGER DEFAULT 0")
 
-    cursor.execute('''CREATE TABLE IF NOT EXISTS equipments (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT, type TEXT, img_front TEXT, img_back TEXT,
-        def_phys INTEGER, def_mag INTEGER, bonus_str INTEGER, bonus_int INTEGER, bonus_dex INTEGER,
-        drop_chance INTEGER DEFAULT 10
-    )''')
-    
-    cursor.execute('''CREATE TABLE IF NOT EXISTS consumables (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT, effect_type TEXT, effect_value INTEGER, img_path TEXT, drop_chance INTEGER DEFAULT 20
-    )''')
-    
-    cursor.execute('''CREATE TABLE IF NOT EXISTS characters (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT, hp INTEGER, attack INTEGER, race TEXT,
-        img_front TEXT, img_back TEXT, equipment_data TEXT,
-        custom_drops TEXT DEFAULT '[]'
-    )''')
-    
-    try: cursor.execute("ALTER TABLE characters ADD COLUMN custom_drops TEXT DEFAULT '[]'")
-    except sqlite3.OperationalError: pass
+    c.execute('''CREATE TABLE IF NOT EXISTS equipments (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, type TEXT, img_front TEXT, img_back TEXT, drop_chance INTEGER DEFAULT 10, stats_modifiers TEXT DEFAULT '{}')''')
+    run_migration(conn, "ALTER TABLE equipments ADD COLUMN stats_modifiers TEXT DEFAULT '{}'")
 
+    c.execute('''CREATE TABLE IF NOT EXISTS consumables (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, effect_type TEXT, effect_value INTEGER, img_path TEXT, drop_chance INTEGER DEFAULT 20)''')
+    
+    c.execute('''CREATE TABLE IF NOT EXISTS characters (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, race TEXT, img_front TEXT, img_back TEXT, equipment_data TEXT, custom_drops TEXT DEFAULT '[]', base_stats TEXT DEFAULT '{}', custom_substats TEXT DEFAULT '{}')''')
+    run_migration(conn, "ALTER TABLE characters ADD COLUMN custom_drops TEXT DEFAULT '[]'")
+    run_migration(conn, "ALTER TABLE characters ADD COLUMN base_stats TEXT DEFAULT '{}'")
+    run_migration(conn, "ALTER TABLE characters ADD COLUMN custom_substats TEXT DEFAULT '{}'")
     conn.commit()
     conn.close()
 
-    # ==== 2. INICIALIZA BANCO DE SAVES (Jogadores) ====
     conn_save = get_save_connection()
-    cursor_save = conn_save.cursor()
-    
-    cursor_save.execute('''CREATE TABLE IF NOT EXISTS saves (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        body_id INTEGER,
-        gold INTEGER DEFAULT 0,
-        max_hp INTEGER DEFAULT 100,
-        current_hp INTEGER DEFAULT 100,
-        attack INTEGER DEFAULT 10,
-        equipment_data TEXT DEFAULT '{}',
+    c_save = conn_save.cursor()
+    c_save.execute('''CREATE TABLE IF NOT EXISTS saves (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, body_id INTEGER, gold INTEGER DEFAULT 0,
+        current_hp INTEGER DEFAULT 100, equipment_data TEXT DEFAULT '{}',
         inventory_data TEXT DEFAULT '{"equipments":[], "consumables": {}}',
+        base_stats TEXT DEFAULT '{"for":1,"int":1,"des":1,"car":1,"res":1}',
         last_played TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
-    
+    run_migration(conn_save, "ALTER TABLE saves ADD COLUMN base_stats TEXT DEFAULT '{\"for\":1,\"int\":1,\"des\":1,\"car\":1,\"res\":1}'")
     conn_save.commit()
     conn_save.close()
 
+# Mantenha as outras funções (insert_item, update_item, delete_item, get_all_items) iguais!
 def insert_item(table, data_dict):
     conn = _get_conn(table)
     cursor = conn.cursor()
     columns = ', '.join(data_dict.keys())
     placeholders = ', '.join('?' * len(data_dict))
-    sql = f'INSERT INTO {table} ({columns}) VALUES ({placeholders})'
-    cursor.execute(sql, list(data_dict.values()))
+    cursor.execute(f'INSERT INTO {table} ({columns}) VALUES ({placeholders})', list(data_dict.values()))
     conn.commit()
     conn.close()
 
@@ -94,10 +67,9 @@ def update_item(table, item_id, data_dict):
     conn = _get_conn(table)
     cursor = conn.cursor()
     set_clause = ', '.join([f"{key} = ?" for key in data_dict.keys()])
-    sql = f'UPDATE {table} SET {set_clause} WHERE id = ?'
     values = list(data_dict.values())
     values.append(item_id)
-    cursor.execute(sql, values)
+    cursor.execute(f'UPDATE {table} SET {set_clause} WHERE id = ?', values)
     conn.commit()
     conn.close()
 
@@ -117,5 +89,4 @@ def get_all_items(table):
         rows = cursor.fetchall()
         conn.close()
         return[dict(row) for row in rows]
-    except:
-        return[]
+    except: return[]

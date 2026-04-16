@@ -1,4 +1,6 @@
 let currentSkinColor = "#ffffff";
+let newGameStats = { 'for': 1, 'int': 1, 'des': 1, 'car': 1, 'res': 1 };
+const MAX_POINTS = 15;
 
 async function loadMenuSaves() {
     const saves = await window.pywebview.api.get_saves();
@@ -12,22 +14,30 @@ async function loadMenuSaves() {
     }
 
     saves.forEach(save => {
+        let base = { 'for':1, 'int':1, 'des':1 };
+        try { if(save.base_stats) base = JSON.parse(save.base_stats); } catch(e){}
+
         const div = document.createElement('div');
         div.className = 'save-card';
         div.onclick = () => loadGameSession(save);
+        
+        // Exibe "Cheio" se for a primeira vez jogando, para evitar o "9999" do DB
+        let hpExibido = save.current_hp === 9999 ? "Cheio" : save.current_hp;
+
         div.innerHTML = `
             <h3>${save.name}</h3>
             <div class="save-stats">
-                HP: ${save.current_hp} / ${save.max_hp}<br>
-                Ouro: ${save.gold} Moedas<br>
-                Ataque: ${save.attack}<br>
+                HP Atual: <span style="color:#2ecc71; font-weight:bold;">${hpExibido}</span><br>
+                Ouro: <span style="color:#f1c40f; font-weight:bold;">${save.gold} Moedas</span><br>
+                <div style="margin-top:8px; border-top:1px solid #444; padding-top:5px;">
+                    <small>FOR ${base['for']} | INT ${base['int']} | DES ${base['des']}</small>
+                </div>
             </div>
-            <button class="save-del-btn" onclick="event.stopPropagation(); deleteSave(${save.id})">Apagar</button>
+            <button class="save-del-btn" onclick="event.stopPropagation(); deleteSave(${save.id})">Apagar Jogo</button>
         `;
         container.appendChild(div);
     });
 }
-
 function openNewGameModal() {
     const modal = document.getElementById('new-game-modal');
     if(!modal) return;
@@ -79,6 +89,9 @@ function openNewGameModal() {
         colorContainer.appendChild(btn);
     });
 
+    newGameStats = { 'for': 1, 'int': 1, 'des': 1, 'car': 1, 'res': 1 };
+    renderNewGameStats();
+
     currentSkinColor = "#ffffff"; // reseta
     updateNewGamePreview();
 }
@@ -108,15 +121,54 @@ async function updateNewGamePreview() {
 
 function closeNewGameModal() { document.getElementById('new-game-modal').style.display = 'none'; }
 
+function renderNewGameStats() {
+    const grid = document.getElementById('ng-stats-grid');
+    if(!grid) return;
+    
+    let spent = Object.values(newGameStats).reduce((a, b) => a + b, 0);
+    let left = MAX_POINTS - spent;
+    document.getElementById('ng-pts-left').innerText = left;
+
+    grid.innerHTML = '';
+    Object.keys(window.STAT_MAP.base).forEach(key => {
+        grid.innerHTML += `
+            <div style="display:flex; justify-content:space-between; align-items:center; color:#fff;">
+                <span>${window.STAT_MAP.base[key]}</span>
+                <div>
+                    <button onclick="changeNewGameStat('${key}', -1)" style="padding:2px 8px; background:#c0392b; border:none; color:#fff; cursor:pointer; font-weight:bold;">-</button>
+                    <span style="display:inline-block; width:20px; text-align:center; font-weight:bold;">${newGameStats[key]}</span>
+                    <button onclick="changeNewGameStat('${key}', 1)" style="padding:2px 8px; background:#27ae60; border:none; color:#fff; cursor:pointer; font-weight:bold;">+</button>
+                </div>
+            </div>
+        `;
+    });
+}
+
+window.changeNewGameStat = function(key, val) {
+    let spent = Object.values(newGameStats).reduce((a, b) => a + b, 0);
+    let left = MAX_POINTS - spent;
+
+    if (val > 0 && left <= 0) return; // Limite máximo
+    if (val < 0 && newGameStats[key] <= 1) return; // Mínimo é 1
+
+    newGameStats[key] += val;
+    renderNewGameStats();
+}
+
 async function createNewGame() {
     const name = document.getElementById('ng-name').value;
     const bodyId = document.getElementById('ng-body').value;
     const faceId = document.getElementById('ng-face').value;
     const hairId = document.getElementById('ng-hair').value;
+    
+    let spent = Object.values(newGameStats).reduce((a, b) => a + b, 0);
+    if(spent < MAX_POINTS) {
+        if(!confirm("Você ainda tem pontos sobrando! Deseja continuar assim mesmo?")) return;
+    }
 
     if(!name || !bodyId) { alert("Nome e Corpo Base são obrigatórios!"); return; }
 
-    const res = await window.pywebview.api.create_save(name, bodyId, faceId, hairId, currentSkinColor);
+    const res = await window.pywebview.api.create_save(name, bodyId, faceId, hairId, currentSkinColor, newGameStats);
     if(res.status === 'success') {
         closeNewGameModal();
         loadGameSession(res.save); 
@@ -132,24 +184,42 @@ async function deleteSave(id) {
     }
 }
 
-function loadGameSession(save) {
+async function loadGameSession(save) {
     window.activeSaveId = save.id;
-    window.playerHP = save.current_hp;
     window.playerGold = save.gold;
-    try { window.playerInventory = JSON.parse(save.inventory_data); } 
-    catch(e) { window.playerInventory = { equipments:[], consumables: {} }; }
+    window.playerHP = save.current_hp;
 
+    try { 
+        window.playerInventory = JSON.parse(save.inventory_data); 
+    } catch(e) { 
+        window.playerInventory = { equipments: [], consumables: {} }; 
+    }
+
+    // Carrega o herói ativo
     window.activePlayer = {
-        id: save.id, name: save.name, hp: save.max_hp, attack: save.attack, race: 'humano', 
-        equipment_data: JSON.parse(save.equipment_data)
+        id: save.id,
+        name: save.name,
+        race: 'humano',
+        equipment_data: JSON.parse(save.equipment_data),
+        base_stats: JSON.parse(save.base_stats)
     };
 
+    // NOVO: Calcula os substatus (HP Max, Dano, etc) baseados nos atributos e itens
+    await window.refreshPlayerStats();
+
+    // Se o save for novo (HP muito alto ou zero), reseta para o HP Máximo calculado
+    if (window.playerHP > window.playerFullStats.computed.hp || window.playerHP <= 0) {
+        window.playerHP = window.playerFullStats.computed.hp;
+    }
+
+    // Atualiza a UI e navega
     const statusEl = document.getElementById('session-status');
-    if (statusEl) statusEl.innerText = `Sessão: ${save.name} (Ativo)`;
+    if (statusEl) statusEl.innerText = `Sessão: ${save.name} | Ouro: ${window.playerGold}`;
+    
     const gameBtn = document.getElementById('btn-tab-game');
     if (gameBtn) {
         gameBtn.style.display = 'block';
-        if (typeof showTab === "function") showTab('game-tab', gameBtn);
+        showTab('game-tab', gameBtn);
     }
-    if (typeof backToCity === "function") backToCity();
+    backToCity();
 }

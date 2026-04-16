@@ -1,108 +1,137 @@
-// web/js/builder.js
-window.currentCustomDrops = [];
+window.currentCustomDrops =[];
 
 function buildSelects() {
     const data = window.gameData;
     if (!data) return;
 
+    // Popula Selects de Roupas
     const createOptions = (arr, selId) => {
         const sel = document.getElementById(selId);
         if (!sel) return;
-        sel.innerHTML = '<option value="">-- Vazio / Selecionar --</option>';
-        if (arr) {
-            arr.forEach(item => {
-                const opt = document.createElement('option');
-                opt.value = item.id;
-                opt.textContent = item.name;
-                sel.appendChild(opt);
-            });
-        }
+        sel.innerHTML = '<option value="">-- Vazio --</option>';
+        if (arr) arr.forEach(item => {
+            const opt = document.createElement('option');
+            opt.value = item.id; opt.textContent = item.name;
+            sel.appendChild(opt);
+        });
     };
 
-    // Popula Corpos
     createOptions(data.bodies, 'sel-base');
-
-    // Popula Slots de Equipamento
     if (window.EQUIP_SLOTS) {
         window.EQUIP_SLOTS.forEach(slot => {
-            if (slot !== 'base') {
-                const filtered = data.equipments.filter(e => e.type === slot);
-                createOptions(filtered, `sel-${slot}`);
-            }
+            if (slot !== 'base') createOptions(data.equipments.filter(e => e.type === slot), `sel-${slot}`);
         });
     }
 
-    // Popula Lista de Drops para Monstros
+    // Popula Lista de Drops
     const cdItem = document.getElementById('cd-item');
     if (cdItem) {
-        cdItem.innerHTML = '<option value="">-- Selecione o Item --</option>';
-        let html = '<optgroup label="Consumíveis">';
+        let html = '<option value="">-- Item --</option><optgroup label="Consumíveis">';
         data.consumables.forEach(c => html += `<option value="cons_${c.id}">${c.name}</option>`);
         html += '</optgroup><optgroup label="Equipamentos">';
         data.equipments.forEach(e => html += `<option value="equip_${e.id}">${e.name}</option>`);
-        html += '</optgroup>';
-        cdItem.innerHTML = html;
+        cdItem.innerHTML = html + '</optgroup>';
+    }
+
+    // GERA OS CAMPOS DE STATUS DINAMICAMENTE
+    const baseGrid = document.getElementById('builder-base-stats');
+    if (baseGrid) {
+        baseGrid.innerHTML = '';
+        for(let k in window.STAT_MAP.base) {
+            baseGrid.innerHTML += `<label>${window.STAT_MAP.base[k]} <input type="number" class="char-base-stat" data-stat="${k}" value="1" min="1" oninput="updateLivePreview()"></label>`;
+        }
+    }
+
+    const subGrid = document.getElementById('builder-sub-stats');
+    if (subGrid) {
+        subGrid.innerHTML = '';
+        for(let k in window.STAT_MAP.derived) {
+            subGrid.innerHTML += `<label>${window.STAT_MAP.derived[k]} <input type="number" class="char-sub-stat" data-stat="${k}" placeholder="Auto" oninput="updateLivePreview()"></label>`;
+        }
     }
 }
 
 function toggleRaceFields() {
-    const raceEl = document.getElementById('ch-race');
-    if (!raceEl) return;
-    const race = raceEl.value;
-    
-    const simple = document.getElementById('simple-fields');
-    const human = document.getElementById('human-fields');
-    
-    if (simple) simple.style.display = race === 'humano' ? 'none' : 'block';
-    if (human) human.style.display = race === 'humano' ? 'block' : 'none';
-    
-    if (race === 'humano') updateDollPreview();
+    const race = document.getElementById('ch-race').value;
+    document.getElementById('simple-fields').style.display = race === 'humano' ? 'none' : 'block';
+    document.getElementById('human-fields').style.display = race === 'humano' ? 'block' : 'none';
+    updateLivePreview();
 }
 
-function updateDollPreview() {
+function updateLivePreview() {
+    // 1. ATUALIZA A IMAGEM
+    const race = document.getElementById('ch-race').value;
     const cF = document.getElementById('prev-front');
     const cB = document.getElementById('prev-back');
-    if (!cF || !cB) return;
-
     cF.innerHTML = ''; cB.innerHTML = '';
-    window.EQUIP_SLOTS.forEach((slot, index) => {
-        const sel = document.getElementById(`sel-${slot}`);
-        if (sel && sel.value) {
-            const item = slot === 'base' ? 
-                window.gameData.bodies.find(b => b.id == sel.value) : 
-                window.gameData.equipments.find(e => e.id == sel.value);
-            
-            if (item) {
-                if (item.img_front) cF.innerHTML += `<img src="${item.img_front}" style="z-index:${index}; position:absolute;">`;
-                if (item.img_back) cB.innerHTML += `<img src="${item.img_back}" style="z-index:${index}; position:absolute;">`;
+
+    if (race === 'humano') {
+        window.EQUIP_SLOTS.forEach((slot, index) => {
+            const sel = document.getElementById(`sel-${slot}`);
+            if (sel && sel.value) {
+                const item = slot === 'base' ? window.gameData.bodies.find(b => b.id == sel.value) : window.gameData.equipments.find(e => e.id == sel.value);
+                if (item) {
+                    if (item.img_front) cF.innerHTML += `<img src="${item.img_front}" style="z-index:${index}; position:absolute;">`;
+                    if (item.img_back) cB.innerHTML += `<img src="${item.img_back}" style="z-index:${index}; position:absolute;">`;
+                }
             }
+        });
+    } else {
+        const iF = document.getElementById('ch-img-f').value;
+        const iB = document.getElementById('ch-img-b').value;
+        if(iF) cF.innerHTML = `<img src="${iF}" style="position:absolute;">`;
+        if(iB) cB.innerHTML = `<img src="${iB}" style="position:absolute;">`;
+    }
+
+    // 2. ATUALIZA A PRÉVIA DE STATUS (Live Stats)
+    let base = {};
+    document.querySelectorAll('.char-base-stat').forEach(i => base[i.dataset.stat] = parseInt(i.value) || 1);
+    
+    let overrides = {};
+    if (race === 'monstro') {
+        document.querySelectorAll('.char-sub-stat').forEach(i => {
+            if(i.value !== "") overrides[i.dataset.stat] = parseFloat(i.value);
+        });
+    }
+
+    let bonus = {};
+    if (race === 'humano') {
+        window.EQUIP_SLOTS.forEach(slot => {
+            const val = document.getElementById(`sel-${slot}`).value;
+            if(val && slot !== 'base') {
+                const eq = window.gameData.equipments.find(e => e.id == val);
+                if(eq && eq.stats_modifiers) {
+                    let mods = JSON.parse(eq.stats_modifiers);
+                    for(let k in mods) bonus[k] = (bonus[k] || 0) + parseFloat(mods[k]);
+                }
+            }
+        });
+    }
+
+    const finalStats = window.calcStatsLocal(base, bonus, overrides);
+    
+    const viewGrid = document.getElementById('live-stats-preview');
+    if (viewGrid) {
+        viewGrid.innerHTML = '';
+        for(let k in finalStats.computed) {
+            let name = window.STAT_MAP.derived[k];
+            let val = finalStats.computed[k].toFixed(1);
+            viewGrid.innerHTML += `<span><strong>${name}:</strong> <span style="color:#2ecc71;">${val}</span></span>`;
         }
-    });
+    }
 }
 
+// Drops para monstros (mantido igual)
 function addCustomDrop() {
-    const itemEl = document.getElementById('cd-item');
-    const chanceEl = document.getElementById('cd-chance');
-    if (!itemEl || !chanceEl) return;
-
-    const val = itemEl.value;
-    const chance = parseInt(chanceEl.value);
-    if (!val || !chance) return;
-
-    const [type, id] = val.split('_');
-    const name = itemEl.options[itemEl.selectedIndex].text;
-    window.currentCustomDrops.push({ type, id, chance, name });
+    const el = document.getElementById('cd-item');
+    const ch = document.getElementById('cd-chance').value;
+    if(!el.value || !ch) return;
+    const [t, id] = el.value.split('_');
+    window.currentCustomDrops.push({ type: t, id: parseInt(id), chance: parseInt(ch), name: el.options[el.selectedIndex].text });
     renderCustomDrops();
 }
-
 function renderCustomDrops() {
-    const list = document.getElementById('cd-list');
-    if (!list) return;
-    list.innerHTML = window.currentCustomDrops.map((d, i) => `
-        <li style="background:#111; padding:5px; margin-top:2px; border:1px solid #444; display:flex; justify-content:space-between;">
-            ${d.name} (${d.chance}%) <button onclick="window.currentCustomDrops.splice(${i},1); renderCustomDrops();">X</button>
-        </li>
-    `).join('');
+    document.getElementById('cd-list').innerHTML = window.currentCustomDrops.map((d, i) => `<li style="background:#111; padding:5px; border:1px solid #444; display:flex; justify-content:space-between; margin-top:3px;">${d.name} (${d.chance}%) <button onclick="window.currentCustomDrops.splice(${i},1); renderCustomDrops();">X</button></li>`).join('');
 }
 
 async function saveCharacter() {
@@ -110,25 +139,37 @@ async function saveCharacter() {
     const race = document.getElementById('ch-race').value;
     if (!name) return alert("Nome obrigatório");
 
-    let data = {
-        name,
-        hp: parseInt(document.getElementById('ch-hp').value) || 100,
-        attack: parseInt(document.getElementById('ch-atk').value) || 10,
-        race: race
-    };
+    let base = {};
+    document.querySelectorAll('.char-base-stat').forEach(i => base[i.dataset.stat] = parseInt(i.value) || 1);
+
+    let data = { name, race, base_stats: JSON.stringify(base) };
 
     if (race === 'humano') {
         let eq = {};
-        window.EQUIP_SLOTS.forEach(s => eq[s] = document.getElementById(`sel-${s}`).value);
+        window.EQUIP_SLOTS.forEach(s => {
+            const v = document.getElementById(`sel-${s}`).value;
+            if(v) eq[s] = v;
+        });
         data.equipment_data = JSON.stringify(eq);
+        data.img_front = ""; data.img_back = "";
         data.custom_drops = "[]";
+        data.custom_substats = "{}";
     } else {
+        let sub = {};
+        document.querySelectorAll('.char-sub-stat').forEach(i => {
+            if(i.value !== "") sub[i.dataset.stat] = parseFloat(i.value);
+        });
+
         data.img_front = document.getElementById('ch-img-f').value;
         data.img_back = document.getElementById('ch-img-b').value;
         data.custom_drops = JSON.stringify(window.currentCustomDrops);
+        data.custom_substats = JSON.stringify(sub);
+        data.equipment_data = "{}";
     }
 
-    await window.pywebview.api.add_entity('characters', data);
-    alert("Salvo!");
+    const res = await window.pywebview.api.add_entity('characters', data);
+    alert(res.message);
+    window.currentCustomDrops =[];
+    renderCustomDrops();
     window.refreshData();
 }
