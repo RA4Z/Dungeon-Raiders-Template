@@ -4,11 +4,11 @@ let isApiReady = false;
 // 1. Carrega os pedaços de HTML assim que a tela abre
 window.addEventListener('DOMContentLoaded', async () => {
     const pages =[
-        { id: 'menu-tab', file: 'pages/menu.html' },
-        { id: 'game-tab', file: 'pages/game.html' },
-        { id: 'admin-tab', file: 'pages/forge.html' },
-        { id: 'char-tab', file: 'pages/builder.html' },
-        { id: 'crud-tab', file: 'pages/database.html' }
+        { id: 'menu-tab', file: 'src/pages/menu.html' },
+        { id: 'game-tab', file: 'src/pages/game.html' },
+        { id: 'admin-tab', file: 'src/pages/forge.html' },
+        { id: 'char-tab', file: 'src/pages/builder.html' },
+        { id: 'crud-tab', file: 'src/pages/database.html' }
     ];
 
     for (let p of pages) {

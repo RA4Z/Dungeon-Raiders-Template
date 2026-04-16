@@ -6,7 +6,8 @@ from api.game_api import GameAPI
 def main():
     init_db()
     api = GameAPI()
-    html_path = os.path.join(os.path.dirname(__file__), 'web', 'index.html')
+    # Caminho atualizado para a nova estrutura
+    html_path = os.path.join(os.path.dirname(__file__), 'frontend', 'index.html')
     
     window = webview.create_window(
         'RPG Clicker Novel', 

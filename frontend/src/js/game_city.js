@@ -1,4 +1,4 @@
-// web/js/game_city.js
+// frontend/src/js/game_city.js
 
 function setView(viewId) {
     document.querySelectorAll('.game-view').forEach(el => el.classList.remove('active-view'));
@@ -17,6 +17,7 @@ async function goToLocation(locType) {
     }
 
     if (locType === 'caverna') {
+        // CORRIGIDO: O HP deve ser checado aqui para prevenir entrada se estiver morto
         if (window.playerHP <= 0) {
             alert("Você está gravemente ferido! Vá para casa descansar e recuperar seu HP antes de explorar as cavernas.");
             return;
@@ -85,7 +86,7 @@ async function healPlayer() {
         
         window.playerDays += 1; 
         
-        window.updateHUD();
+        window.updateHUD(); // Atualiza todos os displays do HUD
         await window.saveGameState(); 
         
         alert("Você dormiu profundamente. HP, Mana e Stamina completamente restaurados!\n1 Dia se passou.");

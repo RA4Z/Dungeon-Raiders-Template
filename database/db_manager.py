@@ -2,6 +2,7 @@
 import sqlite3
 import os
 
+# Caminhos atualizados para a nova estrutura de pastas
 GAME_DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'game_data.db')
 SAVE_DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'saves.db')
 
@@ -33,14 +34,20 @@ def init_db():
 
     c.execute('''CREATE TABLE IF NOT EXISTS consumables (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, effect_type TEXT, effect_value INTEGER, img_path TEXT, drop_chance INTEGER DEFAULT 20)''')
     
-    # Adicionada a coluna de custo (cost) na tabela de ataques
-    c.execute('''CREATE TABLE IF NOT EXISTS attacks (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, atk_type TEXT, base_power REAL DEFAULT 0, cost INTEGER DEFAULT 5, scaling TEXT DEFAULT '{}')''')
-    run_migration(conn, "ALTER TABLE attacks ADD COLUMN cost INTEGER DEFAULT 5")
+    # ATUALIZADO: Adicionadas colunas para hp_cost, mana_cost, stamina_cost e description
+    c.execute('''CREATE TABLE IF NOT EXISTS attacks (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, atk_type TEXT, base_power REAL DEFAULT 0, hp_cost INTEGER DEFAULT 0, mana_cost INTEGER DEFAULT 0, stamina_cost INTEGER DEFAULT 0, description TEXT DEFAULT '', scaling TEXT DEFAULT '{}')''')
+    run_migration(conn, "ALTER TABLE attacks ADD COLUMN hp_cost INTEGER DEFAULT 0")
+    run_migration(conn, "ALTER TABLE attacks ADD COLUMN mana_cost INTEGER DEFAULT 0")
+    run_migration(conn, "ALTER TABLE attacks ADD COLUMN stamina_cost INTEGER DEFAULT 0")
+    run_migration(conn, "ALTER TABLE attacks ADD COLUMN description TEXT DEFAULT ''")
+    # Removida a coluna 'cost' se existia, caso contrário irá ignorar
+    try: c.execute("ALTER TABLE attacks DROP COLUMN cost")
+    except sqlite3.OperationalError: pass
     
     c.execute("SELECT COUNT(*) FROM attacks")
     if c.fetchone()[0] == 0:
-        c.execute("INSERT INTO attacks (name, atk_type, base_power, cost, scaling) VALUES ('Soco Simples', 'phys', 5, 5, '{\"for\": 1.0}')")
-        c.execute("INSERT INTO attacks (name, atk_type, base_power, cost, scaling) VALUES ('Míssil Mágico', 'mag', 8, 8, '{\"int\": 1.2}')")
+        c.execute("INSERT INTO attacks (name, atk_type, base_power, stamina_cost, description, scaling) VALUES ('Soco Simples', 'phys', 5, 5, 'Um ataque físico básico que consome um pouco de energia.', '{\"for\": 1.0}')")
+        c.execute("INSERT INTO attacks (name, atk_type, base_power, mana_cost, description, scaling) VALUES ('Míssil Mágico', 'mag', 8, 8, 'Um projétil arcano de energia pura.', '{\"int\": 1.2}')")
     
     c.execute('''CREATE TABLE IF NOT EXISTS characters (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, race TEXT, img_front TEXT, img_back TEXT, equipment_data TEXT, custom_drops TEXT DEFAULT '[]', base_stats TEXT DEFAULT '{}', custom_substats TEXT DEFAULT '{}', attacks TEXT DEFAULT '[1]')''')
     run_migration(conn, "ALTER TABLE characters ADD COLUMN custom_drops TEXT DEFAULT '[]'")
@@ -73,7 +80,6 @@ def init_db():
     run_migration(conn_save, "ALTER TABLE saves ADD COLUMN hotbar_data TEXT DEFAULT '[1, null, null, null, null, null, null, null, null, null]'")
     run_migration(conn_save, "ALTER TABLE saves ADD COLUMN attack_exp TEXT DEFAULT '{\"1\": {\"xp\": 0, \"level\": 1}}'")
     
-    # NOVAS COLUNAS DE MANA E STAMINA NO SAVE
     run_migration(conn_save, "ALTER TABLE saves ADD COLUMN current_mana INTEGER DEFAULT 9999")
     run_migration(conn_save, "ALTER TABLE saves ADD COLUMN current_stamina INTEGER DEFAULT 9999")
     

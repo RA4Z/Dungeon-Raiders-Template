@@ -1,4 +1,4 @@
-// web/js/game_combat.js
+// frontend/src/js/game_combat.js
 
 function buildBattleCharacter(characterData, side, imgId, layersId) {
     const imgEl = document.getElementById(imgId);
@@ -33,7 +33,7 @@ function buildBattleCharacter(characterData, side, imgId, layersId) {
 async function enterDungeon() {
     setView('combat-screen');
     document.getElementById('combat-dialogue').innerText = "Você adentra a caverna... procurando um inimigo.";
-    window.updateHUD();
+    window.updateHUD(); // Atualiza todos os displays do HUD
 
     renderCombatHotbar();
     toggleCombatButtons(true);
@@ -75,13 +75,13 @@ function updateBattleUI() {
         const c = window.playerFullStats.computed;
         let hp = window.playerHP; let mp = window.playerMana; let sp = window.playerStamina;
 
-        document.getElementById('player-hp-text').innerText = `HP: ${Math.floor(hp)}/${c.hp}`;
+        document.getElementById('player-hp-text').innerText = `HP: ${Math.floor(hp)}/${Math.floor(c.hp)}`;
         document.getElementById('player-hp-fill').style.width = `${Math.max(0, (hp / c.hp) * 100)}%`;
         
-        document.getElementById('player-mp-text').innerText = `MP: ${Math.floor(mp)}/${c.mana}`;
+        document.getElementById('player-mp-text').innerText = `MP: ${Math.floor(mp)}/${Math.floor(c.mana)}`;
         document.getElementById('player-mp-fill').style.width = `${Math.max(0, (mp / c.mana) * 100)}%`;
         
-        document.getElementById('player-sp-text').innerText = `SP: ${Math.floor(sp)}/${c.stamina}`;
+        document.getElementById('player-sp-text').innerText = `SP: ${Math.floor(sp)}/${Math.floor(c.stamina)}`;
         document.getElementById('player-sp-fill').style.width = `${Math.max(0, (sp / c.stamina) * 100)}%`;
     }
 
@@ -90,13 +90,13 @@ function updateBattleUI() {
         const c = window.enemyFullStats.computed;
         let hp = window.enemyHP; let mp = window.enemyMana; let sp = window.enemyStamina;
 
-        document.getElementById('enemy-hp-text').innerText = `HP: ${Math.floor(hp)}/${c.hp}`;
+        document.getElementById('enemy-hp-text').innerText = `HP: ${Math.floor(hp)}/${Math.floor(c.hp)}`;
         document.getElementById('enemy-hp-fill').style.width = `${Math.max(0, (hp / c.hp) * 100)}%`;
         
-        document.getElementById('enemy-mp-text').innerText = `MP: ${Math.floor(mp)}/${c.mana}`;
+        document.getElementById('enemy-mp-text').innerText = `MP: ${Math.floor(mp)}/${Math.floor(c.mana)}`;
         document.getElementById('enemy-mp-fill').style.width = `${Math.max(0, (mp / c.mana) * 100)}%`;
         
-        document.getElementById('enemy-sp-text').innerText = `SP: ${Math.floor(sp)}/${c.stamina}`;
+        document.getElementById('enemy-sp-text').innerText = `SP: ${Math.floor(sp)}/${Math.floor(c.stamina)}`;
         document.getElementById('enemy-sp-fill').style.width = `${Math.max(0, (sp / c.stamina) * 100)}%`;
     }
 
@@ -119,8 +119,12 @@ function renderCombatHotbar() {
                 btn.className = `hotbar-slot hb-atk-${atk.atk_type}`;
                 btn.dataset.atkId = atkId; // Adicionado para facilitar filtro de disable
                 let expObj = window.attackExp[atkId] || { xp: 0, level: 1 };
-                let cost = atk.cost || 5;
-                btn.innerHTML = `<span class="hb-atk-name">${atk.name}</span><div class="hb-atk-lvl">Lv${expObj.level} | ${cost}⚡</div>`;
+                let costText = "";
+                if (atk.hp_cost > 0) costText += `❤${atk.hp_cost} `;
+                if (atk.mana_cost > 0) costText += `💧${atk.mana_cost} `;
+                if (atk.stamina_cost > 0) costText += `⚡${atk.stamina_cost}`;
+                
+                btn.innerHTML = `<span class="hb-atk-name">${atk.name}</span><div class="hb-atk-lvl">Lv${expObj.level} | ${costText}</div>`;
                 btn.onclick = () => startTurnSequence(atk.id);
             } else {
                 btn.className = 'hotbar-slot empty';
@@ -141,10 +145,12 @@ function toggleCombatButtons(state) {
             const atkId = btn.dataset.atkId;
             const atk = window.gameData.attacks.find(a => a.id == atkId);
             if (atk) {
-                let cost = atk.cost || 5;
-                if (atk.atk_type === 'phys' && window.playerStamina < cost) btn.disabled = true;
-                else if (atk.atk_type === 'mag' && window.playerMana < cost) btn.disabled = true;
-                else btn.disabled = false;
+                // Checa todos os custos
+                const hasHp = (atk.hp_cost || 0) <= window.playerHP;
+                const hasMana = (atk.mana_cost || 0) <= window.playerMana;
+                const hasStamina = (atk.stamina_cost || 0) <= window.playerStamina;
+
+                btn.disabled = !(hasHp && hasMana && hasStamina);
             }
         }
     });
@@ -167,6 +173,7 @@ async function startTurnSequence(attackId) {
     const res = await window.pywebview.api.process_battle_turn(window.playerFullStats, window.enemyFullStats, attackId, expObj.level);
     
     // Subtração de Recursos Locais Baseado no Python
+    window.playerHP = Math.max(0, window.playerHP - res.hp_cost);
     window.playerStamina = Math.max(0, window.playerStamina - res.stamina_cost);
     window.playerMana = Math.max(0, window.playerMana - res.mana_cost);
 
@@ -204,9 +211,10 @@ async function startTurnSequence(attackId) {
             let affordable = enemyAtkIds.filter(id => {
                 const ea = window.gameData.attacks.find(a => a.id == id);
                 if(!ea) return false;
-                let c = ea.cost !== undefined ? ea.cost : 5;
-                if(ea.atk_type === 'phys') return window.enemyStamina >= c;
-                return window.enemyMana >= c;
+                const hasHp = (ea.hp_cost || 0) <= window.enemyHP;
+                const hasMana = (ea.mana_cost || 0) <= window.enemyMana;
+                const hasStamina = (ea.stamina_cost || 0) <= window.enemyStamina;
+                return hasHp && hasMana && hasStamina;
             });
 
             if (affordable.length > 0) {
@@ -214,6 +222,7 @@ async function startTurnSequence(attackId) {
                 let randomAtkId = affordable[Math.floor(Math.random() * affordable.length)];
                 const resE = await window.pywebview.api.process_battle_turn(window.enemyFullStats, window.playerFullStats, randomAtkId, 1);
                 
+                window.enemyHP = Math.max(0, window.enemyHP - resE.hp_cost);
                 window.enemyStamina = Math.max(0, window.enemyStamina - resE.stamina_cost);
                 window.enemyMana = Math.max(0, window.enemyMana - resE.mana_cost);
                 
@@ -226,12 +235,15 @@ async function startTurnSequence(attackId) {
 
             } else {
                 // Sem recursos, ele descansa o turno!
+                let maxEHp = window.enemyFullStats.computed.hp;
                 let maxESp = window.enemyFullStats.computed.stamina;
                 let maxEMp = window.enemyFullStats.computed.mana;
+
+                window.enemyHP = Math.min(maxEHp, window.enemyHP + 5); // Regenera um pouco de HP
                 window.enemyStamina = Math.min(maxESp, window.enemyStamina + 20);
                 window.enemyMana = Math.min(maxEMp, window.enemyMana + 20);
                 
-                document.getElementById('combat-dialogue').innerText = `${window.currentEnemy.name} ofegante... Recuperou o fôlego neste turno!`;
+                document.getElementById('combat-dialogue').innerText = `${window.currentEnemy.name} ofegante... Recuperou um pouco de recursos neste turno!`;
             }
 
             updateBattleUI();
@@ -241,11 +253,14 @@ async function startTurnSequence(attackId) {
                 window.playerGold -= ouroPerdido;
                 document.getElementById('combat-dialogue').innerText = `Você desmaiou e perdeu ${ouroPerdido} moedas!`;
 
-                window.updateHUD();
+                window.updateHUD(); // Atualiza todos os displays do HUD
                 await window.saveGameState(); 
 
                 setTimeout(() => {
+                    // Após morrer, o HP é restaurado para o máximo para a próxima dungeon
                     window.playerHP = window.playerFullStats.computed.hp;
+                    window.playerMana = window.playerFullStats.computed.mana;
+                    window.playerStamina = window.playerFullStats.computed.stamina;
                     backToCity();
                 }, 3500);
             } else {
@@ -266,7 +281,7 @@ async function winBattle() {
     window.playerInventory = lootRes.new_inventory;
     window.playerGold = lootRes.new_gold;
     
-    window.updateHUD();
+    window.updateHUD(); // Atualiza todos os displays do HUD
     await window.saveGameState();
 
     setTimeout(() => {
@@ -308,6 +323,11 @@ async function fleeBattle() {
 
             const resE = await window.pywebview.api.process_battle_turn(window.enemyFullStats, window.playerFullStats, randomAtkId, 1);
             
+            // inimigo também gasta recurso ao atacar
+            window.enemyHP = Math.max(0, window.enemyHP - resE.hp_cost);
+            window.enemyStamina = Math.max(0, window.enemyStamina - resE.stamina_cost);
+            window.enemyMana = Math.max(0, window.enemyMana - resE.mana_cost);
+
             if (!resE.dodged) {
                 window.playerHP = Math.max(0, window.playerHP - resE.damage);
             }
@@ -321,10 +341,15 @@ async function fleeBattle() {
                 let ouroPerdido = Math.floor(window.playerGold / 2);
                 window.playerGold -= ouroPerdido;
                 document.getElementById('combat-dialogue').innerText = `Você morreu nas costas. Perdeu ${ouroPerdido} de Ouro!`;
-                window.updateHUD();
+                window.updateHUD(); // Atualiza todos os displays do HUD
                 await window.saveGameState(); 
 
-                setTimeout(() => { window.playerHP = window.playerFullStats.computed.hp; backToCity(); }, 3500);
+                setTimeout(() => { 
+                    window.playerHP = window.playerFullStats.computed.hp; 
+                    window.playerMana = window.playerFullStats.computed.mana; 
+                    window.playerStamina = window.playerFullStats.computed.stamina; 
+                    backToCity(); 
+                }, 3500);
             } else {
                 window.isTurnBusy = false;
                 toggleCombatButtons(false);
@@ -346,6 +371,7 @@ window.openSkillbook = function() {
 
 window.closeSkillbook = async function() {
     document.getElementById('skillbook-modal').style.display = 'none';
+    hideSkillTooltip(); // Garante que a tooltip suma
     await window.saveGameState();
 }
 
@@ -371,7 +397,9 @@ function renderSkillbook() {
             const pct = (expObj.xp / reqXp) * 100;
             
             sourceDiv.innerHTML += `
-                <div class="drag-skill-item hb-atk-${atk.atk_type}" draggable="true" ondragstart="sbDragStart(event, ${atk.id}, 'source')" title="Nível ${expObj.level} | XP: ${expObj.xp}/${reqXp}">
+                <div class="drag-skill-item hb-atk-${atk.atk_type}" draggable="true" 
+                     ondragstart="sbDragStart(event, ${atk.id}, 'source')" 
+                     onmouseenter="showSkillTooltip(${atk.id}, event)" onmouseleave="hideSkillTooltip()">
                     <span class="hb-atk-name">${atk.name}</span>
                     <div class="hb-atk-lvl" style="bottom: auto; top: 2px;">Lv${expObj.level}</div>
                     <div style="position:absolute; bottom:0; left:0; height:4px; background:#2ecc71; width:${pct}%;"></div>
@@ -386,6 +414,7 @@ function renderSkillbook() {
         slotDiv.setAttribute('ondragover', 'sbDragOver(event)');
         slotDiv.setAttribute('ondragleave', 'sbDragLeave(event)');
         slotDiv.setAttribute('ondrop', `sbDrop(event, ${index})`);
+        slotDiv.setAttribute('oncontextmenu', `event.preventDefault(); removeSkillFromHotbar(${index});`); // Remover com botão direito
         
         if (atkId) {
             const atk = window.gameData.attacks.find(a => a.id == atkId);
@@ -393,6 +422,8 @@ function renderSkillbook() {
                 slotDiv.classList.add(`hb-atk-${atk.atk_type}`);
                 slotDiv.draggable = true;
                 slotDiv.setAttribute('ondragstart', `sbDragStart(event, ${atk.id}, ${index})`);
+                slotDiv.setAttribute('onmouseenter', `showSkillTooltip(${atk.id}, event)`);
+                slotDiv.setAttribute('onmouseleave', `hideSkillTooltip()`);
                 let expObj = window.attackExp[atkId] || { xp: 0, level: 1 };
                 slotDiv.innerHTML = `<span class="hb-atk-name">${atk.name}</span><div class="hb-atk-lvl">Lv${expObj.level}</div>`;
             }
@@ -422,12 +453,80 @@ window.sbDrop = function(ev, targetIndex) {
 
     if (origin !== 'source') {
         const originIndex = parseInt(origin);
+        // Se arrastou de um slot da hotbar para outro
         const temp = window.playerHotbar[targetIndex];
         window.playerHotbar[targetIndex] = atkId;
         window.playerHotbar[originIndex] = temp;
     } else {
+        // Se veio da lista de habilidades conhecidas
         window.playerHotbar[targetIndex] = atkId;
     }
     
     renderSkillbook();
+}
+
+window.removeSkillFromHotbar = function(index) {
+    if (window.playerHotbar[index] !== null) {
+        window.playerHotbar[index] = null;
+        renderSkillbook();
+    }
+}
+
+// === TOOLTIP DE HABILIDADES ===
+let hoveredSkill = null; // Guarda a habilidade atual que o mouse está em cima
+
+window.showSkillTooltip = function(atkId, event) {
+    hoveredSkill = atkId;
+    const tooltip = document.getElementById('skill-tooltip');
+    if (!tooltip) return;
+
+    const atk = window.gameData.attacks.find(a => a.id == atkId);
+    if (!atk) return;
+
+    let expObj = window.attackExp[atkId] || { xp: 0, level: 1 };
+    const reqXp = expObj.level * 100;
+    
+    let costsHtml = "";
+    if (atk.hp_cost > 0) costsHtml += `<span style="color:#e74c3c;">❤${atk.hp_cost}</span> `;
+    if (atk.mana_cost > 0) costsHtml += `<span style="color:#3498db;">💧${atk.mana_cost}</span> `;
+    if (atk.stamina_cost > 0) costsHtml += `<span style="color:#f1c40f;">⚡${atk.stamina_cost}</span>`;
+    if (costsHtml === "") costsHtml = "Nenhum Custo";
+
+    let scalingHtml = "";
+    try {
+        const scaling = JSON.parse(atk.scaling || '{}');
+        for (const stat in scaling) {
+            if (scaling[stat] !== 0) {
+                scalingHtml += `<span>${window.STAT_MAP.base[stat] || stat}: <strong style="color:#2ecc71;">x${scaling[stat]}</strong></span>`;
+            }
+        }
+    } catch(e) { console.error("Erro ao parsear scaling:", e); }
+    if (scalingHtml === "") scalingHtml = "Nenhum Atributo de Escala";
+    else scalingHtml = `<div style="display:grid; grid-template-columns:1fr 1fr; gap:3px;">${scalingHtml}</div>`;
+
+    tooltip.innerHTML = `
+        <h3 style="color:#f1c40f; margin-bottom:5px;">${atk.name} (Lv ${expObj.level})</h3>
+        <p style="color:#bdc3c7; font-size:0.9em; margin-bottom: 8px;">${atk.atk_type === 'phys' ? 'Ataque Físico' : 'Ataque Mágico'}</p>
+        <hr style="border:1px solid #444; margin: 5px 0;">
+        <p style="color:#bdc3c7; margin-bottom: 8px;">${atk.description || "Sem descrição."}</p>
+        <p style="color:#ecf0f1; font-weight:bold; margin-bottom:5px;">Dano Base: ${atk.base_power.toFixed(1)} <span style="font-size:0.8em; color:#777;">(+${((expObj.level -1) * 0.1).toFixed(1)} por Nível)</span></p>
+        <p style="color:#ecf0f1; font-weight:bold; margin-bottom:5px;">Custo: ${costsHtml}</p>
+        <p style="color:#ecf0f1; font-weight:bold; margin-bottom:5px;">Escalonamento:</p> ${scalingHtml}
+        <hr style="border:1px solid #444; margin: 5px 0;">
+        <p style="font-size:0.8em; color:#7f8c8d;">XP: ${expObj.xp}/${reqXp}</p>
+    `;
+    tooltip.style.display = 'block';
+
+    // Posiciona o tooltip
+    let x = event.clientX + 15;
+    let y = event.clientY + 15;
+    if (x + tooltip.offsetWidth > window.innerWidth) x = window.innerWidth - tooltip.offsetWidth - 10;
+    if (y + tooltip.offsetHeight > window.innerHeight) y = window.innerHeight - tooltip.offsetHeight - 10;
+    tooltip.style.left = x + 'px';
+    tooltip.style.top = y + 'px';
+}
+
+window.hideSkillTooltip = function() {
+    hoveredSkill = null;
+    document.getElementById('skill-tooltip').style.display = 'none';
 }

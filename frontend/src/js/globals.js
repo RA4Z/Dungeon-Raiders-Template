@@ -20,24 +20,27 @@ window.attackExp = { "1": { xp: 0, level: 1 } };
 
 // Sincroniza HUD de Topo, Cidade e Inventário
 window.updateHUD = function() {
-    const cityHud = document.getElementById('session-status');
-    if (cityHud && window.activePlayer) {
-        cityHud.innerText = `Herói: ${window.activePlayer.name} | Ouro: ${window.playerGold}`;
+    // Atualiza status na barra inferior da cidade
+    const statusEl = document.getElementById('session-status');
+    if (statusEl && window.activePlayer) {
+        statusEl.innerText = `Herói: ${window.activePlayer.name} | Ouro: ${window.playerGold}`;
     }
     
+    // Atualiza dias na barra inferior da cidade
     const daysEl = document.getElementById('session-days');
     if (daysEl) daysEl.innerText = `Dia: ${window.playerDays}`;
     
+    // Atualiza ouro no inventário
     const invGold = document.getElementById('inv-gold');
     if (invGold) invGold.innerText = window.playerGold;
 
-    // Atualiza status extras no inventário
+    // Atualiza HP/MP/SP no inventário
     const invHp = document.getElementById('inv-hp');
     const invMp = document.getElementById('inv-mp');
     const invSp = document.getElementById('inv-sp');
-    if(invHp && window.playerFullStats) invHp.innerText = `${window.playerHP} / ${window.playerFullStats.computed.hp}`;
-    if(invMp && window.playerFullStats) invMp.innerText = `${window.playerMana} / ${window.playerFullStats.computed.mana}`;
-    if(invSp && window.playerFullStats) invSp.innerText = `${window.playerStamina} / ${window.playerFullStats.computed.stamina}`;
+    if(invHp && window.playerFullStats) invHp.innerText = `${Math.floor(window.playerHP)} / ${Math.floor(window.playerFullStats.computed.hp)}`;
+    if(invMp && window.playerFullStats) invMp.innerText = `${Math.floor(window.playerMana)} / ${Math.floor(window.playerFullStats.computed.mana)}`;
+    if(invSp && window.playerFullStats) invSp.innerText = `${Math.floor(window.playerStamina)} / ${Math.floor(window.playerFullStats.computed.stamina)}`;
 };
 
 window.updateMiniPrev = function (inputId, imgId) {

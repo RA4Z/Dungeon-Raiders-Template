@@ -104,7 +104,7 @@
                 style="flex:1; background:#1a252f; border:1px solid #444; border-radius:5px; padding:15px; display:flex; flex-direction:column;">
                 <h3 style="color:#e67e22; margin-bottom:10px; font-size:1.1em;">Sua Barra de Acesso Rápido</h3>
                 <p style="font-size:0.85em; color:#bdc3c7; margin-bottom:15px;">Solte suas habilidades nos espaços
-                    abaixo.</p>
+                    abaixo. Clique direito para remover.</p>
                 <div id="sb-hotbar-grid" class="bg3-hotbar" style="justify-content:flex-start; flex-wrap:wrap;"></div>
                 <button onclick="clearHotbar()"
                     style="margin-top:auto; background:#c0392b; border:none; padding:10px; color:white; font-weight:bold; border-radius:5px; cursor:pointer;">Limpar
@@ -162,6 +162,13 @@
     </div>
 </div>
 
+<!-- NOVO: TOOLTIP PARA HABILIDADES -->
+<div id="skill-tooltip"
+    style="display:none; position:fixed; z-index:9999; background:rgba(10,15,20,0.95); border:2px solid #8e44ad; padding:15px; border-radius:8px; width:320px; pointer-events:none; color:white; font-size:0.9em; box-shadow: 0px 5px 15px rgba(0,0,0,0.5);">
+    <!-- Preenchido via JS -->
+</div>
+
 <div id="item-tooltip"
     style="display:none; position:fixed; z-index:9999; background:rgba(10,15,20,0.95); border:2px solid #f39c12; padding:15px; border-radius:8px; width:280px; pointer-events:none; color:white; font-size:0.9em; box-shadow: 0px 5px 15px rgba(0,0,0,0.5);">
+    <!-- Preenchido via JS -->
 </div>

@@ -21,12 +21,16 @@ async function loadMenuSaves() {
         div.className = 'save-card';
         div.onclick = () => loadGameSession(save);
 
-        let hpExibido = save.current_hp === 9999 ? "Cheio" : save.current_hp;
+        let hpExibido = save.current_hp === 9999 ? "Cheio" : Math.floor(save.current_hp); // Arredonda
+        let manaExibido = save.current_mana === 9999 ? "Cheia" : Math.floor(save.current_mana);
+        let staminaExibido = save.current_stamina === 9999 ? "Cheia" : Math.floor(save.current_stamina);
 
         div.innerHTML = `
             <h3>${save.name}</h3>
             <div class="save-stats">
                 HP Atual: <span style="color:#2ecc71; font-weight:bold;">${hpExibido}</span><br>
+                Mana: <span style="color:#3498db; font-weight:bold;">${manaExibido}</span><br>
+                Stamina: <span style="color:#f1c40f; font-weight:bold;">${staminaExibido}</span><br>
                 Ouro: <span style="color:#f1c40f; font-weight:bold;">${save.gold} Moedas</span><br>
                 <div style="margin-top:8px; border-top:1px solid #444; padding-top:5px;">
                     <small>FOR ${base['for']} | INT ${base['int']} | DES ${base['des']}</small>
@@ -206,17 +210,17 @@ async function loadGameSession(save) {
     await window.refreshPlayerStats();
 
     // CARREGA OS RECURSOS CORRETAMENTE
-    if (save.current_hp === null || isNaN(save.current_hp) || save.current_hp === 9999) {
-        window.playerHP = window.playerFullStats.computed.hp;
-        window.playerMana = window.playerFullStats.computed.mana;
-        window.playerStamina = window.playerFullStats.computed.stamina;
-    } else {
-        window.playerHP = save.current_hp;
-        window.playerMana = save.current_mana !== undefined ? save.current_mana : window.playerFullStats.computed.mana;
-        window.playerStamina = save.current_stamina !== undefined ? save.current_stamina : window.playerFullStats.computed.stamina;
-    }
+    // Se for 9999 (valor inicial), define para o máximo computado
+    // Senão, usa o valor salvo
+    window.playerHP = (save.current_hp === null || isNaN(save.current_hp) || save.current_hp === 9999) 
+                       ? window.playerFullStats.computed.hp : save.current_hp;
+    window.playerMana = (save.current_mana === null || isNaN(save.current_mana) || save.current_mana === 9999) 
+                        ? window.playerFullStats.computed.mana : save.current_mana;
+    window.playerStamina = (save.current_stamina === null || isNaN(save.current_stamina) || save.current_stamina === 9999) 
+                           ? window.playerFullStats.computed.stamina : save.current_stamina;
 
-    window.updateHUD();
+
+    window.updateHUD(); // Atualiza todos os displays do HUD
     
     const gameBtn = document.getElementById('btn-tab-game');
     if (gameBtn) { gameBtn.style.display = 'block'; if (typeof showTab === "function") showTab('game-tab', gameBtn); }
