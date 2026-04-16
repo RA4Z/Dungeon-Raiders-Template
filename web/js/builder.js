@@ -4,16 +4,18 @@ function buildSelects() {
     const data = window.gameData;
     if (!data) return;
 
-    // Popula Selects de Roupas
+    // 1. Popula Selects de Roupas (isso pode rodar sempre)
     const createOptions = (arr, selId) => {
         const sel = document.getElementById(selId);
         if (!sel) return;
+        const currentVal = sel.value; // Salva o que estava selecionado
         sel.innerHTML = '<option value="">-- Vazio --</option>';
         if (arr) arr.forEach(item => {
             const opt = document.createElement('option');
             opt.value = item.id; opt.textContent = item.name;
             sel.appendChild(opt);
         });
+        sel.value = currentVal; // Restaura após reconstruir
     };
 
     createOptions(data.bodies, 'sel-base');
@@ -23,31 +25,31 @@ function buildSelects() {
         });
     }
 
-    // Popula Lista de Drops
-    const cdItem = document.getElementById('cd-item');
-    if (cdItem) {
-        let html = '<option value="">-- Item --</option><optgroup label="Consumíveis">';
-        data.consumables.forEach(c => html += `<option value="cons_${c.id}">${c.name}</option>`);
-        html += '</optgroup><optgroup label="Equipamentos">';
-        data.equipments.forEach(e => html += `<option value="equip_${e.id}">${e.name}</option>`);
-        cdItem.innerHTML = html + '</optgroup>';
-    }
-
-    // GERA OS CAMPOS DE STATUS DINAMICAMENTE
+    // 2. GERA OS CAMPOS DE STATUS (Apenas se a grid estiver vazia!)
     const baseGrid = document.getElementById('builder-base-stats');
-    if (baseGrid) {
-        baseGrid.innerHTML = '';
+    if (baseGrid && baseGrid.innerHTML === "") { // SÓ CRIA SE ESTIVER VAZIO
         for(let k in window.STAT_MAP.base) {
             baseGrid.innerHTML += `<label>${window.STAT_MAP.base[k]} <input type="number" class="char-base-stat" data-stat="${k}" value="1" min="1" oninput="updateLivePreview()"></label>`;
         }
     }
 
     const subGrid = document.getElementById('builder-sub-stats');
-    if (subGrid) {
-        subGrid.innerHTML = '';
+    if (subGrid && subGrid.innerHTML === "") { // SÓ CRIA SE ESTIVER VAZIO
         for(let k in window.STAT_MAP.derived) {
             subGrid.innerHTML += `<label>${window.STAT_MAP.derived[k]} <input type="number" class="char-sub-stat" data-stat="${k}" placeholder="Auto" oninput="updateLivePreview()"></label>`;
         }
+    }
+    
+    // Atualiza o select de itens de loot
+    const cdItem = document.getElementById('cd-item');
+    if (cdItem) {
+        const currentLootVal = cdItem.value;
+        let html = '<option value="">-- Item --</option><optgroup label="Consumíveis">';
+        data.consumables.forEach(c => html += `<option value="cons_${c.id}">${c.name}</option>`);
+        html += '</optgroup><optgroup label="Equipamentos">';
+        data.equipments.forEach(e => html += `<option value="equip_${e.id}">${e.name}</option>`);
+        cdItem.innerHTML = html + '</optgroup>';
+        cdItem.value = currentLootVal;
     }
 }
 
@@ -135,31 +137,40 @@ function renderCustomDrops() {
 }
 
 async function saveCharacter() {
+    const editId = document.getElementById('edit-char-id').value; // Pega o ID
     const name = document.getElementById('ch-name').value;
     const race = document.getElementById('ch-race').value;
-    if (!name) return alert("Nome obrigatório");
+    
+    if (!name) return alert("Dê um nome ao personagem!");
 
+    // Coleta Atributos Base
     let base = {};
-    document.querySelectorAll('.char-base-stat').forEach(i => base[i.dataset.stat] = parseInt(i.value) || 1);
+    document.querySelectorAll('.char-base-stat').forEach(i => {
+        base[i.dataset.stat] = parseInt(i.value) || 1;
+    });
 
-    let data = { name, race, base_stats: JSON.stringify(base) };
+    let data = {
+        name: name,
+        race: race,
+        base_stats: JSON.stringify(base)
+    };
 
     if (race === 'humano') {
         let eq = {};
         window.EQUIP_SLOTS.forEach(s => {
-            const v = document.getElementById(`sel-${s}`).value;
-            if(v) eq[s] = v;
+            const el = document.getElementById(`sel-${s}`);
+            if (el && el.value) eq[s] = el.value;
         });
         data.equipment_data = JSON.stringify(eq);
-        data.img_front = ""; data.img_back = "";
+        data.img_front = "";
+        data.img_back = "";
         data.custom_drops = "[]";
         data.custom_substats = "{}";
     } else {
         let sub = {};
         document.querySelectorAll('.char-sub-stat').forEach(i => {
-            if(i.value !== "") sub[i.dataset.stat] = parseFloat(i.value);
+            if (i.value !== "") sub[i.dataset.stat] = parseFloat(i.value);
         });
-
         data.img_front = document.getElementById('ch-img-f').value;
         data.img_back = document.getElementById('ch-img-b').value;
         data.custom_drops = JSON.stringify(window.currentCustomDrops);
@@ -167,9 +178,24 @@ async function saveCharacter() {
         data.equipment_data = "{}";
     }
 
-    const res = await window.pywebview.api.add_entity('characters', data);
-    alert(res.message);
-    window.currentCustomDrops =[];
-    renderCustomDrops();
-    window.refreshData();
+    let res;
+    if (editId) {
+        // SE TIVER ID, CHAMA UPDATE
+        res = await window.pywebview.api.update_entity('characters', editId, data);
+    } else {
+        // SE NÃO, CHAMA ADD
+        res = await window.pywebview.api.add_entity('characters', data);
+    }
+
+    if (res.status === "success") {
+        alert(res.message);
+        // Limpar tudo após salvar
+        document.getElementById('edit-char-id').value = "";
+        document.getElementById('ch-name').value = "";
+        window.currentCustomDrops = [];
+        renderCustomDrops();
+        await window.refreshData();
+    } else {
+        alert("Erro: " + res.message);
+    }
 }

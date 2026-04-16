@@ -2,6 +2,9 @@
 <p id="admin-msg" class="msg-alert"></p>
 <div class="forms-grid">
     <div class="form-card" id="form-body">
+        <!-- CAMPO INVISÍVEL DE EDIÇÃO -->
+        <input type="hidden" id="edit-bd-id" value="">
+        
         <h3>Corpo Base (Manequim)</h3>
         <label>Nome do Corpo</label><input type="text" id="bd-name">
         <label>Img Frente</label><div class="file-input-group"><input type="text" id="bd-img-f" oninput="updateMiniPrev(this.id, 'prev-bd-f')"><img id="prev-bd-f" class="mini-preview" src=""></div>
@@ -13,6 +16,9 @@
     </div>
     
     <div class="form-card" id="form-equip">
+        <!-- CAMPO INVISÍVEL DE EDIÇÃO -->
+        <input type="hidden" id="edit-eq-id" value="">
+        
         <h3>Nova Peça / Equipamento</h3>
         <label>Nome</label><input type="text" id="eq-name">
         <label>Tipo</label>
@@ -24,10 +30,8 @@
         <label>Img Frente</label><div class="file-input-group"><input type="text" id="eq-img-f" oninput="updateMiniPrev(this.id, 'prev-eq-f')"><img id="prev-eq-f" class="mini-preview" src=""></div>
         <label>Img Verso</label><div class="file-input-group"><input type="text" id="eq-img-b" oninput="updateMiniPrev(this.id, 'prev-eq-b')"><img id="prev-eq-b" class="mini-preview" src=""></div>
         
-        <label style="color:#e74c3c; margin-top:10px;">Modificadores de Status do Equipamento</label>
-        <div id="forge-stats-grid" class="attr-grid" style="background:#111; padding:10px; border-radius:5px; max-height:200px; overflow-y:auto; font-size:0.85em;">
-            <!-- Preenchido via JS -->
-        </div>
+        <label style="color:#e74c3c; margin-top:10px;">Modificadores de Status</label>
+        <div id="forge-stats-grid" class="attr-grid" style="background:#111; padding:10px; border-radius:5px; max-height:200px; overflow-y:auto; font-size:0.85em;"></div>
         
         <label style="margin-top:10px;">Chance de Drop (%)</label>
         <input type="number" id="eq-drop" value="5">
@@ -36,6 +40,9 @@
     </div>
 
     <div class="form-card" id="form-consumable">
+        <!-- CAMPO INVISÍVEL DE EDIÇÃO -->
+        <input type="hidden" id="edit-cons-id" value="">
+        
         <h3>Item Consumível</h3>
         <label>Nome</label><input type="text" id="cons-name">
         <label>Tipo de Efeito</label><select id="cons-type"><option value="heal_hp">Curar HP</option><option value="buff_atk">Aumentar Ataque</option></select>

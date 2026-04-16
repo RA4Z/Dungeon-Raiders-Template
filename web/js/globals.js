@@ -64,3 +64,25 @@ window.applyShaderTint = async function(imgSrc, hexColor) {
         img.src = imgSrc;
     });
 };
+
+window.saveGameState = async function() {
+    if (!window.activeSaveId || !window.activePlayer) return;
+
+    // Garante que o equipment_data seja uma string JSON
+    const eqStr = typeof window.activePlayer.equipment_data === 'string' 
+        ? window.activePlayer.equipment_data 
+        : JSON.stringify(window.activePlayer.equipment_data);
+
+    try {
+        await window.pywebview.api.sync_player_state(
+            window.activeSaveId,
+            window.playerHP,
+            window.playerGold,
+            JSON.stringify(window.playerInventory),
+            eqStr
+        );
+        console.log("Jogo salvo automaticamente.");
+    } catch (err) {
+        console.error("Erro ao salvar estado do jogo:", err);
+    }
+};

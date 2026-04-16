@@ -117,12 +117,24 @@ class GameAPI:
             return {"status": "success", "save": new_save}
         except Exception as e: return {"status": "error", "message": str(e)}
 
-    def sync_player_state(self, save_id, current_hp, inventory_json_str, equipment_data_str):
+    def sync_player_state(self, save_id, current_hp, gold, inventory_json_str, equipment_data_str):
         update_item('saves', save_id, {
-            'current_hp': current_hp, 'inventory_data': inventory_json_str, 'equipment_data': equipment_data_str
+            'current_hp': current_hp, 
+            'gold': gold,
+            'inventory_data': inventory_json_str, 
+            'equipment_data': equipment_data_str
         })
         return {"status": "success"}
 
+    def update_entity(self, table, item_id, data):
+        try:
+            from database.db_manager import update_item
+            # Se houver dados complexos, o update_item já lida com o dicionário
+            update_item(table, item_id, data)
+            return {"status": "success", "message": "Atualizado com sucesso!"}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+        
     def get_random_enemy(self, dummy=None):
         conn = get_game_connection()
         conn.row_factory = sqlite3.Row

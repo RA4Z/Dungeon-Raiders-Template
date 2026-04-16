@@ -2,6 +2,7 @@
 <div class="forms-grid" style="align-items: flex-start;">
     <div class="form-card" style="flex: 2;" id="form-char">
         <div class="attr-grid">
+            <input type="hidden" id="edit-char-id" value=""> <!-- NOVO AQUI -->
             <label>Nome <input type="text" id="ch-name" oninput="updateLivePreview()"></label>
             <label>Raça:
                 <select id="ch-race" onchange="toggleRaceFields()">

@@ -63,6 +63,5 @@ window.showTab = function(tabId, btnElement) {
     document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
     if (btnElement) btnElement.classList.add('active');
     
-    // Atualiza os dados sempre que mudar de tela
-    if (isApiReady) window.refreshData();
+    if (typeof buildSelects === "function") buildSelects();
 };

@@ -5,8 +5,8 @@ const MAX_POINTS = 15;
 async function loadMenuSaves() {
     const saves = await window.pywebview.api.get_saves();
     const container = document.getElementById('saves-list-container');
-    if (!container) return; 
-    
+    if (!container) return;
+
     container.innerHTML = '';
     if (!saves || saves.length === 0) {
         container.innerHTML = '<p style="color:#7f8c8d; width:100%; text-align:center;">Nenhum jogo salvo encontrado.</p>';
@@ -14,13 +14,13 @@ async function loadMenuSaves() {
     }
 
     saves.forEach(save => {
-        let base = { 'for':1, 'int':1, 'des':1 };
-        try { if(save.base_stats) base = JSON.parse(save.base_stats); } catch(e){}
+        let base = { 'for': 1, 'int': 1, 'des': 1 };
+        try { if (save.base_stats) base = JSON.parse(save.base_stats); } catch (e) { }
 
         const div = document.createElement('div');
         div.className = 'save-card';
         div.onclick = () => loadGameSession(save);
-        
+
         // Exibe "Cheio" se for a primeira vez jogando, para evitar o "9999" do DB
         let hpExibido = save.current_hp === 9999 ? "Cheio" : save.current_hp;
 
@@ -40,16 +40,16 @@ async function loadMenuSaves() {
 }
 function openNewGameModal() {
     const modal = document.getElementById('new-game-modal');
-    if(!modal) return;
-    
+    if (!modal) return;
+
     modal.style.display = 'flex';
     document.getElementById('ng-name').value = '';
-    
+
     // 1. Popula Corpo
     const selBody = document.getElementById('ng-body');
     selBody.innerHTML = '<option value="">-- Corpo Base --</option>';
     window.gameData.bodies.forEach(b => {
-        if(b.is_playable === 1) selBody.innerHTML += `<option value="${b.id}">${b.name}</option>`;
+        if (b.is_playable === 1) selBody.innerHTML += `<option value="${b.id}">${b.name}</option>`;
     });
 
     // 2. Popula Rosto
@@ -67,13 +67,13 @@ function openNewGameModal() {
     });
 
     // 4. Paleta de Cores (Shader)
-    const colors =[
+    const colors = [
         { code: '#ffffff', name: 'Original' }, { code: '#ffdfc4', name: 'Pálida' },
         { code: '#d4a373', name: 'Morena' }, { code: '#8d5524', name: 'Escura' },
         { code: '#4b3621', name: 'Muito Escura' }, { code: '#7cb342', name: 'Orc' },
         { code: '#e53935', name: 'Demônio' }, { code: '#5e35b1', name: 'Elfo Negro' }
     ];
-    
+
     const colorContainer = document.getElementById('ng-colors');
     colorContainer.innerHTML = '';
     colors.forEach(c => {
@@ -101,7 +101,7 @@ async function updateNewGamePreview() {
     const bodyId = document.getElementById('ng-body').value;
     const faceId = document.getElementById('ng-face').value;
     const hairId = document.getElementById('ng-hair').value;
-    
+
     const cF = document.getElementById('ng-prev-front');
     const cB = document.getElementById('ng-prev-back');
     cF.innerHTML = ''; cB.innerHTML = '';
@@ -110,8 +110,8 @@ async function updateNewGamePreview() {
 
     // Constrói uma Fake Equipment Data pra passar no renderizador universal
     const fakeEq = { base: bodyId, skin_color: currentSkinColor };
-    if(faceId) fakeEq.face = faceId;
-    if(hairId) fakeEq.hair = hairId;
+    if (faceId) fakeEq.face = faceId;
+    if (hairId) fakeEq.hair = hairId;
 
     const fakeChar = { race: 'humano', equipment_data: fakeEq };
 
@@ -123,8 +123,8 @@ function closeNewGameModal() { document.getElementById('new-game-modal').style.d
 
 function renderNewGameStats() {
     const grid = document.getElementById('ng-stats-grid');
-    if(!grid) return;
-    
+    if (!grid) return;
+
     let spent = Object.values(newGameStats).reduce((a, b) => a + b, 0);
     let left = MAX_POINTS - spent;
     document.getElementById('ng-pts-left').innerText = left;
@@ -144,7 +144,7 @@ function renderNewGameStats() {
     });
 }
 
-window.changeNewGameStat = function(key, val) {
+window.changeNewGameStat = function (key, val) {
     let spent = Object.values(newGameStats).reduce((a, b) => a + b, 0);
     let left = MAX_POINTS - spent;
 
@@ -160,25 +160,25 @@ async function createNewGame() {
     const bodyId = document.getElementById('ng-body').value;
     const faceId = document.getElementById('ng-face').value;
     const hairId = document.getElementById('ng-hair').value;
-    
+
     let spent = Object.values(newGameStats).reduce((a, b) => a + b, 0);
-    if(spent < MAX_POINTS) {
-        if(!confirm("Você ainda tem pontos sobrando! Deseja continuar assim mesmo?")) return;
+    if (spent < MAX_POINTS) {
+        if (!confirm("Você ainda tem pontos sobrando! Deseja continuar assim mesmo?")) return;
     }
 
-    if(!name || !bodyId) { alert("Nome e Corpo Base são obrigatórios!"); return; }
+    if (!name || !bodyId) { alert("Nome e Corpo Base são obrigatórios!"); return; }
 
     const res = await window.pywebview.api.create_save(name, bodyId, faceId, hairId, currentSkinColor, newGameStats);
-    if(res.status === 'success') {
+    if (res.status === 'success') {
         closeNewGameModal();
-        loadGameSession(res.save); 
+        loadGameSession(res.save);
     } else {
         alert("Erro ao criar: " + res.message);
     }
 }
 
 async function deleteSave(id) {
-    if(confirm("Deseja apagar este Save Game?")) {
+    if (confirm("Deseja apagar este Save Game?")) {
         await window.pywebview.api.delete_entity('saves', id);
         loadMenuSaves();
     }
@@ -187,15 +187,15 @@ async function deleteSave(id) {
 async function loadGameSession(save) {
     window.activeSaveId = save.id;
     window.playerGold = save.gold;
-    window.playerHP = save.current_hp;
 
-    try { 
-        window.playerInventory = JSON.parse(save.inventory_data); 
-    } catch(e) { 
-        window.playerInventory = { equipments: [], consumables: {} }; 
+    // Tenta carregar o inventário, se falhar cria um novo
+    try {
+        window.playerInventory = JSON.parse(save.inventory_data);
+    } catch (e) {
+        window.playerInventory = { equipments: [], consumables: {} };
     }
 
-    // Carrega o herói ativo
+    // Monta o objeto do jogador baseado no save para a Engine de Status
     window.activePlayer = {
         id: save.id,
         name: save.name,
@@ -204,22 +204,42 @@ async function loadGameSession(save) {
         base_stats: JSON.parse(save.base_stats)
     };
 
-    // NOVO: Calcula os substatus (HP Max, Dano, etc) baseados nos atributos e itens
+    // Recalcula todos os status (HP Máximo, Defesa, etc.)
     await window.refreshPlayerStats();
 
-    // Se o save for novo (HP muito alto ou zero), reseta para o HP Máximo calculado
-    if (window.playerHP > window.playerFullStats.computed.hp || window.playerHP <= 0) {
+    // --- CORREÇÃO AUTOMÁTICA DE SAVES ANTIGOS (undefined/null) ---
+    // Se a vida no banco for inválida, nula ou o valor inicial de teste (9999), 
+    // nós resetamos ela para a vida máxima calculada pela engine.
+    if (save.current_hp === null || isNaN(save.current_hp) || save.current_hp === 9999) {
         window.playerHP = window.playerFullStats.computed.hp;
+    } else {
+        window.playerHP = save.current_hp;
     }
 
-    // Atualiza a UI e navega
+    // Atualiza o texto da barra de status na cidade
     const statusEl = document.getElementById('session-status');
-    if (statusEl) statusEl.innerText = `Sessão: ${save.name} | Ouro: ${window.playerGold}`;
-    
+    if (statusEl) {
+        statusEl.innerText = `Herói: ${save.name} | Ouro: ${window.playerGold}`;
+    }
+
+    // Mostra o botão verde de "O Jogo" e navega para a cidade
     const gameBtn = document.getElementById('btn-tab-game');
     if (gameBtn) {
         gameBtn.style.display = 'block';
-        showTab('game-tab', gameBtn);
+        if (typeof showTab === "function") {
+            showTab('game-tab', gameBtn);
+        }
     }
-    backToCity();
+
+    // Salva imediatamente no banco para limpar qualquer valor "null" que existia antes
+    if (typeof syncInventoryToDB === "function") {
+        await syncInventoryToDB();
+    }
+
+    // Garante que o jogo comece na visão da cidade
+    if (typeof backToCity === "function") {
+        backToCity();
+    }
+
+    console.log("Sessão carregada e corrigida com sucesso!");
 }
