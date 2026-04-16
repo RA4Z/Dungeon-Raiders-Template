@@ -59,18 +59,31 @@ async function renderInventory() {
 
     // 2. Renderiza Painel de Status
     const statsPane = document.getElementById('inv-full-stats-list');
-    if (statsPane) {
-        let html = '<h4 style="color:#2ecc71;">Atributos Base</h4>';
-        for (let k in window.STAT_MAP.base) {
-            html += `<div style="display:flex; justify-content:space-between;"><span>${window.STAT_MAP.base[k]}</span> <strong>${window.playerFullStats.base[k]}</strong></div>`;
+    if(statsPane) {
+        let html = '<h4 style="color:#2ecc71;">Atributos Base (XP)</h4>';
+        for(let k in window.STAT_MAP.base) {
+            let lvl = window.activePlayer.base_stats[k];
+            let xp = window.playerStatExp[k] || 0;
+            let req = window.getXpRequired(lvl);
+            
+            html += `
+            <div style="margin-bottom:8px;">
+                <div style="display:flex; justify-content:space-between; font-size:0.9em;">
+                    <span>${window.STAT_MAP.base[k]}</span> 
+                    <strong>Lvl ${lvl}</strong>
+                </div>
+                <div style="width:100%; background:#111; height:5px; border-radius:3px; overflow:hidden; border:1px solid #333;">
+                    <div style="width:${(xp/req)*100}%; background:#2ecc71; height:100%;"></div>
+                </div>
+            </div>`;
         }
-        html += '<h4 style="color:#e74c3c; margin-top:15px;">Sub-Status de Combate</h4>';
-        for (let k in window.STAT_MAP.derived) {
+        
+        html += '<h4 style="color:#e74c3c; margin-top:15px; border-top:1px solid #555; padding-top:10px;">Sub-Status de Combate</h4>';
+        for(let k in window.STAT_MAP.derived) {
             let val = window.playerFullStats.computed[k];
-            // Formata taxa critica pra ter o % visivel
-            if (k.includes('crit')) val = val.toFixed(1) + '%';
+            if(k.includes('crit')) val = val.toFixed(1) + '%';
             else val = val.toFixed(0);
-            html += `<div style="display:flex; justify-content:space-between;"><span>${window.STAT_MAP.derived[k]}</span> <strong>${val}</strong></div>`;
+            html += `<div style="display:flex; justify-content:space-between; font-size:0.9em;"><span>${window.STAT_MAP.derived[k]}</span> <strong>${val}</strong></div>`;
         }
         statsPane.innerHTML = html;
     }

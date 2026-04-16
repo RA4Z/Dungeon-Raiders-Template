@@ -50,10 +50,14 @@ def init_db():
         last_played TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
     run_migration(conn_save, "ALTER TABLE saves ADD COLUMN base_stats TEXT DEFAULT '{\"for\":1,\"int\":1,\"des\":1,\"car\":1,\"res\":1}'")
+    
+    # NOVAS COLUNAS PARA O SISTEMA DE DIAS E XP
+    run_migration(conn_save, "ALTER TABLE saves ADD COLUMN days_passed INTEGER DEFAULT 1")
+    run_migration(conn_save, "ALTER TABLE saves ADD COLUMN stat_exp TEXT DEFAULT '{\"for\":0,\"int\":0,\"des\":0,\"car\":0,\"res\":0}'")
+    
     conn_save.commit()
     conn_save.close()
 
-# Mantenha as outras funções (insert_item, update_item, delete_item, get_all_items) iguais!
 def insert_item(table, data_dict):
     conn = _get_conn(table)
     cursor = conn.cursor()

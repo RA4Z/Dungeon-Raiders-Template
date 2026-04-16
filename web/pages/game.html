@@ -3,46 +3,62 @@
     <div class="city-locations">
         <div class="location-btn btn-casa" onclick="goToLocation('casa')"><span>🏠 Sua Casa</span></div>
         <div class="location-btn btn-centro" onclick="openInventory()"><span>🎒 Abrir Inventário</span></div>
+        <div class="location-btn btn-quartel" onclick="goToLocation('quartel')"><span>⚔️ Quartel</span></div>
         <div class="location-btn btn-bar" onclick="goToLocation('bar')"><span>🍺 Taverna</span></div>
         <div class="location-btn btn-caverna" onclick="goToLocation('caverna')"><span>💀 Entrar na Caverna</span></div>
     </div>
-    <div id="player-status-bar">
+    <div id="player-status-bar" style="display:flex; justify-content:space-between; align-items:center;">
         <span id="session-status" style="font-size: 1.2rem; font-weight:bold; color:#3498db;">Sessão Não Iniciada</span>
+        <span id="session-days" style="font-size: 1.2rem; font-weight:bold; color:#e67e22;">Dia: 1</span>
     </div>
 </div>
 
 <div id="location-screen" class="game-view">
     <button class="btn-voltar" onclick="backToCity()">⬅ Voltar</button>
     <div id="loc-dialogue-box">
-        <h2 id="loc-title">Local</h2><p id="loc-text">Descrição...</p>
+        <h2 id="loc-title">Local</h2>
+        <p id="loc-text">Descrição...</p>
         <div id="loc-actions" style="margin-top: 15px;"></div>
     </div>
 </div>
 
 <div id="combat-screen" class="game-view">
     <div id="battlefield">
-        <div id="player-container"><div id="player-layers" class="paper-doll-container" style="display:none;"></div><img id="player-image" src="" style="display:none;"></div>
-        <div id="enemy-container"><div id="enemy-layers" class="paper-doll-container" style="display:none;"></div><img id="enemy-image" src="" style="display:none;"></div>
+        <div id="player-container">
+            <div id="player-layers" class="paper-doll-container" style="display:none;"></div><img id="player-image"
+                src="" style="display:none;">
+        </div>
+        <div id="enemy-container">
+            <div id="enemy-layers" class="paper-doll-container" style="display:none;"></div><img id="enemy-image" src=""
+                style="display:none;">
+        </div>
     </div>
     <div id="visual-novel-ui">
         <div class="battle-stats">
             <div class="stat-block player-stat">
                 <span id="player-name-ui">Jogador</span>
-                <div class="hp-bar-bg"><div id="player-hp-fill" class="hp-bar-fill player-hp"></div></div>
+                <div class="hp-bar-bg">
+                    <div id="player-hp-fill" class="hp-bar-fill player-hp"></div>
+                </div>
                 <span id="player-hp-text" class="hp-text">HP: 0/0</span>
             </div>
             <div class="stat-block enemy-stat">
                 <span id="enemy-name">Inimigo</span>
-                <div class="hp-bar-bg"><div id="enemy-hp-fill" class="hp-bar-fill"></div></div>
+                <div class="hp-bar-bg">
+                    <div id="enemy-hp-fill" class="hp-bar-fill"></div>
+                </div>
                 <span id="enemy-hp-text" class="hp-text">HP: 0/0</span>
             </div>
         </div>
-        <div class="dialogue-box"><p id="combat-dialogue">Buscando Inimigo...</p></div>
-        
+        <div class="dialogue-box">
+            <p id="combat-dialogue">Buscando Inimigo...</p>
+        </div>
+
         <!-- CORRIGIDO: Adicionado IDs nos botões -->
         <div class="actions">
             <button id="attack-phys-btn" onclick="startTurnSequence('phys')">Ataque Físico</button>
-            <button id="attack-mag-btn" onclick="startTurnSequence('mag')" style="background:#2980b9;">Ataque Mágico</button>
+            <button id="attack-mag-btn" onclick="startTurnSequence('mag')" style="background:#2980b9;">Ataque
+                Mágico</button>
             <button id="flee-btn" onclick="fleeBattle()" style="background:#8e44ad;">Fugir</button>
         </div>
 
@@ -51,7 +67,8 @@
 
 <div id="loot-modal" class="modal-overlay" style="display: none;">
     <div class="loot-box">
-        <h2>Vitória!</h2><ul id="loot-list"></ul>
+        <h2>Vitória!</h2>
+        <ul id="loot-list"></ul>
         <div class="loot-actions">
             <button onclick="continueDungeon()" style="background:#2980b9;">⚔️ Continuar Explorando</button>
             <button onclick="openInventory()" style="background:#f39c12;">🎒 Inventário</button>
@@ -64,21 +81,25 @@
     <div class="inv-box" style="width: 90%; max-width: 1200px;">
         <button class="inv-close" onclick="closeInventory()">X</button>
         <h2>Inventário de <span id="inv-player-name"></span></h2>
-        
+
         <div class="inv-content" style="display: flex; gap: 15px; height: calc(100% - 60px);">
             <!-- COLUNA 1: Personagem e Equipados -->
             <div class="inv-preview-pane" style="flex: 1; min-width: 250px;">
-                <div class="paper-doll-container" id="inv-doll-preview" style="transform: scale(1.3); margin: 20px auto 40px auto;"></div>
+                <div class="paper-doll-container" id="inv-doll-preview"
+                    style="transform: scale(1.3); margin: 20px auto 40px auto;"></div>
                 <div class="inv-stats-box" style="margin-bottom: 10px;">
-                    <span style="color:#e74c3c;">❤ <span id="inv-hp">0</span></span> | 
+                    <span style="color:#e74c3c;">❤ <span id="inv-hp">0</span></span> |
                     <span style="color:#f1c40f;">🪙 <span id="inv-gold">0</span></span>
                 </div>
                 <div id="inv-equipped-list" class="inv-equipped-container" style="max-height: 250px;"></div>
             </div>
 
             <!-- COLUNA 2: Status Detalhados (NOVO) -->
-            <div class="inv-stats-pane" style="flex: 1; min-width: 250px; background: #1a252f; border-radius: 10px; padding: 15px; border: 1px solid #444; overflow-y: auto;">
-                <h3 style="color:#f39c12; text-align:center; margin-bottom: 15px; border-bottom:1px solid #555; padding-bottom:5px;">Atributos do Herói</h3>
+            <div class="inv-stats-pane"
+                style="flex: 1; min-width: 250px; background: #1a252f; border-radius: 10px; padding: 15px; border: 1px solid #444; overflow-y: auto;">
+                <h3
+                    style="color:#f39c12; text-align:center; margin-bottom: 15px; border-bottom:1px solid #555; padding-bottom:5px;">
+                    Atributos do Herói</h3>
                 <div id="inv-full-stats-list" style="font-size: 0.95em; line-height: 1.6;">
                     <!-- Preenchido via JS -->
                 </div>
@@ -98,6 +119,7 @@
 </div>
 
 <!-- CONTAINER DA TOOLTIP DE ITENS -->
-<div id="item-tooltip" style="display:none; position:fixed; z-index:9999; background:rgba(10,15,20,0.95); border:2px solid #f39c12; padding:15px; border-radius:8px; width:280px; pointer-events:none; color:white; font-size:0.9em; box-shadow: 0px 5px 15px rgba(0,0,0,0.5);">
+<div id="item-tooltip"
+    style="display:none; position:fixed; z-index:9999; background:rgba(10,15,20,0.95); border:2px solid #f39c12; padding:15px; border-radius:8px; width:280px; pointer-events:none; color:white; font-size:0.9em; box-shadow: 0px 5px 15px rgba(0,0,0,0.5);">
     <!-- Preenchido via JS -->
 </div>

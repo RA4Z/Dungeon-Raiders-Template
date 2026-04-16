@@ -187,59 +187,36 @@ async function deleteSave(id) {
 async function loadGameSession(save) {
     window.activeSaveId = save.id;
     window.playerGold = save.gold;
+    window.playerDays = save.days_passed || 1; // Carrega os dias
+    
+    try { window.playerInventory = JSON.parse(save.inventory_data); } 
+    catch(e) { window.playerInventory = { equipments:[], consumables: {} }; }
 
-    // Tenta carregar o inventário, se falhar cria um novo
-    try {
-        window.playerInventory = JSON.parse(save.inventory_data);
-    } catch (e) {
-        window.playerInventory = { equipments: [], consumables: {} };
-    }
+    try { window.playerStatExp = JSON.parse(save.stat_exp); }
+    catch(e) { window.playerStatExp = { 'for': 0, 'int': 0, 'des': 0, 'car': 0, 'res': 0 }; }
 
-    // Monta o objeto do jogador baseado no save para a Engine de Status
     window.activePlayer = {
-        id: save.id,
-        name: save.name,
-        race: 'humano',
+        id: save.id, name: save.name, race: 'humano',
         equipment_data: JSON.parse(save.equipment_data),
         base_stats: JSON.parse(save.base_stats)
     };
 
-    // Recalcula todos os status (HP Máximo, Defesa, etc.)
     await window.refreshPlayerStats();
 
-    // --- CORREÇÃO AUTOMÁTICA DE SAVES ANTIGOS (undefined/null) ---
-    // Se a vida no banco for inválida, nula ou o valor inicial de teste (9999), 
-    // nós resetamos ela para a vida máxima calculada pela engine.
     if (save.current_hp === null || isNaN(save.current_hp) || save.current_hp === 9999) {
         window.playerHP = window.playerFullStats.computed.hp;
     } else {
         window.playerHP = save.current_hp;
     }
 
-    // Atualiza o texto da barra de status na cidade
     const statusEl = document.getElementById('session-status');
-    if (statusEl) {
-        statusEl.innerText = `Herói: ${save.name} | Ouro: ${window.playerGold}`;
-    }
-
-    // Mostra o botão verde de "O Jogo" e navega para a cidade
+    if (statusEl) statusEl.innerText = `Herói: ${save.name} | Ouro: ${window.playerGold}`;
+    
+    const daysEl = document.getElementById('session-days');
+    if (daysEl) daysEl.innerText = `Dia: ${window.playerDays}`;
+    
     const gameBtn = document.getElementById('btn-tab-game');
-    if (gameBtn) {
-        gameBtn.style.display = 'block';
-        if (typeof showTab === "function") {
-            showTab('game-tab', gameBtn);
-        }
-    }
-
-    // Salva imediatamente no banco para limpar qualquer valor "null" que existia antes
-    if (typeof syncInventoryToDB === "function") {
-        await syncInventoryToDB();
-    }
-
-    // Garante que o jogo comece na visão da cidade
-    if (typeof backToCity === "function") {
-        backToCity();
-    }
-
-    console.log("Sessão carregada e corrigida com sucesso!");
+    if (gameBtn) { gameBtn.style.display = 'block'; if (typeof showTab === "function") showTab('game-tab', gameBtn); }
+    if (typeof window.saveGameState === "function") await window.saveGameState();
+    if (typeof backToCity === "function") backToCity();
 }

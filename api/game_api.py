@@ -102,9 +102,11 @@ class GameAPI:
 
             save_data = {
                 "name": name, "body_id": int(body_id), "equipment_data": json.dumps(eq_data),
-                "gold": 0, "current_hp": 9999, # O Front end corrigirá isso ao carregar
+                "gold": 0, "current_hp": 9999,
                 "base_stats": json.dumps(base_stats),
-                "inventory_data": '{"equipments":[], "consumables": {}}'
+                "inventory_data": '{"equipments":[], "consumables": {}}',
+                "days_passed": 1,
+                "stat_exp": '{"for":0,"int":0,"des":0,"car":0,"res":0}'
             }
             insert_item('saves', save_data)
             
@@ -117,12 +119,15 @@ class GameAPI:
             return {"status": "success", "save": new_save}
         except Exception as e: return {"status": "error", "message": str(e)}
 
-    def sync_player_state(self, save_id, current_hp, gold, inventory_json_str, equipment_data_str):
+    def sync_player_state(self, save_id, current_hp, gold, inventory_json_str, equipment_data_str, days_passed, base_stats_str, stat_exp_str):
         update_item('saves', save_id, {
             'current_hp': current_hp, 
             'gold': gold,
             'inventory_data': inventory_json_str, 
-            'equipment_data': equipment_data_str
+            'equipment_data': equipment_data_str,
+            'days_passed': days_passed,
+            'base_stats': base_stats_str,
+            'stat_exp': stat_exp_str
         })
         return {"status": "success"}
 
