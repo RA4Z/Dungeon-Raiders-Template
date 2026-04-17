@@ -14,7 +14,7 @@ window._activeCombatantControl = null; // 'player' | memberId
 // ══════════════════════════════════════════════════
 // RENDER DO PERSONAGEM NO CAMPO
 // ══════════════════════════════════════════════════
-function buildBattleCharacter(characterData, side, imgId, layersId) {
+window.buildBattleCharacter = async function (characterData, side, imgId, layersId) {
     const imgEl = imgId ? document.getElementById(imgId) : null;
     const layersEl = layersId ? document.getElementById(layersId) : null;
     if (!characterData) return;
@@ -28,35 +28,52 @@ function buildBattleCharacter(characterData, side, imgId, layersId) {
             : characterData.equipment_data;
 
         const gender = characterData._gender || characterData.gender || window.playerGender || 'male';
-        window.EQUIP_SLOTS.forEach((slot, index) => {
+
+        // Loop com async/await adequado
+        for (let i = 0; i < window.EQUIP_SLOTS.length; i++) {
+            const slot = window.EQUIP_SLOTS[i];
             const itemId = eqDataMap[slot];
+
             if (itemId) {
                 let itemData = slot === 'base'
                     ? window.gameData.bodies.find(b => b.id == itemId)
                     : window.gameData.equipments.find(e => e.id == itemId);
+
                 if (itemData && layersEl) {
                     let img;
                     if (slot === 'base') {
                         img = typeof window.getBodyImage === 'function'
                             ? window.getBodyImage(itemData, side, gender)
                             : (side === 'f' ? itemData.img_front : itemData.img_back);
+
+                        // APLICA O SHADER AQUI SE HOUVER COR DE PELE
+                        if (eqDataMap.skin_color && eqDataMap.skin_color !== "#ffffff") {
+                            if (typeof window.applyShaderTint === 'function') {
+                                img = await window.applyShaderTint(img, eqDataMap.skin_color);
+                            }
+                        }
                     } else {
                         img = typeof window.getEquipImage === 'function'
                             ? window.getEquipImage(itemData, side, gender)
                             : (side === 'f' ? itemData.img_front : itemData.img_back);
                     }
-                    if (img) layersEl.innerHTML += `<img src="${img}" style="z-index:${index}; position:absolute; width:100%; height:100%; object-fit:contain;">`;
+
+                    if (img) {
+                        layersEl.innerHTML += `<img src="${img}" style="z-index:${i}; position:absolute; width:100%; height:100%; object-fit:contain;">`;
+                    }
                 }
             }
-        });
+        }
     } else {
+        // Monstros
         if (layersEl) layersEl.style.display = 'none';
         if (imgEl) {
             imgEl.style.display = 'block';
             imgEl.src = side === 'f' ? characterData.img_front : characterData.img_back;
         }
     }
-}
+};
+
 
 // ══════════════════════════════════════════════════
 // HUD DE BATALHA
@@ -64,9 +81,9 @@ function buildBattleCharacter(characterData, side, imgId, layersId) {
 function updateBattleUI() {
     if (window.playerFullStats && window.playerFullStats.computed) {
         const c = window.playerFullStats.computed;
-        document.getElementById('player-hp-fill').style.width  = `${Math.max(0, (window.playerHP      / c.hp)      * 100)}%`;
-        document.getElementById('player-mp-fill').style.width  = `${Math.max(0, (window.playerMana    / c.mana)    * 100)}%`;
-        document.getElementById('player-sp-fill').style.width  = `${Math.max(0, (window.playerStamina / c.stamina) * 100)}%`;
+        document.getElementById('player-hp-fill').style.width = `${Math.max(0, (window.playerHP / c.hp) * 100)}%`;
+        document.getElementById('player-mp-fill').style.width = `${Math.max(0, (window.playerMana / c.mana) * 100)}%`;
+        document.getElementById('player-sp-fill').style.width = `${Math.max(0, (window.playerStamina / c.stamina) * 100)}%`;
     }
 
     if (window.currentEnemies) {
@@ -75,7 +92,7 @@ function updateBattleUI() {
             if (!block) return;
             if (e.isDead) { block.classList.add('dead'); return; }
             const c = e.stats.computed;
-            document.getElementById(`enemy-hp-fill-${i}`).style.width = `${Math.max(0, (e.hp   / c.hp)   * 100)}%`;
+            document.getElementById(`enemy-hp-fill-${i}`).style.width = `${Math.max(0, (e.hp / c.hp) * 100)}%`;
             document.getElementById(`enemy-mp-fill-${i}`).style.width = `${Math.max(0, (e.mana / c.mana) * 100)}%`;
             document.getElementById(`enemy-sp-fill-${i}`).style.width = `${Math.max(0, (e.stamina / c.stamina) * 100)}%`;
         });
@@ -85,7 +102,7 @@ function updateBattleUI() {
     if (!window.isTurnBusy) toggleCombatButtons(false);
 }
 
-window.updateATBBars = function() {
+window.updateATBBars = function () {
     if (!window.combatants) return;
     window.combatants.forEach(c => {
         if (c.isDead) return;
@@ -103,7 +120,7 @@ window.updateATBBars = function() {
     });
 };
 
-window.setCombatTarget = function(index) {
+window.setCombatTarget = function (index) {
     if (!window.currentEnemies[index] || window.currentEnemies[index].isDead) return;
     window.combatTargetIndex = index;
     document.querySelectorAll('.enemy-container-slot').forEach(el => el.classList.remove('is-targeted'));
@@ -112,12 +129,12 @@ window.setCombatTarget = function(index) {
     document.getElementById(`enemy-hud-block-${index}`).classList.add('is-targeted-hud');
 };
 
-window.autoSelectNextTarget = function() {
+window.autoSelectNextTarget = function () {
     let aliveIndex = window.currentEnemies.findIndex(e => !e.isDead);
     if (aliveIndex !== -1) window.setCombatTarget(aliveIndex);
 };
 
-window.showFloatingDamage = function(containerId, text, typeClass) {
+window.showFloatingDamage = function (containerId, text, typeClass) {
     const container = document.getElementById(containerId);
     if (!container) return;
     const span = document.createElement('span');
@@ -135,7 +152,7 @@ window.showFloatingDamage = function(containerId, text, typeClass) {
  * Renderiza o toggle de controle + seletor de combatente ativo
  * Inserido no #visual-novel-ui, acima da hotbar
  */
-window.renderCombatControlBar = function() {
+window.renderCombatControlBar = function () {
     let bar = document.getElementById('combat-control-bar');
     if (!bar) {
         bar = document.createElement('div');
@@ -145,9 +162,9 @@ window.renderCombatControlBar = function() {
         if (ui) ui.insertBefore(bar, ui.firstChild);
     }
 
-    const isAuto   = window._allyControlMode === 'auto';
-    const party    = window._party || [];
-    const hired    = window._hiredAllies || [];
+    const isAuto = window._allyControlMode === 'auto';
+    const party = window._party || [];
+    const hired = window._hiredAllies || [];
     const hasAllies = party.length > 0;
 
     // Botões dos combatentes selecionáveis
@@ -160,7 +177,7 @@ window.renderCombatControlBar = function() {
                     onclick="selectCombatantControl('player')"
                     title="${window.activePlayer?.name || 'Jogador'}">
                 <span>🧑</span>
-                <span class="ccb-cname">${(window.activePlayer?.name || 'Você').substring(0,8)}</span>
+                <span class="ccb-cname">${(window.activePlayer?.name || 'Você').substring(0, 8)}</span>
             </button>`;
         // Botões dos aliados
         party.forEach(memberId => {
@@ -174,7 +191,7 @@ window.renderCombatControlBar = function() {
                         onclick="selectCombatantControl('${memberId}')"
                         title="${ally.name}">
                     <span>⚔️</span>
-                    <span class="ccb-cname">${ally.name.substring(0,8)}</span>
+                    <span class="ccb-cname">${ally.name.substring(0, 8)}</span>
                 </button>`;
         });
     }
@@ -202,7 +219,7 @@ function _getCombatantLabel() {
     return ally ? `Controlando: <strong style="color:#2ecc71;">${ally.name}</strong>` : '';
 }
 
-window.toggleAllyControlMode = function() {
+window.toggleAllyControlMode = function () {
     window._allyControlMode = window._allyControlMode === 'auto' ? 'manual' : 'auto';
     if (window._allyControlMode === 'manual') {
         window._activeCombatantControl = 'player';
@@ -213,7 +230,7 @@ window.toggleAllyControlMode = function() {
     window.renderCombatControlBar();
 };
 
-window.selectCombatantControl = function(id) {
+window.selectCombatantControl = function (id) {
     window._activeCombatantControl = id;
     renderCombatHotbar();
     window.renderCombatControlBar();
@@ -229,7 +246,7 @@ function renderCombatHotbar() {
     container.innerHTML = '';
 
     const isManual = window._allyControlMode === 'manual';
-    const ctrl     = window._activeCombatantControl;
+    const ctrl = window._activeCombatantControl;
     const isAllyCtrl = isManual && ctrl && ctrl !== 'player';
 
     // Decide qual hotbar exibir
@@ -238,16 +255,16 @@ function renderCombatHotbar() {
     if (isAllyCtrl) {
         // Hotbar do aliado selecionado
         const ally = (window._hiredAllies || []).find(a => String(a.member_id) === String(ctrl));
-        hotbar   = ally?.hotbar || [];
-        expMap   = {}; // aliados não têm attack_exp por enquanto
+        hotbar = ally?.hotbar || [];
+        expMap = {}; // aliados não têm attack_exp por enquanto
         attacksFn = (atkId) => {
             const atk = window.gameData.attacks.find(a => a.id == atkId);
             return atk || null;
         };
     } else {
         // Hotbar do player
-        hotbar   = window.playerHotbar;
-        expMap   = window.attackExp;
+        hotbar = window.playerHotbar;
+        expMap = window.attackExp;
         attacksFn = (atkId) => window.gameData.attacks.find(a => a.id == atkId);
     }
 
@@ -292,7 +309,7 @@ window._pendingAllyAction = null; // { memberId, attackId } — preenchido no mo
  * Chamado quando o jogador clica num ataque da hotbar de um aliado.
  * Armazena a ação pendente; o processNextTurn() vai consumi-la.
  */
-window.startAllyTurnSequence = async function(memberId, attackId) {
+window.startAllyTurnSequence = async function (memberId, attackId) {
     if (window.isTurnBusy) return;
 
     // Verifica se é realmente a vez do aliado
@@ -311,7 +328,7 @@ window.startAllyTurnSequence = async function(memberId, attackId) {
     await window._executeManualAllyTurn(actor, attackId);
 };
 
-window._executeManualAllyTurn = async function(actor, attackId) {
+window._executeManualAllyTurn = async function (actor, attackId) {
     window.isTurnBusy = true;
     toggleCombatButtons(true);
 
@@ -328,9 +345,9 @@ window._executeManualAllyTurn = async function(actor, attackId) {
 
     const res = await window.pywebview.api.process_battle_turn(ps.stats, target.stats, attackId, 1);
 
-    ps.hp      = Math.max(0, ps.hp      - res.hp_cost);
+    ps.hp = Math.max(0, ps.hp - res.hp_cost);
     ps.stamina = Math.max(0, ps.stamina - res.stamina_cost);
-    ps.mana    = Math.max(0, ps.mana    - res.mana_cost);
+    ps.mana = Math.max(0, ps.mana - res.mana_cost);
 
     let msg;
     if (res.dodged) {
@@ -371,16 +388,16 @@ function toggleCombatButtons(state) {
             btn.disabled = true;
         } else {
             const isAllyCtrl = window._allyControlMode === 'manual' &&
-                               window._activeCombatantControl &&
-                               window._activeCombatantControl !== 'player';
+                window._activeCombatantControl &&
+                window._activeCombatantControl !== 'player';
             if (isAllyCtrl) {
                 btn.disabled = false; // simplificado para aliados
             } else {
                 const atk = window.gameData.attacks.find(a => a.id == btn.dataset.atkId);
                 if (atk) {
                     btn.disabled = !((atk.hp_cost || 0) <= window.playerHP &&
-                                     (atk.mana_cost || 0) <= window.playerMana &&
-                                     (atk.stamina_cost || 0) <= window.playerStamina);
+                        (atk.mana_cost || 0) <= window.playerMana &&
+                        (atk.stamina_cost || 0) <= window.playerStamina);
                 }
             }
         }
@@ -392,9 +409,9 @@ function toggleCombatButtons(state) {
 // ══════════════════════════════════════════════════
 // SKILLBOOK DO PLAYER
 // ══════════════════════════════════════════════════
-window.openSkillbook  = function() { document.getElementById('skillbook-modal').style.display = 'flex'; renderSkillbook(); };
-window.closeSkillbook = async function() { document.getElementById('skillbook-modal').style.display = 'none'; hideSkillTooltip(); await window.saveGameState(); };
-window.clearHotbar    = function() { window.playerHotbar = Array(10).fill(null); renderSkillbook(); };
+window.openSkillbook = function () { document.getElementById('skillbook-modal').style.display = 'flex'; renderSkillbook(); };
+window.closeSkillbook = async function () { document.getElementById('skillbook-modal').style.display = 'none'; hideSkillTooltip(); await window.saveGameState(); };
+window.clearHotbar = function () { window.playerHotbar = Array(10).fill(null); renderSkillbook(); };
 
 function renderSkillbook() {
     const sourceDiv = document.getElementById('sb-drag-source');
@@ -402,14 +419,14 @@ function renderSkillbook() {
     sourceDiv.innerHTML = ''; hotbarDiv.innerHTML = '';
 
     let attacks = [];
-    try { attacks = typeof window.playerAttacks === "string" ? JSON.parse(window.playerAttacks) : window.playerAttacks; } catch(e) {}
+    try { attacks = typeof window.playerAttacks === "string" ? JSON.parse(window.playerAttacks) : window.playerAttacks; } catch (e) { }
 
     attacks.forEach(atkId => {
         const atk = window.gameData.attacks.find(a => a.id == atkId);
         if (atk) {
             let expObj = window.attackExp[atkId] || { xp: 0, level: 1 };
             const reqXp = expObj.level * 100;
-            const pct   = (expObj.xp / reqXp) * 100;
+            const pct = (expObj.xp / reqXp) * 100;
             sourceDiv.innerHTML += `
                 <div class="drag-skill-item hb-atk-${atk.atk_type}" draggable="true"
                      ondragstart="sbDragStart(event, ${atk.id}, 'source')"
@@ -426,9 +443,9 @@ function renderSkillbook() {
     hotbar.forEach((atkId, index) => {
         const slotDiv = document.createElement('div');
         slotDiv.className = 'hotbar-slot ' + (atkId ? '' : 'empty');
-        slotDiv.setAttribute('ondragover',   'sbDragOver(event)');
-        slotDiv.setAttribute('ondragleave',  'sbDragLeave(event)');
-        slotDiv.setAttribute('ondrop',       `sbDrop(event, ${index})`);
+        slotDiv.setAttribute('ondragover', 'sbDragOver(event)');
+        slotDiv.setAttribute('ondragleave', 'sbDragLeave(event)');
+        slotDiv.setAttribute('ondrop', `sbDrop(event, ${index})`);
         slotDiv.setAttribute('oncontextmenu', `event.preventDefault(); removeSkillFromHotbar(${index});`);
         if (atkId) {
             const atk = window.gameData.attacks.find(a => a.id == atkId);
@@ -446,12 +463,12 @@ function renderSkillbook() {
     });
 }
 
-window.sbDragStart = function(ev, atkId, origin) { ev.dataTransfer.setData("atkId", atkId); ev.dataTransfer.setData("origin", origin); };
-window.sbDragOver  = function(ev) { ev.preventDefault(); ev.currentTarget.classList.add('drag-over'); };
-window.sbDragLeave = function(ev) { ev.currentTarget.classList.remove('drag-over'); };
-window.sbDrop      = function(ev, targetIndex) {
+window.sbDragStart = function (ev, atkId, origin) { ev.dataTransfer.setData("atkId", atkId); ev.dataTransfer.setData("origin", origin); };
+window.sbDragOver = function (ev) { ev.preventDefault(); ev.currentTarget.classList.add('drag-over'); };
+window.sbDragLeave = function (ev) { ev.currentTarget.classList.remove('drag-over'); };
+window.sbDrop = function (ev, targetIndex) {
     ev.preventDefault(); ev.currentTarget.classList.remove('drag-over');
-    const atkId  = parseInt(ev.dataTransfer.getData("atkId"));
+    const atkId = parseInt(ev.dataTransfer.getData("atkId"));
     const origin = ev.dataTransfer.getData("origin");
     if (origin !== 'source') {
         const originIndex = parseInt(origin);
@@ -463,7 +480,7 @@ window.sbDrop      = function(ev, targetIndex) {
     }
     renderSkillbook();
 };
-window.removeSkillFromHotbar = function(index) {
+window.removeSkillFromHotbar = function (index) {
     if (window.playerHotbar[index] !== null) { window.playerHotbar[index] = null; renderSkillbook(); }
 };
 
@@ -471,7 +488,7 @@ window.removeSkillFromHotbar = function(index) {
 // TOOLTIP DE HABILIDADE
 // ══════════════════════════════════════════════════
 let hoveredSkill = null;
-window.showSkillTooltip = function(atkId, event) {
+window.showSkillTooltip = function (atkId, event) {
     hoveredSkill = atkId;
     const tooltip = document.getElementById('skill-tooltip');
     if (!tooltip) return;
@@ -482,8 +499,8 @@ window.showSkillTooltip = function(atkId, event) {
     const reqXp = expObj.level * 100;
 
     let costsHtml = "";
-    if (atk.hp_cost      > 0) costsHtml += `<span style="color:#e74c3c;">❤${atk.hp_cost}</span> `;
-    if (atk.mana_cost    > 0) costsHtml += `<span style="color:#3498db;">💧${atk.mana_cost}</span> `;
+    if (atk.hp_cost > 0) costsHtml += `<span style="color:#e74c3c;">❤${atk.hp_cost}</span> `;
+    if (atk.mana_cost > 0) costsHtml += `<span style="color:#3498db;">💧${atk.mana_cost}</span> `;
     if (atk.stamina_cost > 0) costsHtml += `<span style="color:#f1c40f;">⚡${atk.stamina_cost}</span>`;
     if (!costsHtml) costsHtml = "Nenhum Custo";
 
@@ -494,7 +511,7 @@ window.showSkillTooltip = function(atkId, event) {
             if (scaling[stat] !== 0)
                 scalingHtml += `<span>${window.STAT_MAP.base[stat] || stat}: <strong style="color:#2ecc71;">x${scaling[stat]}</strong></span>`;
         }
-    } catch(e) {}
+    } catch (e) { }
     if (!scalingHtml) scalingHtml = "Nenhum Atributo de Escala";
     else scalingHtml = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;">${scalingHtml}</div>`;
 
@@ -503,7 +520,7 @@ window.showSkillTooltip = function(atkId, event) {
         <p style="color:#bdc3c7;font-size:0.9em;margin-bottom:8px;">${atk.atk_type === 'phys' ? 'Ataque Físico' : 'Ataque Mágico'}</p>
         <hr style="border:1px solid #444;margin:5px 0;">
         <p style="color:#bdc3c7;margin-bottom:8px;">${atk.description || "Sem descrição."}</p>
-        <p style="color:#ecf0f1;font-weight:bold;margin-bottom:5px;">Dano Base: ${atk.base_power.toFixed(1)} <span style="font-size:0.8em;color:#777;">(+${((expObj.level-1)*0.1).toFixed(1)} por Nível)</span></p>
+        <p style="color:#ecf0f1;font-weight:bold;margin-bottom:5px;">Dano Base: ${atk.base_power.toFixed(1)} <span style="font-size:0.8em;color:#777;">(+${((expObj.level - 1) * 0.1).toFixed(1)} por Nível)</span></p>
         <p style="color:#ecf0f1;font-weight:bold;margin-bottom:5px;">Custo: ${costsHtml}</p>
         <p style="color:#ecf0f1;font-weight:bold;margin-bottom:5px;">Escalonamento:</p>${scalingHtml}
         <hr style="border:1px solid #444;margin:5px 0;">
@@ -512,12 +529,12 @@ window.showSkillTooltip = function(atkId, event) {
     tooltip.style.display = 'block';
     let x = event.clientX + 15;
     let y = event.clientY + 15;
-    if (x + tooltip.offsetWidth  > window.innerWidth)  x = window.innerWidth  - tooltip.offsetWidth  - 10;
+    if (x + tooltip.offsetWidth > window.innerWidth) x = window.innerWidth - tooltip.offsetWidth - 10;
     if (y + tooltip.offsetHeight > window.innerHeight) y = window.innerHeight - tooltip.offsetHeight - 10;
     tooltip.style.left = x + 'px';
-    tooltip.style.top  = y + 'px';
+    tooltip.style.top = y + 'px';
 };
-window.hideSkillTooltip = function() {
+window.hideSkillTooltip = function () {
     hoveredSkill = null;
     const t = document.getElementById('skill-tooltip');
     if (t) t.style.display = 'none';

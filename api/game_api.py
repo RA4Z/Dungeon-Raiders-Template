@@ -189,12 +189,15 @@ class GameAPI:
 
     def get_enemies_for_floor(self, floor):
         characters = get_all_items("characters")
+        monsters =[c for c in characters if str(c.get('race', '')).lower() != 'humano']
+        if not monsters:
+            return[] # Retorna vazio se não houver monstros cadastrados
         min_score = max(0, (floor - 1) * 3)
         max_score = floor * 15 + 10
-        eligible = [c for c in characters
-                    if min_score <= int(c.get('power_score', 0)) <= max_score]
+        eligible =[c for c in monsters if min_score <= int(c.get('power_score', 0)) <= max_score]
         if not eligible:
-            eligible = characters
+            eligible = monsters
+            
         return eligible
 
     def get_random_enemy_for_floor(self, floor):
@@ -323,7 +326,7 @@ class GameAPI:
         return {"status": "success"}
 
     # ═══════════════════════════════════════════════
-    # ALIADOS — sistema completo com correção do train
+    # ALIADOS
     # ═══════════════════════════════════════════════
     def hire_ally(self, save_id, member_id):
         saves   = get_all_items("saves")
@@ -456,7 +459,26 @@ class GameAPI:
         update_item('saves', save_id, {'hired_allies': json.dumps(hired)})
         return {"status":"success"}
 
-    # ─── FIX: process_daily_routines com stat_exp correto ─────────
+    def get_ally_hire_cost(self, save_id, member_id):
+            saves = get_all_items("saves")
+            save = next((s for s in saves if s['id'] == save_id), None)
+            members = get_all_items("guild_members")
+            member = next((m for m in members if m['id'] == member_id), None)
+
+            if not member or not save:
+                return {"cost": 100, "penalized": False}
+
+            base_cost = int(member.get('hire_cost', 100))
+            try:
+                fired_zero = json.loads(save.get('fired_zero_moral', '[]'))
+            except:
+                fired_zero =[]
+
+            if member_id in fired_zero:
+                return {"cost": base_cost * 5, "penalized": True}
+                
+            return {"cost": base_cost, "penalized": False}
+
     def process_daily_routines(self, save_id):
         saves = get_all_items("saves")
         save  = next((s for s in saves if s['id'] == save_id), None)

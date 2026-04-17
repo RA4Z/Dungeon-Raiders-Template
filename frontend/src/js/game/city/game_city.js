@@ -84,34 +84,33 @@ async function healPlayer() {
     window.playerStamina = window.playerFullStats.computed.stamina;
     window.playerDays   += 1;
 
-    // 1. Processa rotinas dos aliados (hunt/train/idle) — Python
+    // 1. SALVA O ESTADO DO JOGADOR PRIMEIRO!
+    // Se salvarmos depois, o JS vai sobrescrever e apagar o XP que o Python calculou.
+    await window.saveGameState();
+
+    // 2. Processa as rotinas (hunt/train/idle, salários, moral) — TUDO PELO PYTHON
     const routineRes = await window.pywebview.api.process_daily_routines(window.activeSaveId);
 
-    // 2. Processa moral e pagamentos — JS (atualiza window._hiredAllies)
-    const moralMessages = await window.processMoralAndWages();
-
-    // Atualiza ouro após rotinas (o Python já debitou salários)
+    // Atualiza ouro após rotinas
     if (routineRes && typeof routineRes.new_gold === 'number') {
         window.playerGold = routineRes.new_gold;
     }
 
-    window.updateHUD();
-    await window.saveGameState();
-
-    // Sincroniza estado para atualizar _hiredAllies com dados finais do servidor
+    // 3. Atualiza a memória do JS puxando os dados fresquinhos (com XP novo) do Banco
     if (typeof syncSaveState === 'function') await syncSaveState();
+    
+    window.updateHUD();
 
     // Monta relatório do dia
-    let allMessages = [];
+    let allMessages =[];
     if (routineRes?.messages?.length > 0) allMessages = allMessages.concat(routineRes.messages);
-    if (moralMessages?.length > 0)        allMessages = allMessages.concat(moralMessages);
 
     let report = '';
     if (allMessages.length > 0)
         report = '\n\n📋 Relatório do dia:\n' + allMessages.join('\n');
 
     // Avisa sobre aliados que abandonaram
-    const fired = routineRes?.fired_allies || [];
+    const fired = routineRes?.fired_allies ||[];
     if (fired.length > 0)
         report += `\n\n⚠️ ${fired.length} aliado(s) abandonaram a equipe por falta de pagamento!`;
 
