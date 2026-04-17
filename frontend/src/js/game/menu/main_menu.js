@@ -224,14 +224,25 @@ async function createNewGame() {
     const bodyId = document.getElementById('ng-body')?.value;
     const faceId = document.getElementById('ng-face')?.value;
     const hairId = document.getElementById('ng-hair')?.value;
-    if (!name || !bodyId) return window.showToast("Preencha todos os campos!", "error");
+    const numGuilds = document.getElementById('ng-gen-guilds').value;
+    const numNpcs = document.getElementById('ng-gen-npcs').value;
+
+    if (!name || !bodyId) return window.showToast("Preencha todos os campos obrigatórios!", "error");
+
+    document.getElementById('ng-btn-create').innerText = "Gerando Mundo...";
+    document.getElementById('ng-btn-create').disabled = true;
 
     const res = await window.pywebview.api.create_save(
         name, bodyId, faceId || null, hairId || null,
-        currentSkinColor, newGameStats, newGameGender
+        currentSkinColor, newGameStats, newGameGender,
+        numGuilds, numNpcs
     );
+
+    document.getElementById('ng-btn-create').innerText = "Entrar no Mundo!";
+    document.getElementById('ng-btn-create').disabled = false;
+
     if (res.status === 'success') {
-        window.showToast("Herói criado!", "success");
+        window.showToast("Mundo e Herói criados!", "success");
         closeNewGameModal();
         loadGameSession(res.save);
     } else {
@@ -269,6 +280,13 @@ async function loadGameSession(save) {
     try { window._repMap = JSON.parse(save.guild_reputation || '{}'); } catch (e) { window._repMap = {}; }
     try { window._activeQuests = JSON.parse(save.active_quests || '[]'); } catch (e) { window._activeQuests = []; }
     try { window._completedQuests = JSON.parse(save.completed_quests || '[]'); } catch (e) { window._completedQuests = []; }
+
+    window.currentWorld = {
+        guilds: JSON.parse(save.world_guilds || '[]'),
+        members: JSON.parse(save.world_members || '[]'),
+        quests: JSON.parse(save.world_quests || '[]')
+    };
+
     window._dungeonMaxFloor = save.dungeon_max_floor || 1;
     window._dungeonCurrentFloor = save.dungeon_current_floor || 1;
     window._currentSave = save;

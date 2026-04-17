@@ -1,0 +1,175 @@
+# api/generators/world_gen.py
+import random
+import json
+import uuid
+
+# ==========================================
+# DICIONÁRIOS DE GERAÇÃO
+# ==========================================
+FIRST_NAMES_M =[
+    "Kael", "Thorin", "Garrick", "Bram", "Darius", "Vane", "Rurik", "Finn", "Alden", "Cormac",
+    "Lucian", "Ronan", "Silas", "Eamon", "Gareth", "Kian", "Orson", "Rowan", "Talon", "Zane",
+    "Raziel", "Kaelen", "Draven", "Gideon", "Mael", "Nox", "Soren", "Vance", "Alistair", "Bjorn"
+]
+FIRST_NAMES_F =[
+    "Lyra", "Elowen", "Seris", "Vex", "Thalia", "Aria", "Briar", "Cora", "Dara", "Elara",
+    "Fae", "Gael", "Isla", "Juno", "Kira", "Lira", "Maeve", "Nia", "Oria", "Ria",
+    "Sylas", "Tia", "Vira", "Zara", "Aeliana", "Caelia", "Elysia", "Ilyana", "Kaela", "Liana"
+]
+TITLES =[
+    "o Destemido", "a Sombra", "Pé-Leve", "o Quebrado", "Olho de Águia", "o Sábio", "Mão de Ferro",
+    "o Esquecido", "Sangue Frio", "o Errante", "Lâmina Rápida", "o Justo", "o Louco", "Coração de Leão",
+    "o Implacável", "a Fúria", "o Oculto", "o Caçador", "Traz-Tormentas", "o Silencioso", "Sem-Rosto"
+]
+
+GUILD_ADJECTIVES =["Ordem", "Irmandade", "Pacto", "Clã", "Legião", "Círculo", "Sindicato", "Guilda", "Companhia"]
+GUILD_NOUNS =["do Aço", "das Sombras", "do Corvo", "da Chama", "do Lobo", "de Sangue", "do Alvorecer", "da Noite", "da Prata", "do Dragão", "do Urso", "da Caveira"]
+
+COLORS =['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22', '#1abc9c', '#34495e', '#7f8c8d']
+ICONS =['⚔️', '🛡️', '🐺', '🦅', '🔥', '💧', '⚡', '🌙', '☀️', '💀', '🐉', '🌲']
+
+SKIN_COLORS =['#ffffff', '#ffdfc4', '#d4a373', '#8d5524', '#4b3621']
+
+# ==========================================
+# LÓGICA DO GERADOR
+# ==========================================
+class WorldGenerator:
+    def __init__(self, game_data):
+        self.game_data = game_data
+        self.bodies = [b for b in game_data.get('bodies', []) if int(b.get('is_playable', 0)) == 1]
+        self.equipments = game_data.get('equipments',[])
+        self.attacks = game_data.get('attacks',[])
+        self.monsters = [c for c in game_data.get('characters', []) if str(c.get('race', '')).lower() != 'humano']
+        self.db_humans =[c for c in game_data.get('characters', []) if str(c.get('race', '')).lower() == 'humano']
+
+    def generate_world(self, num_guilds, num_npcs):
+        # 1. Puxa as Guildas Manuais do DB
+        guilds = list(self.game_data.get('guilds',[]))
+        # Converte IDs manuais para string para padronizar
+        for g in guilds: g['id'] = str(g['id'])
+        
+        members = []
+        quests =[]
+        
+        # 2. Gera Guildas Aleatórias
+        for _ in range(num_guilds):
+            guilds.append(self._generate_guild())
+            
+        # 3. Importa Membros Manuais (Criados na aba Membros da Forja)
+        db_members = self.game_data.get('guild_members',[])
+        for db_m in db_members:
+            char = next((c for c in self.db_humans if c['id'] == db_m['character_id']), None)
+            if char:
+                members.append(self._convert_db_human(char, str(db_m['guild_id']), db_m['hire_cost'], db_m['daily_wage']))
+
+        # 4. Importa os outros Humanos do Banco de Dados (Andarilhos ou membros aleatórios)
+        used_char_ids = [m.get('character_id') for m in db_members]
+        for db_char in self.db_humans:
+            if db_char['id'] not in used_char_ids:
+                if random.random() > 0.3: # 70% chance de aparecer no mundo
+                    # 50% de chance de entrar em uma guilda aleatória, 50% de ser sem guilda
+                    random_guild = random.choice(guilds)['id'] if random.random() > 0.5 else ""
+                    members.append(self._convert_db_human(db_char, random_guild))
+
+        # 5. Gera NPCs Procedurais para encher o mundo
+        for _ in range(num_npcs):
+            members.append(self._generate_npc(guilds))
+                
+        # 6. Puxa Quests Manuais e gera Quests Aleatórias
+        quests = list(self.game_data.get('guild_quests',[]))
+        for q in quests: q['id'] = str(q['id']); q['guild_id'] = str(q['guild_id'])
+        
+        for guild in guilds:
+            for _ in range(random.randint(2, 5)):
+                if self.monsters:
+                    quests.append(self._generate_quest(guild['id']))
+                
+        return guilds, members, quests
+
+    def _generate_guild(self):
+        return {
+            "id": str(uuid.uuid4()),
+            "name": f"{random.choice(GUILD_ADJECTIVES)} {random.choice(GUILD_NOUNS)}",
+            "description": "Uma organização independente operando na região.",
+            "emblem_color": random.choice(COLORS),
+            "emblem_icon": random.choice(ICONS),
+            "rank_name_1": "Iniciante", "rank_name_2": "Veterano", 
+            "rank_name_3": "Elite", "rank_name_4": "Mestre", "rank_name_5": "Lendário"
+        }
+
+    def _convert_db_human(self, db_char, guild_id, hire_cost=None, daily_wage=None):
+        try: base_stats = json.loads(db_char.get('base_stats', '{}'))
+        except: base_stats = {"for":1,"int":1,"des":1,"car":1,"res":1}
+        
+        power = sum(int(v) for v in base_stats.values()) * 5
+
+        return {
+            "id": str(uuid.uuid4()),
+            "guild_id": guild_id,
+            "name": db_char['name'],
+            "race": "humano",
+            "gender": "male",
+            "equipment_data": db_char.get('equipment_data', '{}'),
+            "base_stats": json.dumps(base_stats),
+            "attacks": db_char.get('attacks', '[1]'),
+            "hire_cost": hire_cost if hire_cost is not None else power * 15,
+            "daily_wage": daily_wage if daily_wage is not None else int((power * 15) * 0.1),
+            "power_score": power,
+            "gold": random.randint(10, 200),
+            "is_precreated": True
+        }
+
+    def _generate_npc(self, guilds):
+        if not self.bodies: return None
+        gender = random.choice(['male', 'female'])
+        name = random.choice(FIRST_NAMES_M if gender == 'male' else FIRST_NAMES_F)
+        if random.random() > 0.4: name += f" {random.choice(TITLES)}"
+            
+        power_tier = random.choices([1, 2, 3, 4, 5], weights=[40, 30, 15, 10, 5])[0]
+        
+        base_stats = { k: random.randint(1 * power_tier, 5 * power_tier) for k in['for','int','des','car','res'] }
+        base_stats[random.choice(list(base_stats.keys()))] += (5 * power_tier)
+
+        eq_data = {"base": random.choice(self.bodies)['id'], "skin_color": random.choice(SKIN_COLORS)}
+        for slot in['face', 'hair', 'shirt', 'pants', 'boots', 'gloves', 'hand_r']:
+            if random.random() > 0.3:
+                valid_eqs =[e for e in self.equipments if e['type'] == slot and e['gender'] in ['both', gender]]
+                if valid_eqs: eq_data[slot] = random.choice(valid_eqs)['id']
+
+        npc_attacks = [1]
+        if self.attacks:
+            extra_atks = random.sample(self.attacks, k=min(len(self.attacks), power_tier))
+            npc_attacks.extend([a['id'] for a in extra_atks if a['id'] != 1])
+            
+        assigned_guild = random.choice(guilds)['id'] if random.random() > 0.5 else ""
+        power = sum(base_stats.values()) * 5
+
+        return {
+            "id": str(uuid.uuid4()),
+            "guild_id": assigned_guild,
+            "name": name,
+            "race": "humano",
+            "gender": gender,
+            "equipment_data": json.dumps(eq_data),
+            "base_stats": json.dumps(base_stats),
+            "attacks": json.dumps(list(set(npc_attacks))),
+            "hire_cost": power * 15,
+            "daily_wage": int((power * 15) * 0.1),
+            "power_score": power,
+            "gold": random.randint(0, 50) * power_tier,
+            "is_precreated": False
+        }
+
+    def _generate_quest(self, guild_id):
+        target = random.choice(self.monsters)
+        diff = random.randint(1, 5)
+        return {
+            "id": str(uuid.uuid4()), "guild_id": guild_id, "name": f"Eliminar {target['name']}",
+            "description": f"Derrote a ameaça na caverna.", "difficulty": diff,
+            "gold_reward": (random.randint(3, 10) * 5) * diff, "rep_reward": diff * 10,
+            "required_kills": random.randint(2, 8) * diff, "target_character_id": target['id'],
+            "time_limit_days": random.choice([0, 7, 14])
+        }
+
+
+    

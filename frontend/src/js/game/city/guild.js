@@ -10,7 +10,7 @@ function setGuildScreen(id) {
     document.getElementById(id).classList.add('active-guild-screen');
 }
 
-window.openGuilds = function() {
+window.openGuilds = function () {
     if (!window.activePlayer) return alert("Nenhum personagem ativo!");
     setView('guild-screen');
     renderGuildList();
@@ -28,9 +28,9 @@ function switchGuildTab(tab, btn) {
     btn.classList.add('active');
     document.getElementById(`guild-tab-${tab}`).classList.add('active-guild-tab');
 
-    if (tab === 'quests')   renderGuildQuests();
-    if (tab === 'members')  renderGuildMembers();
-    if (tab === 'ranking')  renderGuildRanking();
+    if (tab === 'quests') renderGuildQuests();
+    if (tab === 'members') renderGuildMembers();
+    if (tab === 'ranking') renderGuildRanking();
 }
 
 // ══════════════════════════════════════════════════
@@ -39,18 +39,18 @@ function switchGuildTab(tab, btn) {
 function renderGuildList() {
     const container = document.getElementById('guild-cards-container');
     if (!container) return;
-    const guilds = window.gameData.guilds || [];
+    const guilds = window.currentWorld.guilds || [];
     if (guilds.length === 0) {
         container.innerHTML = '<p style="color:#7f8c8d; text-align:center; margin-top:40px;">Nenhuma guilda cadastrada. Crie guildas no Banco de Dados!</p>';
         return;
     }
-    try { window._repMap = JSON.parse(window.activePlayer._save?.guild_reputation || '{}'); } catch(e) { window._repMap = {}; }
+    try { window._repMap = JSON.parse(window.activePlayer._save?.guild_reputation || '{}'); } catch (e) { window._repMap = {}; }
 
     container.innerHTML = guilds.map(g => {
         const rep = parseInt(window._repMap[g.id] || 0);
         const [rankName, rankNum] = getGuildRankName(g, rep);
         return `
-        <div class="guild-card" onclick="openGuildDetail(${g.id})" style="border-color:${g.emblem_color}">
+        <div class="guild-card" onclick="openGuildDetail('${g.id}')" style="border-color:${g.emblem_color}">
             <div class="guild-card-emblem" style="background:${g.emblem_color}22; border-color:${g.emblem_color};">${g.emblem_icon}</div>
             <div class="guild-card-info">
                 <h3 style="color:${g.emblem_color};">${g.name}</h3>
@@ -65,7 +65,7 @@ function renderGuildList() {
 }
 
 function getGuildRankName(guild, rep) {
-    const thresholds = [[500, 5], [200, 4], [75, 3], [20, 2], [0, 1]];
+    const thresholds = [[5000, 5], [2000, 4], [750, 3], [200, 2], [0, 1]];
     let rankNum = 1;
     for (const [t, n] of thresholds) { if (rep >= t) { rankNum = n; break; } }
     return [guild[`rank_name_${rankNum}`] || `Rank ${rankNum}`, rankNum];
@@ -76,10 +76,10 @@ function getGuildRankName(guild, rep) {
 // ══════════════════════════════════════════════════
 async function openGuildDetail(guildId) {
     window.currentGuildId = guildId;
-    const guild = (window.gameData.guilds || []).find(g => g.id == guildId);
+    const guild = (window.currentWorld.guilds || []).find(g => g.id == guildId);
     if (!guild) return;
 
-    try { window._repMap = JSON.parse(window._currentSave?.guild_reputation || '{}'); } catch(e) { window._repMap = {}; }
+    try { window._repMap = JSON.parse(window._currentSave?.guild_reputation || '{}'); } catch (e) { window._repMap = {}; }
     const rep = parseInt(window._repMap[guildId] || 0);
     const [rankName, rankNum] = getGuildRankName(guild, rep);
 
@@ -100,7 +100,7 @@ async function openGuildDetail(guildId) {
 // ══════════════════════════════════════════════════
 function renderGuildQuests() {
     const guildId = window.currentGuildId;
-    const allQuests = (window.gameData.guild_quests || []).filter(q => q.guild_id == guildId);
+    const allQuests = (window.currentWorld.quests || []).filter(q => q.guild_id == guildId);
     const activeQuests = window._activeQuests || [];
     const completedQuests = window._completedQuests || [];
 
@@ -114,9 +114,9 @@ function renderGuildQuests() {
     listEl.innerHTML = '';
     allQuests.forEach(q => {
         const isCompleted = completedQuests.includes(q.id);
-        const isActive    = activeQuests.some(aq => aq.quest_id === q.id);
-        const diff        = Math.min(5, Math.max(1, q.difficulty));
-        const targetChar  = q.target_character_id
+        const isActive = activeQuests.some(aq => aq.quest_id === q.id);
+        const diff = Math.min(5, Math.max(1, q.difficulty));
+        const targetChar = q.target_character_id
             ? (window.gameData.characters || []).find(c => c.id == q.target_character_id)
             : null;
 
@@ -137,9 +137,9 @@ function renderGuildQuests() {
             ${q.time_limit_days > 0 ? `<p style="font-size:0.8em; color:#e67e22;">⏳ Limite: ${q.time_limit_days} dias</p>` : ''}
             <div style="margin-top:8px;">
                 ${isCompleted ? '<span style="color:#555; font-size:0.8em;">✅ Completada</span>' :
-                  isActive    ? `<button onclick="turnInQuest(${q.id})" style="background:#2ecc71; border:none; padding:5px 12px; border-radius:4px; color:#fff; cursor:pointer; font-weight:bold; font-size:0.85em;">Entregar</button>
-                                 <button onclick="abandonQuest(${q.id})" style="background:#c0392b; border:none; padding:5px 12px; border-radius:4px; color:#fff; cursor:pointer; font-size:0.85em; margin-left:6px;">Abandonar</button>` :
-                  `<button onclick="acceptQuest(${q.id})" style="background:#2980b9; border:none; padding:5px 12px; border-radius:4px; color:#fff; cursor:pointer; font-weight:bold; font-size:0.85em;">Aceitar</button>`}
+                isActive ? `<button onclick="turnInQuest('${q.id}')" style="background:#2ecc71; border:none; padding:5px 12px; border-radius:4px; color:#fff; cursor:pointer; font-weight:bold; font-size:0.85em;">Entregar</button>
+                                 <button onclick="abandonQuest('${q.id}')" style="background:#c0392b; border:none; padding:5px 12px; border-radius:4px; color:#fff; cursor:pointer; font-size:0.85em; margin-left:6px;">Abandonar</button>` :
+                    `<button onclick="acceptQuest('${q.id}')" style="background:#2980b9; border:none; padding:5px 12px; border-radius:4px; color:#fff; cursor:pointer; font-weight:bold; font-size:0.85em;">Aceitar</button>`}
             </div>
         </div>`;
     });
@@ -196,12 +196,12 @@ async function turnInQuest(questId) {
         try {
             window._repMap[window.currentGuildId] = res.new_rep;
             document.getElementById('guild-rep-value').innerText = res.new_rep;
-            const guild = (window.gameData.guilds||[]).find(g => g.id == window.currentGuildId);
+            const guild = (window.currentWorld.guilds || []).find(g => g.id == window.currentGuildId);
             if (guild) {
                 const [rankName] = getGuildRankName(guild, res.new_rep);
                 document.getElementById('guild-rank-badge').innerText = rankName;
             }
-        } catch(e) {}
+        } catch (e) { }
         alert(`✅ Quest entregue!\n🪙 +${res.gold_reward} ouro\n⬆ +${res.rep_reward} reputação`);
     } else { alert(res.message); }
 }
@@ -211,127 +211,95 @@ async function turnInQuest(questId) {
 // ══════════════════════════════════════════════════
 async function renderGuildMembers() {
     const guildId = window.currentGuildId;
-    const members = (window.gameData.guild_members || []).filter(m => m.guild_id == guildId);
-    const hired   = window._hiredAllies || [];
-    const listEl  = document.getElementById('guild-members-list');
+    // Puxa do mundo atual!
+    const members = (window.currentWorld.members || []).filter(m => String(m.guild_id) === String(guildId));
+    const hired = window._hiredAllies || [];
+    const listEl = document.getElementById('guild-members-list');
     const hiredEl = document.getElementById('guild-hired-list');
     if (!listEl || !hiredEl) return;
 
     listEl.innerHTML = '';
 
-    // Busca custo real de cada membro (considera penalidade de moral)
     for (const m of members) {
-        const char = (window.gameData.characters || []).find(c => c.id == m.character_id);
-        if (!char) continue;
+        // m já é o personagem gerado!
+        const char = m;
+        const isHired = hired.some(a => String(a.member_id) === String(m.id));
 
-        const isHired = hired.some(a => a.member_id === m.id);
-
-        // Custo dinâmico com penalidade
         const costRes = await window.pywebview.api.get_ally_hire_cost(window.activeSaveId, m.id);
         const hireCost = costRes?.cost ?? m.hire_cost;
         const isPenalized = costRes?.penalized ?? false;
 
-        // Calcula custo diário real (base + soma de stats base do char)
         let charBase = {};
-        try { charBase = JSON.parse(char.base_stats || '{}'); } catch(e) {}
-        const statSum    = Object.values(charBase).reduce((acc, v) => acc + (parseInt(v) || 0), 0);
-        const dailyCost  = parseInt(m.daily_wage || 0) + statSum;
+        try { charBase = JSON.parse(char.base_stats || '{}'); } catch (e) { }
+        const statSum = Object.values(charBase).reduce((acc, v) => acc + (parseInt(v) || 0), 0);
+        const dailyCost = parseInt(m.daily_wage || 0) + statSum;
 
-        // Guilda do membro
-        const guild = (window.gameData.guilds || []).find(g => g.id == m.guild_id);
+        const guild = (window.currentWorld.guilds || []).find(g => String(g.id) === String(m.guild_id));
 
         listEl.innerHTML += `
         <div class="ally-card ${isHired ? 'ally-hired' : ''}">
             <div class="ally-avatar">
                 ${char.race === 'humano'
-                    ? `<div class="paper-doll-container" id="ally-doll-${m.id}" style="transform:scale(0.4); transform-origin:top center; height:60px;"></div>`
-                    : `<img src="${char.img_front||''}" style="height:60px; object-fit:contain;">`}
+                ? `<div class="paper-doll-container" id="ally-doll-${m.id}" style="transform:scale(0.4); transform-origin:top center; height:60px;"></div>`
+                : `<img src="${char.img_front || ''}" style="height:60px; object-fit:contain;">`}
             </div>
-            <strong style="color:#ecf0f1;">${char.name}</strong>
-            <span style="font-size:0.8em; color:#7f8c8d;">${char.race}</span>
-            ${guild
-                ? `<span style="font-size:0.72em; padding:2px 7px; border-radius:10px; font-weight:bold; background:${guild.emblem_color}22; color:${guild.emblem_color}; border:1px solid ${guild.emblem_color}55;">${guild.emblem_icon} ${guild.name}</span>`
-                : ''}
+            <strong style="color:#ecf0f1;">${char.name} ${char.is_precreated ? '⭐' : ''}</strong>
             <div style="margin:5px 0; font-size:0.82em;">
-                <span style="color:${isPenalized ? '#e74c3c' : '#f1c40f'};">
-                    🪙 ${hireCost} contratar${isPenalized ? ' ⚠️ x5' : ''}
-                </span><br>
+                <span style="color:${isPenalized ? '#e74c3c' : '#f1c40f'};">🪙 ${hireCost} contratar${isPenalized ? ' ⚠️ x5' : ''}</span><br>
                 <span style="color:#e74c3c;">💸 ${dailyCost}/dia</span>
-                <span style="color:#7f8c8d; font-size:0.85em;"> (${m.daily_wage} base + ${statSum} stats)</span>
             </div>
-            ${isPenalized ? '<p style="color:#e74c3c; font-size:0.75em; margin:0 0 5px 0;">⚠️ Abandonou por moral zero. Custo x5.</p>' : ''}
             ${isHired
                 ? '<span style="color:#2ecc71; font-size:0.85em; font-weight:bold;">✅ Contratado</span>'
-                : `<button onclick="hireAlly(${m.id})" style="background:#27ae60; border:none; padding:6px 12px; border-radius:4px; color:#fff; cursor:pointer; font-weight:bold; font-size:0.85em; width:100%; margin-top:5px;">Contratar</button>`}
+                : `<button onclick="hireAlly('${m.id}')" style="background:#27ae60; border:none; padding:6px 12px; border-radius:4px; color:#fff; cursor:pointer; font-weight:bold; font-size:0.85em; width:100%; margin-top:5px;">Contratar</button>`}
         </div>`;
     }
 
     if (listEl.innerHTML === '') listEl.innerHTML = '<p style="color:#555;">Nenhum aliado disponível nesta guilda.</p>';
 
-    // Paper dolls
     members.forEach(m => {
-        const char = (window.gameData.characters||[]).find(c => c.id == m.character_id);
-        if (char && char.race === 'humano') {
-            setTimeout(() => buildBattleCharacter(char, 'f', null, `ally-doll-${m.id}`), 50);
+        if (m.race === 'humano') {
+            setTimeout(() => buildBattleCharacter(m, 'f', null, `ally-doll-${m.id}`), 50);
         }
     });
 
     // Aliados contratados
     hiredEl.innerHTML = '';
     hired.forEach((ally, idx) => {
-        const routeLabels = { idle:'💤 Descansando', hunt:'⚔️ Caçando', train:'📚 Treinando' };
-        const party       = window._party || [];
-        const inParty     = party.includes(ally.member_id);
-        const moral       = parseInt(ally.moral ?? 100);
-        const moralColor  = moral >= 70 ? '#2ecc71' : moral >= 40 ? '#f1c40f' : '#e74c3c';
-        const dailyCost   = parseInt(ally.daily_wage || 0) + Object.values(ally.base_stats || {}).reduce((a,v)=>a+(parseInt(v)||0),0);
-        const guild       = _getAllyGuildForDisplay(ally);
+        const routeLabels = { idle: '💤 Descansando', hunt: '⚔️ Caçando', train: '📚 Treinando' };
+        const party = window._party || [];
+        const inParty = party.includes(ally.member_id);
+        const moral = parseInt(ally.moral ?? 100);
+        const moralColor = moral >= 70 ? '#2ecc71' : moral >= 40 ? '#f1c40f' : '#e74c3c';
+        const dailyCost = parseInt(ally.daily_wage || 0) + Object.values(ally.base_stats || {}).reduce((a, v) => a + (parseInt(v) || 0), 0);
+
+        // Exibe apenas se pertencer à guilda atual
+        const worldMember = (window.currentWorld.members || []).find(wm => String(wm.id) === String(ally.member_id));
+        if (!worldMember || String(worldMember.guild_id) !== String(guildId)) return;
 
         hiredEl.innerHTML += `
-        <div class="ally-card ally-hired" onclick="openAllyConfig(${idx})">
+        <div class="ally-card ally-hired" onclick="openAllyDetail(${idx})">
             <strong style="color:#e67e22;">${ally.name}</strong>
-            <span style="font-size:0.8em; color:#7f8c8d;">${ally.race}</span>
-            ${guild
-                ? `<span style="font-size:0.72em; padding:2px 7px; border-radius:10px; font-weight:bold; background:${guild.emblem_color}22; color:${guild.emblem_color}; border:1px solid ${guild.emblem_color}55;">${guild.emblem_icon} ${guild.name}</span>`
-                : ''}
             <div style="margin:6px 0; background:#111; padding:5px; border-radius:4px; font-size:0.82em;">
-                <div>❤ HP: ${Math.floor(ally.hp)}</div>
                 <div style="color:#3498db;">${inParty ? '⚔️ Na Party' : (routeLabels[ally.routine] || '💤 Descansando')}</div>
                 <div style="color:#e74c3c;">💸 ${dailyCost}/dia</div>
-                <!-- Moral -->
                 <div style="display:flex; align-items:center; gap:4px; margin-top:4px;">
                     <span style="color:#bdc3c7;">⚖️</span>
                     <div style="flex:1; background:#222; height:4px; border-radius:2px; overflow:hidden;">
                         <div style="width:${moral}%; background:${moralColor}; height:100%;"></div>
                     </div>
-                    <span style="color:${moralColor}; font-size:0.85em;">${moral}</span>
                 </div>
             </div>
-            <div id="ally-party-ctrl-${idx}"></div>
             <small style="color:#555; font-size:0.75em;">Clique para configurar</small>
         </div>`;
-    });
-
-    if (hiredEl.innerHTML === '') hiredEl.innerHTML = '<p style="color:#555; font-size:0.9em;">Você não tem aliados contratados.</p>';
-
-    // Controles de party
-    hired.forEach((ally, idx) => {
-        const ctrl = document.getElementById(`ally-party-ctrl-${idx}`);
-        if (!ctrl) return;
-        const party   = window._party || [];
-        const inParty = party.includes(ally.member_id);
-        ctrl.innerHTML = inParty
-            ? `<button onclick="event.stopPropagation(); removeFromParty(${ally.member_id})" style="background:#e74c3c; border:none; padding:4px 8px; border-radius:3px; color:#fff; cursor:pointer; font-size:0.75em;">Remover da Party</button>`
-            : `<button onclick="event.stopPropagation(); addToParty(${ally.member_id})" style="background:#2980b9; border:none; padding:4px 8px; border-radius:3px; color:#fff; cursor:pointer; font-size:0.75em; ${ally.routine !== 'idle' && ally.routine ? 'opacity:0.6;' : ''}">+ Adicionar à Party</button>`;
     });
 }
 
 /** Helper local para exibir badge de guilda em aliados contratados */
 function _getAllyGuildForDisplay(ally) {
-    const members = window.gameData.guild_members || [];
-    const member  = members.find(m => m.id === ally.member_id);
+    const members = window.currentWorld.members || [];
+    const member = members.find(m => m.id === ally.member_id);
     if (!member) return null;
-    return (window.gameData.guilds || []).find(g => g.id == member.guild_id) || null;
+    return (window.currentWorld.guilds || []).find(g => g.id == member.guild_id) || null;
 }
 
 async function hireAlly(memberId) {
@@ -351,9 +319,9 @@ async function hireAlly(memberId) {
 // PARTY
 // ══════════════════════════════════════════════════
 async function addToParty(memberId) {
-    const party   = window._party || [];
-    const hired   = window._hiredAllies || [];
-    const ally    = hired.find(a => a.member_id === memberId);
+    const party = window._party || [];
+    const hired = window._hiredAllies || [];
+    const ally = hired.find(a => a.member_id === memberId);
 
     if (party.length >= 2) return window.showToast("Máximo de 2 aliados na party!", 'error');
     if (party.includes(memberId)) return;
@@ -378,7 +346,7 @@ async function removeFromParty(memberId) {
 // ══════════════════════════════════════════════════
 // CONFIGURAR ALIADO (modal antigo — ainda funciona)
 // ══════════════════════════════════════════════════
-window.openAllyConfig = function(idx) {
+window.openAllyConfig = function (idx) {
     // Redireciona para o novo painel de aliados se ele existir
     if (typeof window.openAllyDetail === 'function') {
         window.openAllyDetail(idx);
@@ -396,9 +364,9 @@ window.openAllyConfig = function(idx) {
 
 function _renderOldRoutineBtns(ally) {
     const routines = [
-        { key: 'idle',  label: '💤 Descansar',  desc: 'Recupera energia.',       color: '#555' },
-        { key: 'hunt',  label: '⚔️ Caçar',       desc: `Traz 15–45 moedas/dia.`,  color: '#e74c3c' },
-        { key: 'train', label: '📚 Treinar',      desc: '+50 XP em 1 atributo.',  color: '#2980b9' },
+        { key: 'idle', label: '💤 Descansar', desc: 'Recupera energia.', color: '#555' },
+        { key: 'hunt', label: '⚔️ Caçar', desc: `Traz 15–45 moedas/dia.`, color: '#e74c3c' },
+        { key: 'train', label: '📚 Treinar', desc: '+50 XP em 1 atributo.', color: '#2980b9' },
     ];
     const btns = document.getElementById('routine-btns');
     if (!btns) return;
@@ -408,7 +376,7 @@ function _renderOldRoutineBtns(ally) {
     routines.forEach(r => {
         btns.innerHTML += `
         <button onclick="${inParty ? '' : `selectRoutine('${r.key}')`}" id="routine-btn-${r.key}"
-            style="background:${ally.routine===r.key ? r.color : '#222'}; border:2px solid ${r.color}; padding:10px; border-radius:6px; color:#fff; cursor:${inParty ? 'not-allowed' : 'pointer'}; text-align:left; opacity:${inParty ? 0.5 : 1}; transition:0.2s;"
+            style="background:${ally.routine === r.key ? r.color : '#222'}; border:2px solid ${r.color}; padding:10px; border-radius:6px; color:#fff; cursor:${inParty ? 'not-allowed' : 'pointer'}; text-align:left; opacity:${inParty ? 0.5 : 1}; transition:0.2s;"
             title="${inParty ? 'Aliado na party — sem rotina' : ''}">
             <div style="font-weight:bold;">${r.label}</div>
             <div style="font-size:0.78em; color:#bdc3c7;">${r.desc}</div>
@@ -416,14 +384,14 @@ function _renderOldRoutineBtns(ally) {
     });
 }
 
-window.selectRoutine = function(key) {
+window.selectRoutine = function (key) {
     if (!window.allyConfigTarget) return;
     const party = window._party || [];
     if (party.includes(window.allyConfigTarget.ally.member_id)) {
         return window.showToast('Aliado na party não pode ter rotina.', 'error');
     }
     window.allyConfigTarget.ally.routine = key;
-    const colors = { idle:'#555', hunt:'#e74c3c', train:'#2980b9' };
+    const colors = { idle: '#555', hunt: '#e74c3c', train: '#2980b9' };
     document.querySelectorAll('#routine-btns button').forEach(b => {
         const k = b.id.replace('routine-btn-', '');
         b.style.background = k === key ? colors[k] : '#222';
@@ -433,16 +401,16 @@ window.selectRoutine = function(key) {
 function renderAllyHotbar() {
     const ally = window.allyConfigTarget?.ally;
     if (!ally) return;
-    const hotbar  = ally.hotbar || [];
+    const hotbar = ally.hotbar || [];
     const attacks = ally.attacks || [];
-    const hbEl    = document.getElementById('ally-config-hotbar');
-    const skEl    = document.getElementById('ally-config-skills');
+    const hbEl = document.getElementById('ally-config-hotbar');
+    const skEl = document.getElementById('ally-config-skills');
     if (!hbEl || !skEl) return;
 
     hbEl.innerHTML = '';
     for (let i = 0; i < 6; i++) {
         const atkId = hotbar[i] ?? null;
-        const atk   = atkId ? (window.gameData.attacks||[]).find(a => a.id == atkId) : null;
+        const atk = atkId ? (window.gameData.attacks || []).find(a => a.id == atkId) : null;
         hbEl.innerHTML += `
         <div class="hotbar-slot ${atk ? `hb-atk-${atk.atk_type}` : 'empty'}" 
              onclick="removeAllyHotbarSlot(${i})" title="${atk ? 'Clique para remover' : 'Vazio'}">
@@ -452,7 +420,7 @@ function renderAllyHotbar() {
 
     skEl.innerHTML = '';
     attacks.forEach(atkId => {
-        const atk = (window.gameData.attacks||[]).find(a => a.id == atkId);
+        const atk = (window.gameData.attacks || []).find(a => a.id == atkId);
         if (!atk) return;
         skEl.innerHTML += `
         <div class="drag-skill-item hb-atk-${atk.atk_type}" onclick="addAllyHotbarSkill(${atk.id})" title="Clique para adicionar à barra">
@@ -461,7 +429,7 @@ function renderAllyHotbar() {
     });
 }
 
-window.addAllyHotbarSkill = function(atkId) {
+window.addAllyHotbarSkill = function (atkId) {
     const ally = window.allyConfigTarget?.ally;
     if (!ally) return;
     if (!ally.hotbar) ally.hotbar = [];
@@ -472,14 +440,14 @@ window.addAllyHotbarSkill = function(atkId) {
     renderAllyHotbar();
 };
 
-window.removeAllyHotbarSlot = function(idx) {
+window.removeAllyHotbarSlot = function (idx) {
     const ally = window.allyConfigTarget?.ally;
     if (!ally || !ally.hotbar) return;
     ally.hotbar[idx] = null;
     renderAllyHotbar();
 };
 
-window.saveAllyConfig = async function() {
+window.saveAllyConfig = async function () {
     const { idx, ally } = window.allyConfigTarget || {};
     if (idx === undefined) return;
     const hired = window._hiredAllies || [];
@@ -492,7 +460,7 @@ window.saveAllyConfig = async function() {
     renderGuildMembers();
 };
 
-window.fireAlly = async function() {
+window.fireAlly = async function () {
     const { idx, ally } = window.allyConfigTarget || {};
     if (idx === undefined) return;
     if (!confirm(`Dispensar ${ally.name}?`)) return;
@@ -502,7 +470,7 @@ window.fireAlly = async function() {
     renderGuildMembers();
 };
 
-window.closeAllyConfig = function() {
+window.closeAllyConfig = function () {
     document.getElementById('ally-config-modal').style.display = 'none';
     window.allyConfigTarget = null;
 };
@@ -511,35 +479,40 @@ window.closeAllyConfig = function() {
 // RANKING DE REP
 // ══════════════════════════════════════════════════
 function renderGuildRanking() {
-    const guild = (window.gameData.guilds || []).find(g => g.id == window.currentGuildId);
+    const guild = (window.currentWorld.guilds || []).find(g => String(g.id) === String(window.currentGuildId));
     if (!guild) return;
     const el = document.getElementById('guild-ranking-ladder');
     if (!el) return;
+
     const rep = parseInt(window._repMap?.[guild.id] || 0);
+
+    // Níveis definidos no world_gen.py
     const ranks = [
-        { num:1, req:0,   label: guild.rank_name_1, color:'#7f8c8d' },
-        { num:2, req:20,  label: guild.rank_name_2, color:'#2ecc71' },
-        { num:3, req:75,  label: guild.rank_name_3, color:'#3498db' },
-        { num:4, req:200, label: guild.rank_name_4, color:'#e67e22' },
-        { num:5, req:500, label: guild.rank_name_5, color:'#f1c40f' },
+        { req: 0, label: guild.rank_name_1 || "Iniciante", color: '#7f8c8d' },
+        { req: 500, label: guild.rank_name_2 || "Veterano", color: '#2ecc71' },
+        { req: 1500, label: guild.rank_name_3 || "Elite", color: '#3498db' },
+        { req: 4000, label: guild.rank_name_4 || "Mestre", color: '#e67e22' },
+        { req: 10000, label: guild.rank_name_5 || "Lendário", color: '#f1c40f' }
     ];
-    el.innerHTML = ranks.reverse().map(r => {
+
+    el.innerHTML = ranks.slice().reverse().map(r => {
         const achieved = rep >= r.req;
-        const pct = r.req > 0 ? Math.min(100, (rep / r.req) * 100) : 100;
+        const pct = r.req === 0 ? 100 : Math.min(100, (rep / r.req) * 100);
         return `
-        <div style="display:flex; align-items:center; gap:12px; background:${achieved ? r.color+'22' : '#111'}; padding:12px; border-radius:8px; border:1px solid ${achieved ? r.color : '#333'};">
-            <div style="font-size:1.8rem;">${achieved ? '✅' : '🔒'}</div>
+        <div style="display:flex; align-items:center; gap:12px; background:${achieved ? r.color + '15' : '#111'}; padding:12px; border-radius:8px; border:1px solid ${achieved ? r.color : '#333'}; opacity:${achieved ? 1 : 0.6};">
+            <div style="font-size:1.5rem;">${achieved ? '✅' : '🔒'}</div>
             <div style="flex:1;">
                 <div style="font-weight:bold; color:${achieved ? r.color : '#555'};">${r.label}</div>
-                <div style="font-size:0.8em; color:#7f8c8d;">Reputação necessária: ${r.req}</div>
-                ${r.req > 0 && !achieved ? `
-                <div style="background:#222; height:5px; border-radius:3px; margin-top:5px; overflow:hidden;">
+                <div style="font-size:0.75em; color:#7f8c8d;">Reputação: ${rep} / ${r.req}</div>
+                ${!achieved ? `
+                <div style="background:#222; height:4px; border-radius:2px; margin-top:5px; overflow:hidden;">
                     <div style="width:${pct}%; background:${r.color}; height:100%;"></div>
                 </div>` : ''}
             </div>
         </div>`;
     }).join('');
 }
+
 
 // ══════════════════════════════════════════════════
 // HELPER: Sincroniza estado do save
@@ -549,9 +522,9 @@ async function syncSaveState() {
     const save = saves.find(s => s.id === window.activeSaveId);
     if (!save) return;
     window._currentSave = save;
-    try { window._repMap         = JSON.parse(save.guild_reputation || '{}'); } catch(e) { window._repMap = {}; }
-    try { window._activeQuests   = JSON.parse(save.active_quests    || '[]'); } catch(e) { window._activeQuests = []; }
-    try { window._completedQuests= JSON.parse(save.completed_quests || '[]'); } catch(e) { window._completedQuests = []; }
-    try { window._hiredAllies    = JSON.parse(save.hired_allies     || '[]'); } catch(e) { window._hiredAllies = []; }
-    try { window._party          = JSON.parse(save.party_data       || '[]'); } catch(e) { window._party = []; }
+    try { window._repMap = JSON.parse(save.guild_reputation || '{}'); } catch (e) { window._repMap = {}; }
+    try { window._activeQuests = JSON.parse(save.active_quests || '[]'); } catch (e) { window._activeQuests = []; }
+    try { window._completedQuests = JSON.parse(save.completed_quests || '[]'); } catch (e) { window._completedQuests = []; }
+    try { window._hiredAllies = JSON.parse(save.hired_allies || '[]'); } catch (e) { window._hiredAllies = []; }
+    try { window._party = JSON.parse(save.party_data || '[]'); } catch (e) { window._party = []; }
 }

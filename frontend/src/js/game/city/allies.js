@@ -10,10 +10,10 @@ window._alliesDetailTarget = null; // { idx, ally (cópia) }
 
 /** Calcula a guilda de um aliado (via guild_members) */
 function getAllyGuild(ally) {
-    const members = window.gameData.guild_members || [];
+    const members = window.currentWorld.members || [];
     const member = members.find(m => m.id === ally.member_id);
     if (!member) return null;
-    const guilds = window.gameData.guilds || [];
+    const guilds = window.currentWorld.guilds || [];
     return guilds.find(g => g.id == member.guild_id) || null;
 }
 
@@ -584,7 +584,7 @@ window.getHireCostWithMoralPenalty = function (memberId) {
     // Verifica se este membro já foi contratado e abandonou com moral 0
     // O flag é armazenado em window._firedWithZeroMoral = Set de member_ids
     if (!window._firedWithZeroMoral) window._firedWithZeroMoral = new Set();
-    const members = window.gameData.guild_members || [];
+    const members = window.currentWorld.members || [];
     const member = members.find(m => m.id === memberId);
     if (!member) return 0;
     const baseCost = parseInt(member.hire_cost || 100);

@@ -107,3 +107,36 @@
 @keyframes lungeRight { 0% {transform: translateX(-50%) scale(2.2);} 50% {transform: translateX(-30%) scale(2.2);} 100% {transform: translateX(-50%) scale(2.2);} }
 .enemy-hit { filter: brightness(200%) drop-shadow(0 0 10px red) !important; animation: shakeEnemy 0.2s; }
 @keyframes shakeEnemy { 0%, 100% {transform: translateX(-50%) scale(1.6) rotate(0deg);} 50% {transform: translateX(-48%) scale(1.6) rotate(5deg);} }
+.ranking-row {
+    background: #161b22;
+    border: 1px solid #30363d;
+    padding: 12px 20px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: 0.2s;
+}
+.ranking-row:hover { border-color: #f1c40f; transform: scale(1.01); }
+.player-row {
+    background: #1a2d4a;
+    border: 2px solid #3498db;
+    box-shadow: 0 0 15px rgba(52, 152, 219, 0.2);
+}
+.rank-pos { font-weight: bold; font-size: 1.2rem; min-width: 40px; color: #8b949e; }
+.rank-name { font-weight: bold; color: #ecf0f1; }
+.rank-power { text-align: right; display: flex; flex-direction: column; }
+.ranking-row {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #161b22; border: 1px solid #30363d; padding: 10px 15px;
+    border-radius: 8px; transition: 0.2s;
+}
+.ranking-row-player {
+    background: #1a2d4a; border-color: #3498db; box-shadow: 0 0 10px rgba(52,152,219,0.3);
+}
+.rank-pos { font-weight: bold; color: #8b949e; min-width: 35px; font-size: 1.1rem; }
+.rank-name { color: #ecf0f1; font-weight: bold; font-size: 0.95rem; }
+.rank-guild { color: #7f8c8d; font-size: 0.75rem; }
+.rank-power { text-align: right; }
+.rank-power small { display: block; font-size: 0.6rem; color: #7f8c8d; letter-spacing: 1px; }
+.rank-power strong { color: #f1c40f; font-size: 1.1rem; }

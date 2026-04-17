@@ -98,19 +98,34 @@ function _updateVisualPreview() {
     cB.innerHTML = '';
 
     if (race === 'humano') {
-        window.EQUIP_SLOTS.forEach((slot, index) => {
-            const sel = document.getElementById(`sel-${slot}`);
-            if (sel && sel.value) {
-                const item = slot === 'base'
-                    ? window.gameData.bodies.find(b => b.id == sel.value)
-                    : window.gameData.equipments.find(e => e.id == sel.value);
+        const color = document.getElementById('ch-skin-color')?.value || "#ffffff";
 
-                if (item) {
-                    if (item.img_front) cF.innerHTML += `<img src="${item.img_front}" style="z-index:${index}; position:absolute;">`;
-                    if (item.img_back) cB.innerHTML += `<img src="${item.img_back}" style="z-index:${index}; position:absolute;">`;
+        // Função auxiliar async para desenhar
+        const renderParts = async () => {
+            for (let i = 0; i < window.EQUIP_SLOTS.length; i++) {
+                const slot = window.EQUIP_SLOTS[i];
+                const sel = document.getElementById(`sel-${slot}`);
+                if (sel && sel.value) {
+                    const item = slot === 'base'
+                        ? window.gameData.bodies.find(b => b.id == sel.value)
+                        : window.gameData.equipments.find(e => e.id == sel.value);
+
+                    if (item) {
+                        let imgF = item.img_front;
+                        let imgB = item.img_back;
+
+                        if (slot === 'base' && color !== '#ffffff') {
+                            imgF = await window.applyShaderTint(imgF, color);
+                            imgB = await window.applyShaderTint(imgB, color);
+                        }
+
+                        if (imgF) cF.innerHTML += `<img src="${imgF}" style="z-index:${i}; position:absolute;">`;
+                        if (imgB) cB.innerHTML += `<img src="${imgB}" style="z-index:${i}; position:absolute;">`;
+                    }
                 }
             }
-        });
+        };
+        renderParts();
     } else {
         const iF = document.getElementById('ch-img-f').value;
         const iB = document.getElementById('ch-img-b').value;
@@ -169,6 +184,9 @@ window.saveCharacter = async function () {
             const el = document.getElementById(`sel-${s}`);
             if (el && el.value) eq[s] = el.value;
         });
+        const color = document.getElementById('ch-skin-color')?.value;
+        if (color) eq['skin_color'] = color;
+
         data.equipment_data = JSON.stringify(eq);
         data.img_front = "";
         data.img_back = "";
@@ -244,6 +262,12 @@ window.loadCharacterToBuilder = function (item) {
             const sel = document.getElementById(`sel-${slot}`);
             if (sel) sel.value = eq[slot] || "";
         });
+        const colorInput = document.getElementById('ch-skin-color');
+        if (colorInput && eq['skin_color']) {
+            colorInput.value = eq['skin_color'];
+        } else if (colorInput) {
+            colorInput.value = "#ffffff";
+        }
     } else {
         // Carrega dados de Monstro
         document.getElementById('ch-img-f').value = item.img_front || "";

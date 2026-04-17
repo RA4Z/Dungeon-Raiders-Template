@@ -145,28 +145,18 @@ def init_db():
     c_save.execute('''CREATE TABLE IF NOT EXISTS saves (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT, body_id INTEGER, gold INTEGER DEFAULT 0,
-        current_hp INTEGER DEFAULT 100,
-        current_mana INTEGER DEFAULT 9999,
-        current_stamina INTEGER DEFAULT 9999,
-        equipment_data TEXT DEFAULT '{}',
-        inventory_data TEXT DEFAULT '{"equipments":[],"consumables":{}}',
+        current_hp INTEGER DEFAULT 100, current_mana INTEGER DEFAULT 9999, current_stamina INTEGER DEFAULT 9999,
+        equipment_data TEXT DEFAULT '{}', inventory_data TEXT DEFAULT '{"equipments":[],"consumables":{}}',
         base_stats TEXT DEFAULT '{"for":1,"int":1,"des":1,"car":1,"res":1}',
-        last_played TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        days_passed INTEGER DEFAULT 1,
-        stat_exp TEXT DEFAULT '{"for":0,"int":0,"des":0,"car":0,"res":0}',
-        attacks TEXT DEFAULT '[1]',
+        last_played TIMESTAMP DEFAULT CURRENT_TIMESTAMP, days_passed INTEGER DEFAULT 1,
+        stat_exp TEXT DEFAULT '{"for":0,"int":0,"des":0,"car":0,"res":0}', attacks TEXT DEFAULT '[1]',
         hotbar_data TEXT DEFAULT '[1,null,null,null,null,null,null,null,null,null]',
-        attack_exp TEXT DEFAULT '{"1":{"xp":0,"level":1}}',
-        party_data TEXT DEFAULT '[]',
-        hired_allies TEXT DEFAULT '[]',
-        guild_reputation TEXT DEFAULT '{}',
-        active_quests TEXT DEFAULT '[]',
-        completed_quests TEXT DEFAULT '[]',
-        dungeon_max_floor INTEGER DEFAULT 1,
-        dungeon_current_floor INTEGER DEFAULT 1,
-        power_score INTEGER DEFAULT 0,
-        fired_zero_moral TEXT DEFAULT '[]',
-        gender TEXT DEFAULT 'male'
+        attack_exp TEXT DEFAULT '{"1":{"xp":0,"level":1}}', party_data TEXT DEFAULT '[]',
+        hired_allies TEXT DEFAULT '[]', guild_reputation TEXT DEFAULT '{}',
+        active_quests TEXT DEFAULT '[]', completed_quests TEXT DEFAULT '[]',
+        dungeon_max_floor INTEGER DEFAULT 1, dungeon_current_floor INTEGER DEFAULT 1,
+        power_score INTEGER DEFAULT 0, fired_zero_moral TEXT DEFAULT '[]', gender TEXT DEFAULT 'male',
+        world_guilds TEXT DEFAULT '[]', world_members TEXT DEFAULT '[]', world_quests TEXT DEFAULT '[]'
     )''')
 
     for sql in [
@@ -188,6 +178,9 @@ def init_db():
         "ALTER TABLE saves ADD COLUMN power_score INTEGER DEFAULT 0",
         "ALTER TABLE saves ADD COLUMN fired_zero_moral TEXT DEFAULT '[]'",
         "ALTER TABLE saves ADD COLUMN gender TEXT DEFAULT 'male'",
+        "ALTER TABLE saves ADD COLUMN world_guilds TEXT DEFAULT '[]'",
+        "ALTER TABLE saves ADD COLUMN world_members TEXT DEFAULT '[]'",
+        "ALTER TABLE saves ADD COLUMN world_quests TEXT DEFAULT '[]'",
     ]:
         run_migration(conn_save, sql)
 
