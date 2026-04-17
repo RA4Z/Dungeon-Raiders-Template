@@ -1,4 +1,3 @@
-# api/generators/world_gen.py
 import random
 import json
 import uuid
@@ -63,7 +62,7 @@ class WorldGenerator:
                 members.append(self._convert_db_human(char, str(db_m['guild_id']), db_m['hire_cost'], db_m['daily_wage']))
 
         # 4. Importa os outros Humanos do Banco de Dados (Andarilhos ou membros aleatórios)
-        used_char_ids = [m.get('character_id') for m in db_members]
+        used_char_ids =[m.get('character_id') for m in db_members]
         for db_char in self.db_humans:
             if db_char['id'] not in used_char_ids:
                 if random.random() > 0.3: # 70% chance de aparecer no mundo
@@ -101,7 +100,11 @@ class WorldGenerator:
         try: base_stats = json.loads(db_char.get('base_stats', '{}'))
         except: base_stats = {"for":1,"int":1,"des":1,"car":1,"res":1}
         
-        power = sum(int(v) for v in base_stats.values()) * 5
+        power = sum(int(v) for v in base_stats.values()) # Corrigido: Removido o * 5
+        
+        # Mantemos o custo equilibrado ajustando o multiplicador para compensar a retirada do * 5
+        calc_hire_cost = power * 75
+        calc_wage = int(calc_hire_cost * 0.1)
 
         return {
             "id": str(uuid.uuid4()),
@@ -112,8 +115,8 @@ class WorldGenerator:
             "equipment_data": db_char.get('equipment_data', '{}'),
             "base_stats": json.dumps(base_stats),
             "attacks": db_char.get('attacks', '[1]'),
-            "hire_cost": hire_cost if hire_cost is not None else power * 15,
-            "daily_wage": daily_wage if daily_wage is not None else int((power * 15) * 0.1),
+            "hire_cost": hire_cost if hire_cost is not None else calc_hire_cost,
+            "daily_wage": daily_wage if daily_wage is not None else calc_wage,
             "power_score": power,
             "gold": random.randint(10, 200),
             "is_precreated": True
@@ -142,7 +145,7 @@ class WorldGenerator:
             npc_attacks.extend([a['id'] for a in extra_atks if a['id'] != 1])
             
         assigned_guild = random.choice(guilds)['id'] if random.random() > 0.5 else ""
-        power = sum(base_stats.values()) * 5
+        power = sum(base_stats.values()) # Corrigido: Removido o * 5
 
         return {
             "id": str(uuid.uuid4()),
@@ -153,8 +156,8 @@ class WorldGenerator:
             "equipment_data": json.dumps(eq_data),
             "base_stats": json.dumps(base_stats),
             "attacks": json.dumps(list(set(npc_attacks))),
-            "hire_cost": power * 15,
-            "daily_wage": int((power * 15) * 0.1),
+            "hire_cost": power * 75,
+            "daily_wage": int((power * 75) * 0.1),
             "power_score": power,
             "gold": random.randint(0, 50) * power_tier,
             "is_precreated": False
@@ -170,6 +173,4 @@ class WorldGenerator:
             "required_kills": random.randint(2, 8) * diff, "target_character_id": target['id'],
             "time_limit_days": random.choice([0, 7, 14])
         }
-
-
     

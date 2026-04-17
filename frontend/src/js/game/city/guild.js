@@ -1,4 +1,3 @@
-// frontend/src/js/guild.js
 window.currentGuildId = null;
 window.allyConfigTarget = null;
 
@@ -25,7 +24,7 @@ function backToGuildList() {
 function switchGuildTab(tab, btn) {
     document.querySelectorAll('.guild-tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.guild-tab-content').forEach(t => t.classList.remove('active-guild-tab'));
-    btn.classList.add('active');
+    if (btn) btn.classList.add('active');
     document.getElementById(`guild-tab-${tab}`).classList.add('active-guild-tab');
 
     if (tab === 'quests') renderGuildQuests();
@@ -39,7 +38,7 @@ function switchGuildTab(tab, btn) {
 function renderGuildList() {
     const container = document.getElementById('guild-cards-container');
     if (!container) return;
-    const guilds = window.currentWorld.guilds || [];
+    const guilds = window.currentWorld.guilds ||[];
     if (guilds.length === 0) {
         container.innerHTML = '<p style="color:#7f8c8d; text-align:center; margin-top:40px;">Nenhuma guilda cadastrada. Crie guildas no Banco de Dados!</p>';
         return;
@@ -76,7 +75,7 @@ function getGuildRankName(guild, rep) {
 // ══════════════════════════════════════════════════
 async function openGuildDetail(guildId) {
     window.currentGuildId = guildId;
-    const guild = (window.currentWorld.guilds || []).find(g => g.id == guildId);
+    const guild = (window.currentWorld.guilds ||[]).find(g => g.id == guildId);
     if (!guild) return;
 
     try { window._repMap = JSON.parse(window._currentSave?.guild_reputation || '{}'); } catch (e) { window._repMap = {}; }
@@ -92,7 +91,14 @@ async function openGuildDetail(guildId) {
     document.getElementById('guild-rank-badge').style.color = guild.emblem_color;
 
     setGuildScreen('guild-detail-screen');
-    renderGuildQuests();
+    
+    // Força a reinicialização da tab para mostrar sempre as Quests da guilda recém visitada
+    const firstTabBtn = document.querySelector('.guild-tabs .guild-tab-btn');
+    if (firstTabBtn) {
+        switchGuildTab('quests', firstTabBtn);
+    } else {
+        renderGuildQuests();
+    }
 }
 
 // ══════════════════════════════════════════════════
@@ -100,24 +106,24 @@ async function openGuildDetail(guildId) {
 // ══════════════════════════════════════════════════
 function renderGuildQuests() {
     const guildId = window.currentGuildId;
-    const allQuests = (window.currentWorld.quests || []).filter(q => q.guild_id == guildId);
-    const activeQuests = window._activeQuests || [];
-    const completedQuests = window._completedQuests || [];
+    const allQuests = (window.currentWorld.quests ||[]).filter(q => q.guild_id == guildId);
+    const activeQuests = window._activeQuests ||[];
+    const completedQuests = window._completedQuests ||[];
 
     const listEl = document.getElementById('guild-quest-list');
     const activeEl = document.getElementById('guild-active-quests');
     if (!listEl || !activeEl) return;
 
-    const DIFF_LABELS = ['', '⭐ Fácil', '⭐⭐ Médio', '⭐⭐⭐ Difícil', '💀 Épico', '👑 Lendário'];
-    const DIFF_COLORS = ['', '#2ecc71', '#f1c40f', '#e67e22', '#e74c3c', '#9b59b6'];
+    const DIFF_LABELS =['', '⭐ Fácil', '⭐⭐ Médio', '⭐⭐⭐ Difícil', '💀 Épico', '👑 Lendário'];
+    const DIFF_COLORS =['', '#2ecc71', '#f1c40f', '#e67e22', '#e74c3c', '#9b59b6'];
 
     listEl.innerHTML = '';
     allQuests.forEach(q => {
         const isCompleted = completedQuests.includes(q.id);
-        const isActive = activeQuests.some(aq => aq.quest_id === q.id);
+        const isActive = activeQuests.some(aq => aq.quest_id === String(q.id));
         const diff = Math.min(5, Math.max(1, q.difficulty));
         const targetChar = q.target_character_id
-            ? (window.gameData.characters || []).find(c => c.id == q.target_character_id)
+            ? (window.gameData.characters ||[]).find(c => c.id == q.target_character_id)
             : null;
 
         listEl.innerHTML += `
@@ -149,7 +155,7 @@ function renderGuildQuests() {
     activeEl.innerHTML = '';
     const myActive = activeQuests.filter(aq => aq.guild_id == guildId);
     myActive.forEach(aq => {
-        const q = allQuests.find(q => q.id === aq.quest_id);
+        const q = allQuests.find(q => String(q.id) === String(aq.quest_id));
         if (!q) return;
         const req = parseInt(q.required_kills || 0);
         const done = parseInt(aq.kills_done || 0);
@@ -196,7 +202,7 @@ async function turnInQuest(questId) {
         try {
             window._repMap[window.currentGuildId] = res.new_rep;
             document.getElementById('guild-rep-value').innerText = res.new_rep;
-            const guild = (window.currentWorld.guilds || []).find(g => g.id == window.currentGuildId);
+            const guild = (window.currentWorld.guilds ||[]).find(g => g.id == window.currentGuildId);
             if (guild) {
                 const [rankName] = getGuildRankName(guild, res.new_rep);
                 document.getElementById('guild-rank-badge').innerText = rankName;
@@ -211,9 +217,8 @@ async function turnInQuest(questId) {
 // ══════════════════════════════════════════════════
 async function renderGuildMembers() {
     const guildId = window.currentGuildId;
-    // Puxa do mundo atual!
-    const members = (window.currentWorld.members || []).filter(m => String(m.guild_id) === String(guildId));
-    const hired = window._hiredAllies || [];
+    const members = (window.currentWorld.members ||[]).filter(m => String(m.guild_id) === String(guildId));
+    const hired = window._hiredAllies ||[];
     const listEl = document.getElementById('guild-members-list');
     const hiredEl = document.getElementById('guild-hired-list');
     if (!listEl || !hiredEl) return;
@@ -221,7 +226,6 @@ async function renderGuildMembers() {
     listEl.innerHTML = '';
 
     for (const m of members) {
-        // m já é o personagem gerado!
         const char = m;
         const isHired = hired.some(a => String(a.member_id) === String(m.id));
 
@@ -234,7 +238,7 @@ async function renderGuildMembers() {
         const statSum = Object.values(charBase).reduce((acc, v) => acc + (parseInt(v) || 0), 0);
         const dailyCost = parseInt(m.daily_wage || 0) + statSum;
 
-        const guild = (window.currentWorld.guilds || []).find(g => String(g.id) === String(m.guild_id));
+        const guild = (window.currentWorld.guilds ||[]).find(g => String(g.id) === String(m.guild_id));
 
         listEl.innerHTML += `
         <div class="ally-card ${isHired ? 'ally-hired' : ''}">
@@ -266,14 +270,13 @@ async function renderGuildMembers() {
     hiredEl.innerHTML = '';
     hired.forEach((ally, idx) => {
         const routeLabels = { idle: '💤 Descansando', hunt: '⚔️ Caçando', train: '📚 Treinando' };
-        const party = window._party || [];
+        const party = window._party ||[];
         const inParty = party.includes(ally.member_id);
         const moral = parseInt(ally.moral ?? 100);
         const moralColor = moral >= 70 ? '#2ecc71' : moral >= 40 ? '#f1c40f' : '#e74c3c';
         const dailyCost = parseInt(ally.daily_wage || 0) + Object.values(ally.base_stats || {}).reduce((a, v) => a + (parseInt(v) || 0), 0);
 
-        // Exibe apenas se pertencer à guilda atual
-        const worldMember = (window.currentWorld.members || []).find(wm => String(wm.id) === String(ally.member_id));
+        const worldMember = (window.currentWorld.members ||[]).find(wm => String(wm.id) === String(ally.member_id));
         if (!worldMember || String(worldMember.guild_id) !== String(guildId)) return;
 
         hiredEl.innerHTML += `
@@ -294,12 +297,11 @@ async function renderGuildMembers() {
     });
 }
 
-/** Helper local para exibir badge de guilda em aliados contratados */
 function _getAllyGuildForDisplay(ally) {
-    const members = window.currentWorld.members || [];
+    const members = window.currentWorld.members ||[];
     const member = members.find(m => m.id === ally.member_id);
     if (!member) return null;
-    return (window.currentWorld.guilds || []).find(g => g.id == member.guild_id) || null;
+    return (window.currentWorld.guilds ||[]).find(g => g.id == member.guild_id) || null;
 }
 
 async function hireAlly(memberId) {
@@ -319,14 +321,13 @@ async function hireAlly(memberId) {
 // PARTY
 // ══════════════════════════════════════════════════
 async function addToParty(memberId) {
-    const party = window._party || [];
-    const hired = window._hiredAllies || [];
+    const party = window._party ||[];
+    const hired = window._hiredAllies ||[];
     const ally = hired.find(a => a.member_id === memberId);
 
     if (party.length >= 2) return window.showToast("Máximo de 2 aliados na party!", 'error');
     if (party.includes(memberId)) return;
 
-    // Não pode estar em rotina que não seja idle
     if (ally && ally.routine && ally.routine !== 'idle') {
         return window.showToast(`${ally.name} está ${ally.routine === 'hunt' ? 'caçando' : 'treinando'}. Coloque-o em modo ocioso primeiro.`, 'error');
     }
@@ -338,21 +339,19 @@ async function addToParty(memberId) {
 }
 
 async function removeFromParty(memberId) {
-    window._party = (window._party || []).filter(id => id !== memberId);
+    window._party = (window._party ||[]).filter(id => id !== memberId);
     await window.pywebview.api.set_party(window.activeSaveId, window._party);
     renderGuildMembers();
 }
 
 // ══════════════════════════════════════════════════
-// CONFIGURAR ALIADO (modal antigo — ainda funciona)
+// CONFIGURAR ALIADO
 // ══════════════════════════════════════════════════
 window.openAllyConfig = function (idx) {
-    // Redireciona para o novo painel de aliados se ele existir
     if (typeof window.openAllyDetail === 'function') {
         window.openAllyDetail(idx);
         return;
     }
-    // Fallback: modal antigo
     const ally = (window._hiredAllies || [])[idx];
     if (!ally) return;
     window.allyConfigTarget = { idx, ally: JSON.parse(JSON.stringify(ally)) };
@@ -363,7 +362,7 @@ window.openAllyConfig = function (idx) {
 };
 
 function _renderOldRoutineBtns(ally) {
-    const routines = [
+    const routines =[
         { key: 'idle', label: '💤 Descansar', desc: 'Recupera energia.', color: '#555' },
         { key: 'hunt', label: '⚔️ Caçar', desc: `Traz 15–45 moedas/dia.`, color: '#e74c3c' },
         { key: 'train', label: '📚 Treinar', desc: '+50 XP em 1 atributo.', color: '#2980b9' },
@@ -371,7 +370,7 @@ function _renderOldRoutineBtns(ally) {
     const btns = document.getElementById('routine-btns');
     if (!btns) return;
     btns.innerHTML = '';
-    const party = window._party || [];
+    const party = window._party ||[];
     const inParty = party.includes(ally.member_id);
     routines.forEach(r => {
         btns.innerHTML += `
@@ -386,7 +385,7 @@ function _renderOldRoutineBtns(ally) {
 
 window.selectRoutine = function (key) {
     if (!window.allyConfigTarget) return;
-    const party = window._party || [];
+    const party = window._party ||[];
     if (party.includes(window.allyConfigTarget.ally.member_id)) {
         return window.showToast('Aliado na party não pode ter rotina.', 'error');
     }
@@ -401,8 +400,8 @@ window.selectRoutine = function (key) {
 function renderAllyHotbar() {
     const ally = window.allyConfigTarget?.ally;
     if (!ally) return;
-    const hotbar = ally.hotbar || [];
-    const attacks = ally.attacks || [];
+    const hotbar = ally.hotbar ||[];
+    const attacks = ally.attacks ||[];
     const hbEl = document.getElementById('ally-config-hotbar');
     const skEl = document.getElementById('ally-config-skills');
     if (!hbEl || !skEl) return;
@@ -410,7 +409,7 @@ function renderAllyHotbar() {
     hbEl.innerHTML = '';
     for (let i = 0; i < 6; i++) {
         const atkId = hotbar[i] ?? null;
-        const atk = atkId ? (window.gameData.attacks || []).find(a => a.id == atkId) : null;
+        const atk = atkId ? (window.gameData.attacks ||[]).find(a => a.id == atkId) : null;
         hbEl.innerHTML += `
         <div class="hotbar-slot ${atk ? `hb-atk-${atk.atk_type}` : 'empty'}" 
              onclick="removeAllyHotbarSlot(${i})" title="${atk ? 'Clique para remover' : 'Vazio'}">
@@ -420,7 +419,7 @@ function renderAllyHotbar() {
 
     skEl.innerHTML = '';
     attacks.forEach(atkId => {
-        const atk = (window.gameData.attacks || []).find(a => a.id == atkId);
+        const atk = (window.gameData.attacks ||[]).find(a => a.id == atkId);
         if (!atk) return;
         skEl.innerHTML += `
         <div class="drag-skill-item hb-atk-${atk.atk_type}" onclick="addAllyHotbarSkill(${atk.id})" title="Clique para adicionar à barra">
@@ -432,7 +431,7 @@ function renderAllyHotbar() {
 window.addAllyHotbarSkill = function (atkId) {
     const ally = window.allyConfigTarget?.ally;
     if (!ally) return;
-    if (!ally.hotbar) ally.hotbar = [];
+    if (!ally.hotbar) ally.hotbar =[];
     const emptySlot = ally.hotbar.findIndex(s => s === null || s === undefined);
     if (emptySlot === -1 && ally.hotbar.length >= 6) return alert("Barra cheia!");
     if (emptySlot === -1) ally.hotbar.push(atkId);
@@ -454,7 +453,7 @@ window.saveAllyConfig = async function () {
     hired[idx] = ally;
     window._hiredAllies = hired;
     await window.pywebview.api.set_ally_routine(window.activeSaveId, ally.member_id, ally.routine);
-    await window.pywebview.api.set_ally_hotbar(window.activeSaveId, ally.member_id, ally.hotbar || []);
+    await window.pywebview.api.set_ally_hotbar(window.activeSaveId, ally.member_id, ally.hotbar ||[]);
     await syncSaveState();
     closeAllyConfig();
     renderGuildMembers();
@@ -479,15 +478,14 @@ window.closeAllyConfig = function () {
 // RANKING DE REP
 // ══════════════════════════════════════════════════
 function renderGuildRanking() {
-    const guild = (window.currentWorld.guilds || []).find(g => String(g.id) === String(window.currentGuildId));
+    const guild = (window.currentWorld.guilds ||[]).find(g => String(g.id) === String(window.currentGuildId));
     if (!guild) return;
     const el = document.getElementById('guild-ranking-ladder');
     if (!el) return;
 
     const rep = parseInt(window._repMap?.[guild.id] || 0);
 
-    // Níveis definidos no world_gen.py
-    const ranks = [
+    const ranks =[
         { req: 0, label: guild.rank_name_1 || "Iniciante", color: '#7f8c8d' },
         { req: 500, label: guild.rank_name_2 || "Veterano", color: '#2ecc71' },
         { req: 1500, label: guild.rank_name_3 || "Elite", color: '#3498db' },
@@ -523,8 +521,8 @@ async function syncSaveState() {
     if (!save) return;
     window._currentSave = save;
     try { window._repMap = JSON.parse(save.guild_reputation || '{}'); } catch (e) { window._repMap = {}; }
-    try { window._activeQuests = JSON.parse(save.active_quests || '[]'); } catch (e) { window._activeQuests = []; }
-    try { window._completedQuests = JSON.parse(save.completed_quests || '[]'); } catch (e) { window._completedQuests = []; }
-    try { window._hiredAllies = JSON.parse(save.hired_allies || '[]'); } catch (e) { window._hiredAllies = []; }
-    try { window._party = JSON.parse(save.party_data || '[]'); } catch (e) { window._party = []; }
+    try { window._activeQuests = JSON.parse(save.active_quests || '[]'); } catch (e) { window._activeQuests =[]; }
+    try { window._completedQuests = JSON.parse(save.completed_quests || '[]'); } catch (e) { window._completedQuests =[]; }
+    try { window._hiredAllies = JSON.parse(save.hired_allies || '[]'); } catch (e) { window._hiredAllies =[]; }
+    try { window._party = JSON.parse(save.party_data || '[]'); } catch (e) { window._party =[]; }
 }

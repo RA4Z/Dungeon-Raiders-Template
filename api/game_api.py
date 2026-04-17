@@ -1,4 +1,3 @@
-# api/game_api.py
 from database.db_manager import get_save_connection, get_game_connection, insert_item, get_all_items, update_item, delete_item
 from api.stats_engine import StatsEngine
 from api.generators.world_gen import WorldGenerator
@@ -112,7 +111,7 @@ class GameAPI:
         except: base = {"for":1,"int":1,"des":1,"car":1,"res":1}
         try: eq_dict = json.loads(save['equipment_data'])
         except: eq_dict = {}
-        eq_ids = [int(v) for k, v in eq_dict.items() if str(v).isdigit()]
+        eq_ids =[int(v) for k, v in eq_dict.items() if str(v).isdigit()]
         b, c = self.compute_full_stats(base, eq_ids)
         return {"base": b, "computed": c}
 
@@ -123,21 +122,21 @@ class GameAPI:
         except: base = {"for":1,"int":1,"des":1,"car":1,"res":1}
         try: overrides = json.loads(enemy['custom_substats'])
         except: overrides = {}
-        eq_ids = []
+        eq_ids =[]
         if enemy['race'] == 'humano':
             try: eq_dict = json.loads(enemy['equipment_data'])
             except: eq_dict = {}
-            eq_ids = [int(v) for k, v in eq_dict.items() if str(v).isdigit()]
+            eq_ids =[int(v) for k, v in eq_dict.items() if str(v).isdigit()]
         b, c = self.compute_full_stats(base, eq_ids, overrides)
         return {"base": b, "computed": c}
 
     def get_active_set_bonuses(self, save_id):
         """Retorna os bônus de set ativos para o save."""
         save = next((s for s in get_all_items("saves") if s['id'] == save_id), None)
-        if not save: return []
+        if not save: return[]
         try: eq_dict = json.loads(save['equipment_data'])
         except: eq_dict = {}
-        eq_ids = [int(v) for k, v in eq_dict.items() if str(v).isdigit()]
+        eq_ids =[int(v) for k, v in eq_dict.items() if str(v).isdigit()]
 
         equipments_db = get_all_items("equipments")
         sets_db       = get_all_items("equipment_sets")
@@ -149,12 +148,12 @@ class GameAPI:
                 sid = int(eq['set_id'])
                 set_counts[sid] = set_counts.get(sid, 0) + 1
 
-        result = []
+        result =[]
         for sid, count in set_counts.items():
             s = next((x for x in sets_db if x['id'] == sid), None)
             if not s: continue
-            active_bonuses = []
-            for threshold in [2, 3, 4, 5, 6]:
+            active_bonuses =[]
+            for threshold in[2, 3, 4, 5, 6]:
                 if count >= threshold:
                     try:
                         b = json.loads(s.get(f'bonus_{threshold}', '{}') or '{}')
@@ -207,8 +206,56 @@ class GameAPI:
         return random.choice(eligible)
 
     # ═══════════════════════════════════════════════
-    # CRUD GENÉRICO
+    # CRUD GENÉRICO E QUESTS
     # ═══════════════════════════════════════════════
+    def accept_quest(self, save_id, quest_id):
+        save = next((s for s in get_all_items("saves") if s['id'] == save_id), None)
+        if not save: return {"status": "error", "message": "Save não encontrado"}
+        try: active_quests = json.loads(save.get('active_quests', '[]'))
+        except: active_quests =[]
+        if any(str(q['quest_id']) == str(quest_id) for q in active_quests):
+            return {"status": "error", "message": "Quest já aceita!"}
+        if len(active_quests) >= 5:
+            return {"status": "error", "message": "Você só pode ter 5 quests ativas no máximo."}
+        quest_data = next((q for q in json.loads(save.get('world_quests', '[]')) if str(q['id']) == str(quest_id)), None)
+        if not quest_data:
+            return {"status": "error", "message": "Quest não encontrada no mundo."}
+        active_quests.append({"quest_id": str(quest_id), "guild_id": str(quest_data['guild_id']), "kills_done": 0})
+        update_item('saves', save_id, {'active_quests': json.dumps(active_quests)})
+        return {"status": "success"}
+
+    def abandon_quest(self, save_id, quest_id):
+        save = next((s for s in get_all_items("saves") if s['id'] == save_id), None)
+        if not save: return {"status": "error"}
+        try: active_quests = json.loads(save.get('active_quests', '[]'))
+        except: active_quests = []
+        active_quests = [q for q in active_quests if str(q['quest_id']) != str(quest_id)]
+        update_item('saves', save_id, {'active_quests': json.dumps(active_quests)})
+        return {"status": "success"}
+
+    def turn_in_quest(self, save_id, quest_id):
+        save = next((s for s in get_all_items("saves") if s['id'] == save_id), None)
+        if not save: return {"status": "error", "message": "Save não encontrado"}
+        try: active_quests = json.loads(save.get('active_quests', '[]'))
+        except: active_quests =[]
+        try: completed_quests = json.loads(save.get('completed_quests', '[]'))
+        except: completed_quests =[]
+        quest_state = next((q for q in active_quests if str(q['quest_id']) == str(quest_id)), None)
+        if not quest_state: return {"status": "error", "message": "Quest não está ativa."}
+        quest_data = next((q for q in json.loads(save.get('world_quests', '[]')) if str(q['id']) == str(quest_id)), None)
+        if not quest_data: return {"status": "error", "message": "Quest não encontrada no mundo."}
+        if int(quest_data.get('required_kills', 0)) > int(quest_state.get('kills_done', 0)):
+            return {"status": "error", "message": "Objetivos da quest não foram concluídos."}
+        gold = int(save.get('gold', 0)) + int(quest_data.get('gold_reward', 0))
+        try: rep_map = json.loads(save.get('guild_reputation', '{}'))
+        except: rep_map = {}
+        guild_id = str(quest_data['guild_id'])
+        rep_map[guild_id] = int(rep_map.get(guild_id, 0)) + int(quest_data.get('rep_reward', 0))
+        active_quests = [q for q in active_quests if str(q['quest_id']) != str(quest_id)]
+        completed_quests.append(str(quest_id))
+        update_item('saves', save_id, {'active_quests': json.dumps(active_quests), 'completed_quests': json.dumps(completed_quests), 'gold': gold, 'guild_reputation': json.dumps(rep_map)})
+        return {"status": "success", "new_gold": gold, "new_rep": rep_map[guild_id], "gold_reward": quest_data.get('gold_reward', 0), "rep_reward": quest_data.get('rep_reward', 0)}
+
     def add_entity(self, table, data):
         try:
             if table == 'characters' and 'base_stats' in data:
@@ -396,11 +443,11 @@ class GameAPI:
         try: hired = json.loads(save.get('hired_allies', '[]'))
         except: hired = []
 
-        hired = [a for a in hired if a['member_id'] != member_id]
+        hired =[a for a in hired if a['member_id'] != member_id]
 
         try: party = json.loads(save.get('party_data', '[]'))
         except: party = []
-        party = [p for p in party if p != member_id]
+        party =[p for p in party if p != member_id]
 
         update_item('saves', save_id, {
             'hired_allies': json.dumps(hired),
@@ -443,7 +490,7 @@ class GameAPI:
         save  = next((s for s in saves if s['id'] == save_id), None)
         if not save: return {"status":"error"}
         try: hired = json.loads(save.get('hired_allies', '[]'))
-        except: hired = []
+        except: hired =[]
         # Garante 10 slots
         while len(hotbar_list) < 10:
             hotbar_list.append(None)
@@ -485,7 +532,7 @@ class GameAPI:
         except: fired_zero =[]
 
         gold = int(save.get('gold', 0))
-        messages = []
+        messages =[]
         to_fire =[]
 
         # (Mantendo a sua lógica de salários e treino de aliados do jogador...)
@@ -535,25 +582,24 @@ class GameAPI:
             hired = [a for a in hired if a['member_id'] != member_id]
 
         try: party = json.loads(save.get('party_data', '[]'))
-        except: party = []
+        except: party =[]
         party =[p for p in party if p not in to_fire]
 
         # 2. SIMULA O MUNDO VIVO (NPCs não contratados)
         try: world_members = json.loads(save.get('world_members', '[]'))
-        except: world_members = []
+        except: world_members =[]
         
         all_equips = get_all_items("equipments")
         all_atks   = get_all_items("attacks")
         world_events =[]
         for npc in world_members:
             # Pula os NPCs que estão contratados pelo jogador
-            if any(a['member_id'] == npc['id'] for a in hired):
+            if any(a['member_id'] == str(npc['id']) for a in hired):
                 continue
                 
-            # Acontece evento? 10% de chance por NPC por dia
+            # Acontece evento? 15% de chance por NPC por dia
             if random.random() < 0.15:
-                event_type = random.choices(
-                    ['train', 'hunt', 'hurt', 'find_item', 'learn_skill'], 
+                event_type = random.choices(['train', 'hunt', 'hurt', 'find_item', 'learn_skill'], 
                     weights=[30, 30, 10, 20, 10]
                 )[0]
                 
@@ -563,39 +609,46 @@ class GameAPI:
                         stat = random.choice(list(b_stats.keys()))
                         b_stats[stat] += 1
                         npc['base_stats'] = json.dumps(b_stats)
-                        npc['power_score'] = sum(b_stats.values()) * 5
+                        npc['power_score'] = sum(b_stats.values()) # Corrigido: Removido o * 5
+                        if npc['power_score'] > 30: # Ajustado para o novo cálculo de poder (30 = antigo 150)
+                            stat_name = {"for":"Força","int":"Inteligência","des":"Destreza","car":"Carisma","res":"Resistência"}.get(stat, stat)
+                            world_events.append(f"Boatos dizem que {npc['name']} esteve treinando intensamente sua {stat_name}.")
                     except: pass
 
                 elif event_type == 'find_item' and all_equips:
                     # NPC encontrou um item novo nas dungeons!
                     new_item = random.choice(all_equips)
-                    eq_data = json.loads(npc['equipment_data'])
+                    eq_data = json.loads(npc.get('equipment_data', '{}'))
                     slot = new_item['type']
                     # Só equipa se o slot estiver vazio ou se for 20% de chance de trocar
                     if slot not in eq_data or random.random() < 0.2:
                         eq_data[slot] = new_item['id']
                         npc['equipment_data'] = json.dumps(eq_data)
-                        world_events.append(f"{npc['name']} encontrou um(a) {new_item['name']} e equipou!")
+                        world_events.append(f"{npc['name']} encontrou um(a) {new_item['name']} durante uma exploração e equipou!")
 
                 elif event_type == 'learn_skill' and all_atks:
                     # NPC aprendeu uma técnica nova
                     new_atk = random.choice(all_atks)
-                    npc_atks = json.loads(npc['attacks'])
+                    npc_atks = json.loads(npc.get('attacks', '[]'))
                     if new_atk['id'] not in npc_atks:
                         npc_atks.append(new_atk['id'])
                         npc['attacks'] = json.dumps(npc_atks)
                         # Se for um NPC de alto nível, o mundo fica sabendo
-                        if npc['power_score'] > 250:
-                            world_events.append(f"Boatos dizem que {npc['name']} dominou a técnica {new_atk['name']}!")
+                        if npc.get('power_score', 0) > 30:
+                            world_events.append(f"Ouvimos que {npc['name']} dominou a técnica {new_atk['name']}!")
 
                 elif event_type == 'hunt':
                     # NPC ganhou dinheiro caçando
-                    npc['gold'] = npc.get('gold', 0) + random.randint(30, 150)
+                    earned = random.randint(30, 150)
+                    npc['gold'] = npc.get('gold', 0) + earned
+                    if earned > 100 and npc.get('power_score', 0) > 20:
+                        world_events.append(f"{npc['name']} voltou de uma caçada com uma grande quantidade de ouro.")
                 
                 elif event_type == 'hurt':
                     # NPC se machucou e perdeu um pouco de progresso ou dinheiro
                     npc['gold'] = max(0, npc.get('gold', 0) - 40)
-
+                    if npc.get('power_score', 0) > 30:
+                        world_events.append(f"{npc['name']} foi visto(a) gravemente ferido(a) após enfrentar uma fera nas cavernas.")
 
         # 3. SALVA TUDO
         update_item('saves', save_id, {
@@ -608,10 +661,10 @@ class GameAPI:
 
         old_gold = int(save.get('gold', 0))
         
-        # Junta as mensagens do jogador com 1 ou 2 boatos do mundo
+        # Junta as mensagens do jogador com até 5 boatos do mundo
         if world_events:
             messages.append("--- Boatos do Mundo ---")
-            messages.extend(random.sample(world_events, min(len(world_events), 2)))
+            messages.extend(random.sample(world_events, min(len(world_events), 5)))
 
         return {"new_gold": gold, "gold_earned": gold - old_gold, "messages": messages, "fired_allies": to_fire}
 
@@ -622,19 +675,19 @@ class GameAPI:
         enemy = next((e for e in get_all_items("characters") if e['id'] == enemy_id), None)
         save  = next((s for s in get_all_items("saves") if s['id'] == save_id), None)
         if not enemy or not save:
-            return {"loot_list": [], "new_inventory": {"equipments":[], "consumables":{}}, "new_gold": 0}
+            return {"loot_list":[], "new_inventory": {"equipments":[], "consumables":{}}, "new_gold": 0}
 
         try: inventory = json.loads(save['inventory_data'])
-        except: inventory = {"equipments": [], "consumables": {}}
+        except: inventory = {"equipments":[], "consumables": {}}
         gold = int(save.get('gold', 0))
 
-        loot_list  = []
+        loot_list  =[]
         gold_drop  = random.randint(5, 20)
         gold      += gold_drop
         loot_list.append(f"🪙 {gold_drop} moedas de ouro")
 
         try: custom_drops = json.loads(enemy.get('custom_drops', '[]'))
-        except: custom_drops = []
+        except: custom_drops =[]
 
         if custom_drops:
             for drop in custom_drops:

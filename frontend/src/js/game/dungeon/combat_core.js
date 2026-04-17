@@ -1,5 +1,3 @@
-// frontend/src/js/combat_core.js
-
 window.combatants =[];
 
 // ══════════════════════════════════════════════════
@@ -40,7 +38,7 @@ async function renderPartyInBattle() {
     // Limpa os blocos de HUD antigos dos aliados
     document.querySelectorAll('.ally-hud-block').forEach(el => el.remove());
 
-    const party   = window._party || [];
+    const party   = window._party ||[];
     const hired   = window._hiredAllies ||[];
 
     if (!window._partyStats) window._partyStats = {};
@@ -471,12 +469,30 @@ window.winBattle = async function() {
     document.getElementById('combat-dialogue').innerText = "VITÓRIA! Buscando loot...";
     await window.advanceDungeonFloor();
     let allLoot =[];
+    let killedTargets = {};
+
     for (const enemy of window.currentEnemies) {
+        if (enemy.id) killedTargets[enemy.id] = (killedTargets[enemy.id] || 0) + 1;
         const res = await window.pywebview.api.generate_loot(enemy.id, window.activeSaveId);
         window.playerInventory = res.new_inventory;
         window.playerGold      = res.new_gold;
         allLoot.push(...res.loot_list);
     }
+    
+    let questsUpdated = false;
+    for (let aq of window._activeQuests) {
+        const qData = (window.currentWorld.quests ||[]).find(q => String(q.id) === String(aq.quest_id));
+        if (qData && qData.target_character_id) {
+            const targetId = String(qData.target_character_id);
+            for (let [kId, count] of Object.entries(killedTargets)) {
+                if (String(kId) === targetId) {
+                    aq.kills_done = (aq.kills_done || 0) + count;
+                    questsUpdated = true;
+                }
+            }
+        }
+    }
+    
     window.updateHUD();
     await window.saveGameState();
 
@@ -524,7 +540,7 @@ window.fleeBattle = function() {
         document.getElementById('combat-dialogue').innerText = "Fuga com sucesso!";
         setTimeout(() => {
             window.isTurnBusy = false;
-            window.combatants = []; window.currentEnemies =[]; window._partyStats = {};
+            window.combatants =[]; window.currentEnemies =[]; window._partyStats = {};
             backToCity();
         }, 1500);
     } else {
@@ -539,7 +555,11 @@ window.fleeBattle = function() {
 window.closeLootAndReturn = function() {
     const modal = document.getElementById('loot-modal');
     if (modal) modal.style.display = 'none';
-    window.combatants =[]; window.currentEnemies =[]; window._partyStats = {};
+    
+    window.combatants = []; 
+    window.currentEnemies = []; 
+    window._partyStats = {};
     window.isTurnBusy = false;
+    
     backToCity();
 };

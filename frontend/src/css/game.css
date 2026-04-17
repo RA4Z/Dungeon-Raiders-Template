@@ -140,3 +140,56 @@
 .rank-power { text-align: right; }
 .rank-power small { display: block; font-size: 0.6rem; color: #7f8c8d; letter-spacing: 1px; }
 .rank-power strong { color: #f1c40f; font-size: 1.1rem; }
+
+/* ════════════════════════════════════════
+   MODAL DE DETALHES DO PERSONAGEM (RANKING)
+════════════════════════════════════════ */
+
+#char-detail-modal .loot-box {
+    border-color: #3498db;
+    background: #0d1117;
+    box-shadow: 0 0 30px rgba(0,0,0,0.8), 0 0 15px rgba(52, 152, 219, 0.2);
+}
+
+/* Scrollbar personalizada para o modal */
+#char-detail-modal div::-webkit-scrollbar {
+    width: 6px;
+}
+#char-detail-modal div::-webkit-scrollbar-thumb {
+    background: #30363d;
+    border-radius: 10px;
+}
+
+/* Estilo das habilidades no modal de detalhes */
+#cdm-skills .hotbar-slot {
+    width: 50px;
+    height: 50px;
+    font-size: 0.8rem;
+    transform: scale(0.9);
+}
+
+#cdm-skills .hb-atk-name {
+    font-size: 0.55rem;
+}
+
+/* ════════════════════════════════════════
+   JORNAL DA CAPITAL (WORLD LOG)
+════════════════════════════════════════ */
+
+#world-log-list div {
+    border-left: 3px solid #3498db;
+    margin-bottom: 8px;
+    padding: 12px;
+    background: rgba(52, 152, 219, 0.05);
+    transition: background 0.2s;
+}
+
+#world-log-list div:hover {
+    background: rgba(52, 152, 219, 0.1);
+}
+
+/* Destaque para boatos de NPCs específicos */
+#world-log-list .world-event-important {
+    border-left-color: #f1c40f;
+    color: #f1c40f;
+}

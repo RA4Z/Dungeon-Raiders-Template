@@ -1,5 +1,3 @@
-// frontend/src/js/game_city.js
-
 function setView(viewId) {
     document.querySelectorAll('.game-view').forEach(el => el.classList.remove('active-view'));
     const el = document.getElementById(viewId);
@@ -93,11 +91,10 @@ async function healPlayer() {
     if (typeof syncSaveState === 'function') await syncSaveState();
     window.updateHUD();
 
-    // Em vez de um alert, abrimos o Jornal do Mundo
-    let allMessages = [];
+    let allMessages =[];
     if (routineRes?.messages?.length > 0) allMessages = allMessages.concat(routineRes.messages);
 
-    const fired = routineRes?.fired_allies || [];
+    const fired = routineRes?.fired_allies ||[];
     if (fired.length > 0) {
         allMessages.unshift(`⚠️ <strong style="color:#e74c3c;">Atenção:</strong> ${fired.length} aliado(s) abandonaram você por falta de pagamento!`);
     }
@@ -126,6 +123,9 @@ window.trainStat = async function (statKey) {
     goToLocation('quartel');
 };
 
+
+window._rankingEntities =[];
+
 window.openRanking = function () {
     if (!window.currentWorld || !window.activePlayer) return;
 
@@ -134,40 +134,49 @@ window.openRanking = function () {
     listEl.innerHTML = '<p style="color:#8b949e; text-align:center;">Calculando poder dos heróis...</p>';
 
     setTimeout(() => {
-        let allEntities = [];
+        let allEntities =[];
 
-        // 1. Jogador (Usa os stats REAIS atuais)
+        // 1. Jogador
         const pStats = Object.values(window.playerFullStats.base).reduce((a, b) => a + (parseInt(b) || 0), 0);
         allEntities.push({
             name: window.activePlayer.name + " (Você)",
-            power: pStats * 5,
+            power: pStats, // Corrigido: Removido o multiplicador absurdo de * 5
             guild: "Independente",
-            isPlayer: true
+            isPlayer: true,
+            data: window.activePlayer
         });
 
-        const worldMembers = window.currentWorld.members || [];
-        const guilds = window.currentWorld.guilds || [];
+        const worldMembers = window.currentWorld.members ||[];
+        const guilds = window.currentWorld.guilds ||[];
 
         worldMembers.forEach(npc => {
             const guild = guilds.find(g => String(g.id) === String(npc.guild_id));
+            
+            // Calcula o poder em tempo real para corrigir saves antigos que tinham o *5 no DB
+            let npcBase = {};
+            try { npcBase = JSON.parse(npc.base_stats || '{}'); } catch(e) {}
+            const npcPower = Object.values(npcBase).reduce((acc, val) => acc + (parseInt(val) || 0), 0);
+
             allEntities.push({
                 name: npc.name,
-                power: npc.power_score || 0,
+                power: npcPower, // Usa o poder real calculado em vez da string poluída
                 guild: guild ? guild.name : "Independente",
                 isPlayer: false,
-                isPrecreated: npc.is_precreated
+                isPrecreated: npc.is_precreated,
+                data: npc
             });
         });
 
-        // Ordena por poder (do maior para o menor)
+        // Ordena por poder
         allEntities.sort((a, b) => b.power - a.power);
+        window._rankingEntities = allEntities;
 
         // Renderiza as linhas
         listEl.innerHTML = allEntities.slice(0, 50).map((h, i) => {
             const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + 'º';
             const rowClass = h.isPlayer ? 'ranking-row-player' : '';
             return `
-            <div class="ranking-row ${rowClass}">
+            <div class="ranking-row ${rowClass}" style="cursor:pointer;" onclick="openRankingCharDetail(${i})">
                 <div style="display:flex; align-items:center; gap:12px;">
                     <span class="rank-pos">${medal}</span>
                     <div style="display:flex; flex-direction:column;">
@@ -182,6 +191,97 @@ window.openRanking = function () {
             </div>`;
         }).join('');
     }, 100);
+};
+
+window.openRankingCharDetail = async function(index) {
+    const entity = window._rankingEntities[index];
+    if (!entity) return;
+
+    document.getElementById('char-detail-modal').style.display = 'flex';
+    
+    // Preencher modal
+    document.getElementById('cdm-name').innerText = entity.name;
+    document.getElementById('cdm-guild').innerText = entity.guild;
+    document.getElementById('cdm-power').innerText = entity.power;
+    document.getElementById('cdm-gold').innerText = entity.isPlayer ? window.playerGold : (entity.data.gold || 0);
+    
+    // Avatar
+    const avatarEl = document.getElementById('cdm-avatar');
+    avatarEl.innerHTML = '';
+    if (entity.data.race === 'humano') {
+        const dollId = `cdm-doll-${index}`;
+        avatarEl.innerHTML = `<div class="paper-doll-container" id="${dollId}" style="transform:scale(0.8); transform-origin:top center;"></div>`;
+        setTimeout(() => buildBattleCharacter(entity.data, 'f', null, dollId), 50);
+    } else {
+        avatarEl.innerHTML = `<img src="${entity.data.img_front || ''}" style="max-width:100%; max-height:100%; object-fit:contain;">`;
+    }
+
+    // Atributos
+    const statsEl = document.getElementById('cdm-stats');
+    let baseStats = {};
+    if (entity.isPlayer) {
+        baseStats = window.playerFullStats.base;
+    } else {
+        try { baseStats = JSON.parse(entity.data.base_stats || '{}'); } catch(e) {}
+    }
+    
+    statsEl.innerHTML = Object.entries(window.STAT_MAP.base).map(([k, name]) => {
+        return `<div style="background:#21262d; padding:8px 12px; border-radius:5px; display:flex; justify-content:space-between; border:1px solid #30363d;">
+            <span style="color:#bdc3c7; font-size:0.9rem;">${name}</span>
+            <strong style="color:#2ecc71;">${baseStats[k] || 1}</strong>
+        </div>`;
+    }).join('');
+
+    // Equipamentos
+    const equipsEl = document.getElementById('cdm-equips');
+    let eqData = {};
+    if (entity.isPlayer) {
+        eqData = window.activePlayer.equipment_data || {};
+        if (typeof eqData === 'string') eqData = JSON.parse(eqData);
+    } else {
+        try { eqData = JSON.parse(entity.data.equipment_data || '{}'); } catch(e) {}
+    }
+    
+    equipsEl.innerHTML = '';
+    window.EQUIP_SLOTS.forEach(slot => {
+        if (slot === 'base') return;
+        const itemId = eqData[slot];
+        if (itemId) {
+            const itemObj = window.gameData.equipments.find(e => e.id == itemId);
+            if (itemObj) {
+                equipsEl.innerHTML += `<div style="width:45px; height:45px; background:#21262d; border:1px solid #30363d; border-radius:5px; display:flex; justify-content:center; align-items:center; cursor:pointer;" onmouseenter="showTooltip(${itemObj.id}, 'equip')" onmouseleave="hideTooltip()">
+                    <img src="${itemObj.img_front || ''}" style="max-width:35px; max-height:35px; object-fit:contain;">
+                </div>`;
+            }
+        } else {
+            equipsEl.innerHTML += `<div style="width:45px; height:45px; background:#161b22; border:1px dashed #30363d; border-radius:5px; display:flex; justify-content:center; align-items:center; opacity:0.5;">
+                <span style="font-size:0.6rem; color:#7f8c8d;">${slot.substring(0,3).toUpperCase()}</span>
+            </div>`;
+        }
+    });
+
+    // Habilidades
+    const skillsEl = document.getElementById('cdm-skills');
+    let attacks =[];
+    if (entity.isPlayer) {
+        attacks = window.playerAttacks ||[];
+        if (typeof attacks === 'string') attacks = JSON.parse(attacks);
+    } else {
+        try { attacks = JSON.parse(entity.data.attacks || '[]'); } catch(e) {}
+    }
+
+    skillsEl.innerHTML = attacks.map(atkId => {
+        const atk = window.gameData.attacks.find(a => a.id == atkId);
+        if (!atk) return '';
+        let lvl = 1;
+        if (entity.isPlayer && window.attackExp && window.attackExp[atkId]) {
+            lvl = window.attackExp[atkId].level;
+        }
+        return `<div class="hotbar-slot hb-atk-${atk.atk_type}" style="cursor:help;" onmouseenter="showSkillTooltip(${atk.id}, event)" onmouseleave="hideSkillTooltip()">
+            <span class="hb-atk-name">${atk.name}</span>
+            <div class="hb-atk-lvl">Lv${lvl}</div>
+        </div>`;
+    }).join('');
 };
 
 
@@ -202,7 +302,6 @@ window.openWorldLog = function (messages) {
     }
 
     messages.forEach(msg => {
-        // Formata as mensagens de boatos
         if (msg === "--- Boatos do Mundo ---") {
             list.innerHTML += `<div style="text-align:center; margin:15px 0 5px 0; color:#f1c40f; border-bottom:1px solid #555; padding-bottom:5px; font-family:serif;">🌍 Eventos do Mundo</div>`;
         } else {
