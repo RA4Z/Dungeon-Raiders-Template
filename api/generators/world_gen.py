@@ -5,27 +5,92 @@ import uuid
 # ==========================================
 # DICIONÁRIOS DE GERAÇÃO
 # ==========================================
-FIRST_NAMES_M =[
+FIRST_NAMES_M = [
     "Kael", "Thorin", "Garrick", "Bram", "Darius", "Vane", "Rurik", "Finn", "Alden", "Cormac",
     "Lucian", "Ronan", "Silas", "Eamon", "Gareth", "Kian", "Orson", "Rowan", "Talon", "Zane",
-    "Raziel", "Kaelen", "Draven", "Gideon", "Mael", "Nox", "Soren", "Vance", "Alistair", "Bjorn"
+    "Raziel", "Kaelen", "Draven", "Gideon", "Mael", "Nox", "Soren", "Vance", "Alistair", "Bjorn",
+    "Aras", "Baelen", "Caius", "Dante", "Elian", "Faust", "Gunnar", "Hakon", "Ivar", "Joram",
+    "Kaelric", "Lachlan", "Mordred", "Niall", "Odin", "Phelan", "Quill", "Ramsay", "Stark", "Torin",
+    "Ulf", "Valen", "Wolf", "Xander", "Yoric", "Zephyr", "Abaddon", "Barret", "Caspian", "Doran",
+    "Elias", "Fenris", "Griffin", "Hadrian", "Ignis", "Jax", "Krix", "Leif", "Magnus", "Nico",
+    "Osric", "Pyke", "Quentin", "Ravi", "Sef", "Thane", "Ulric", "Varick", "Wren", "Xerxes",
+    "Yosef", "Zadok", "Arlo", "Bane", "Cedric", "Drake", "Egan", "Fletcher", "Gaheris", "Hugo",
+    "Ivan", "Jasper", "Kane", "Lucius", "Merrick", "Nash", "Otto", "Percival", "Quin", "Reed",
+    "Sampson", "Tristan", "Uziel", "Vigo", "Wyatt", "Xavian", "Yael", "Zale", "Alaric", "Boros",
+    "Corin", "Dax", "Erek", "Flynn", "Gaius", "Hollis", "Idris", "Jace", "Kasper", "Lorcan",
+    "Malachi", "Nodin", "Oren", "Phineas", "Quinn", "Ryker", "Sayer", "Titus", "Urian", "Vesper",
+    "Wulfric", "Xenon", "Yanis", "Zoran", "Amon", "Belial", "Cyren", "Dimitri", "Esker", "Fidius",
+    "Grendel", "Hestian", "Irwin", "Jareth", "Kaelum", "Lukan", "Malik", "Norix", "Orion", "Zalthar"
 ]
-FIRST_NAMES_F =[
+
+FIRST_NAMES_F = [
     "Lyra", "Elowen", "Seris", "Vex", "Thalia", "Aria", "Briar", "Cora", "Dara", "Elara",
     "Fae", "Gael", "Isla", "Juno", "Kira", "Lira", "Maeve", "Nia", "Oria", "Ria",
-    "Sylas", "Tia", "Vira", "Zara", "Aeliana", "Caelia", "Elysia", "Ilyana", "Kaela", "Liana"
+    "Sylas", "Tia", "Vira", "Zara", "Aeliana", "Caelia", "Elysia", "Ilyana", "Kaela", "Liana",
+    "Amara", "Bellona", "Celeste", "Dahlia", "Eris", "Freyja", "Gwen", "Hera", "Iris", "Jade",
+    "Kaelith", "Luna", "Mira", "Nyx", "Ophelia", "Petra", "Quilla", "Raven", "Scylla", "Tessa",
+    "Ursa", "Vespera", "Willa", "Xenia", "Yara", "Zelda", "Astrid", "Bianca", "Callie", "Dione",
+    "Elora", "Flora", "Gaia", "Hazel", "Inara", "Jora", "Kaelen", "Lumi", "Mina", "Nora",
+    "Olwen", "Phoebe", "Qi", "Rhea", "Selene", "Thea", "Una", "Valerine", "Wanda", "Xaya",
+    "Yvaine", "Ziva", "Aeryn", "Briseis", "Circe", "Drusilla", "Eudora", "Fay", "Gladius", "Hilda",
+    "Ione", "Junia", "Kalliope", "Lyre", "Morgana", "Niamh", "Oksana", "Portia", "Qadira", "Rowena",
+    "Sif", "Talar", "Ulla", "Vesta", "Wynne", "Xyla", "Yoko", "Zuleika", "Althea", "Beatrix",
+    "Ceryn", "Damara", "Elowyn", "Freya", "Gisela", "Hestia", "Idunn", "Jalila", "Karys", "Linnea",
+    "Maia", "Neryx", "Ostara", "Phila", "Quinn", "Rhiannon", "Sigrid", "Tyra", "Urania", "Valkyrie",
+    "Winona", "Xandri", "Yelena", "Zora", "Anise", "Brea", "Clio", "Dysis", "Eos", "Fiora",
+    "Gwyneth", "Helene", "Isolde", "Jilly", "Kora", "Luthien", "Medea", "Neri", "Orenda", "Zalthea"
 ]
-TITLES =[
+
+TITLES = [
     "o Destemido", "a Sombra", "Pé-Leve", "o Quebrado", "Olho de Águia", "o Sábio", "Mão de Ferro",
     "o Esquecido", "Sangue Frio", "o Errante", "Lâmina Rápida", "o Justo", "o Louco", "Coração de Leão",
-    "o Implacável", "a Fúria", "o Oculto", "o Caçador", "Traz-Tormentas", "o Silencioso", "Sem-Rosto"
+    "o Implacável", "a Fúria", "o Oculto", "o Caçador", "Traz-Tormentas", "o Silencioso", "Sem-Rosto",
+    "o Carrasco", "a Sentinela", "Mestre das Chaves", "o Profeta", "Sussurro do Vento", "Punho de Rocha",
+    "o Invencível", "a Cicatriz", "Fome de Prata", "o Tecelão", "Mortalha Negra", "o Guardião", "Pele de Urso",
+    "o Redimido", "a Víbora", "Cajado Queimado", "o Imortal", "Andarilho do Vazio", "Oceano de Sangue",
+    "o Bastardo", "a Herdeira", "Devorador de Almas", "o Exilado", "Olho de Vidro", "Sede de Glória",
+    "o Fantasmagórico", "Perna de Pau", "o Abençoado", "Coração de Gelo", "o Piromante", "Língua de Serpente",
+    "o Arauto", "a Tempestade", "Sombra do Rei", "o Desonrado", "Punhal de Vidro", "o Mensageiro",
+    "a Lenda", "o Caótico", "Senhor das Sombras", "o Renegado", "Escudo de Carvalho", "o Alquimista",
+    "o Necromante", "a Estrela Caída", "Caçador de Gigantes", "o Errático", "Mão Direita", "o Vidente",
+    "a Espada Sagrada", "o Herege", "Voz dos Mortos", "o Magnânimo", "Grito do Abismo", "o Silenciador",
+    "o Atormentado", "a Pureza", "Sopro de Fogo", "o Inquisidor", "Pele de Bronze", "o Diplomata",
+    "a Navalha", "o Imóvel", "Mestre das Bestas", "o Mercador de Almas", "a Sacerdotisa", "o Caçador de Recompensas",
+    "o Flagelo", "a Resiliência", "o Desbravador", "Punho de Ouro", "o Arqueiro Negro", "a Voz da Razão",
+    "o Obsidiana", "o Radical", "Sede de Sangue", "o Maldição", "a Relíquia", "o Escravo do Destino",
+    "o Soberano", "a Calamidade", "o Martelo do Norte", "o Sol de Inverno", "a Maré Escura"
 ]
 
-GUILD_ADJECTIVES =["Ordem", "Irmandade", "Pacto", "Clã", "Legião", "Círculo", "Sindicato", "Guilda", "Companhia"]
-GUILD_NOUNS =["do Aço", "das Sombras", "do Corvo", "da Chama", "do Lobo", "de Sangue", "do Alvorecer", "da Noite", "da Prata", "do Dragão", "do Urso", "da Caveira"]
+GUILD_ADJECTIVES = [
+    "Ordem", "Irmandade", "Pacto", "Clã", "Legião", "Círculo", "Sindicato", "Guilda", "Companhia",
+    "Aliança", "Conselho", "Corte", "Exército", "Secta", "Bastião", "Esquadrão", "Enclave", "Comuna",
+    "Tribunal", "Domínio", "Horda", "Santuário", "Templo", "Frente", "Liga", "Cartel", "União",
+    "Sociedade", "Igreja", "Oráculo", "Santuário", "Refúgio", "Arca", "Cripta", "Abismo", "Vanguarda",
+    "Falange", "Brigada", "Conclave", "Assembleia", "Dinastia", "Kahal", "Cabal", "Fundação", "Instituto"
+]
 
-COLORS =['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22', '#1abc9c', '#34495e', '#7f8c8d']
-ICONS =['⚔️', '🛡️', '🐺', '🦅', '🔥', '💧', '⚡', '🌙', '☀️', '💀', '🐉', '🌲']
+GUILD_NOUNS = [
+    "do Aço", "das Sombras", "do Corvo", "da Chama", "do Lobo", "de Sangue", "do Alvorecer", "da Noite", "da Prata", "do Dragão", "do Urso", "da Caveira",
+    "do Abismo", "do Vazio", "da Tempestade", "da Montanha", "do Carvalho", "da Fênix", "da Névoa", "do Trovão", "da Rosa", "do Trono", "do Punho", "do Cálice",
+    "do Destino", "da Ruína", "da Glória", "da Estrela", "da Lua", "do Sol", "da Vingança", "da Justiça", "da Honra", "da Traição", "do Labirinto", "do Cristal",
+    "do Martelo", "da Flecha", "do Escudo", "da Coroa", "do Cetro", "da Adaga", "do Relâmpago", "da Cinza", "da Serpente", "do Falcão", "da Aranha", "do Escorpião",
+    "do Leão", "do Tigre", "da Hydra", "do Kraken", "do Grifo", "do Unicórnio", "do Gelo", "da Obsidiana", "do Éter", "da Eternidade", "do Infinito", "da Aurora"
+]
+
+COLORS = [
+    '#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22', '#1abc9c', '#34495e', '#7f8c8d', # Originais
+    '#c0392b', '#2980b9', '#27ae60', '#f39c12', '#8e44ad', '#d35400', '#16a085', '#2c3e50', '#95a5a6', # Versões Escuras
+    '#ff7675', '#74b9ff', '#55efc4', '#ffeaa7', '#a29bfe', '#fab1a0', '#81ecec', '#636e72', '#b2bec3', # Tons Pastel
+    '#d63031', '#0984e3', '#00b894', '#fdcb6e', '#6c5ce7', '#e17055', '#00cec9', '#2d3436', '#dfe6e9', # Vibrantes
+    '#1e272e', '#485460', '#ffa801', '#ffd32a', '#ff5e57', '#ff3f34', '#05c46b', '#0be881', '#575fcf'  # Modernos/Neon
+]
+ICONS = [
+    '⚔️', '🛡️', '🐺', '🦅', '🔥', '💧', '⚡', '🌙', '☀️', '💀', '🐉', '🌲', # Originais
+    '🏹', '🗡️', '⚒️', '⛏️', '📜', '📖', '🧪', '💎', '💰', '🗝️', '🎭', '🔮', # Itens/Magia
+    '🦁', '🐍', '🐘', '🕷️', '🦂', '🦉', '🦋', '🐎', '🐂', '🦈', '🐗', '🦇', # Animais
+    '🏔️', '🌋', '🌊', '🌪️', '🍄', '🍀', '🌵', '🌸', '🎋', '🍂', '🌍', '☄️', # Natureza
+    '🏰', '🏛️', '⛪', '⛩️', '⚓', '⚖️', '⛓️', '⚰️', '🕯️', '🔔', '🚩', '🏆'  # Social/Estruturas
+]
 
 SKIN_COLORS =['#ffffff', '#ffdfc4', '#d4a373', '#8d5524', '#4b3621']
 
