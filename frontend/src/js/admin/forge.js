@@ -475,6 +475,36 @@ window.renderForgeStats = function() {
     }
 };
 
+// ── Salvar Habilidade ────────────────────────────
+async function saveAttack() {
+    const editId = document.getElementById('edit-atk-id').value;
+    let scaling = {};
+    document.querySelectorAll('.atk-scale-input').forEach(i => {
+        const val = parseFloat(i.value);
+        if (val > 0) scaling[i.dataset.stat] = val;
+    });
+
+    const data = {
+        name:         document.getElementById('atk-name').value,
+        atk_type:     document.getElementById('atk-type').value,
+        hp_cost:      parseInt(document.getElementById('atk-hp-cost').value) || 0,
+        mana_cost:    parseInt(document.getElementById('atk-mana-cost').value) || 0,
+        stamina_cost: parseInt(document.getElementById('atk-stamina-cost').value) || 0,
+        description:  document.getElementById('atk-description').value,
+        base_power:   parseFloat(document.getElementById('atk-base').value) || 0,
+        scaling:      JSON.stringify(scaling),
+    };
+    if (!data.name) return window.showToast("Nome obrigatório!", "error");
+
+    if (editId) await window.pywebview.api.update_entity('attacks', editId, data);
+    else        await window.pywebview.api.add_entity('attacks', data);
+
+    window.showToast("Habilidade registrada!", "success");
+    if (typeof clearForgeForm === 'function') clearForgeForm('atk');
+    await window.refreshData();
+    if (typeof renderForgeAtkList === 'function') renderForgeAtkList();
+}
+
 // ── Inicializa ao montar a página ─────────────────
 setTimeout(() => {
     window.renderForgeStats();

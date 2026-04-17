@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
     <meta charset="UTF-8">
     <title>RPG Clicker Novel</title>
@@ -13,44 +14,57 @@
     <link rel="stylesheet" href="src/css/forge.css">
     <link rel="stylesheet" href="src/css/combat_control.css">
 </head>
+
 <body>
     <nav class="tabs">
         <button class="active" onclick="showTab('menu-tab', this)" id="btn-tab-menu">Menu Principal</button>
-        <button onclick="showTab('game-tab', this)" id="btn-tab-game"    style="display:none; background:#27ae60; color:#fff;">🎮 O Jogo</button>
-        <button onclick="showTab('allies-tab', this)" id="btn-tab-allies" style="display:none; background:#8e44ad; color:#fff;">⚔️ Aliados</button>
+        <button onclick="showTab('game-tab', this)" id="btn-tab-game"
+            style="display:none; background:#27ae60; color:#fff;">🎮 O Jogo</button>
+        <button onclick="showTab('allies-tab', this)" id="btn-tab-allies"
+            style="display:none; background:#8e44ad; color:#fff;">⚔️ Aliados</button>
         <!-- Abas de desenvolvimento — ocultas no executável -->
-        <button onclick="showTab('admin-tab', this)" id="btn-tab-forge"   class="dev-only-tab">Forja (Peças)</button>
-        <button onclick="showTab('char-tab', this)"  id="btn-tab-builder" class="dev-only-tab">Montar Personagem</button>
-        <button onclick="showTab('crud-tab', this)"  id="btn-tab-db"      class="dev-only-tab">Banco de Dados</button>
+        <button onclick="showTab('admin-tab', this)" id="btn-tab-forge" class="dev-only-tab">Forja (Peças)</button>
+        <button onclick="showTab('char-tab', this)" id="btn-tab-builder" class="dev-only-tab">Montar Personagem</button>
+        <button onclick="showTab('crud-tab', this)" id="btn-tab-db" class="dev-only-tab">Banco de Dados</button>
     </nav>
 
-    <div id="menu-tab"   class="tab-content active" style="padding:0;"></div>
-    <div id="game-tab"   class="tab-content"         style="padding:0;"></div>
-    <div id="allies-tab" class="tab-content"         style="padding:0;"></div>
-    <div id="admin-tab"  class="tab-content"></div>
-    <div id="char-tab"   class="tab-content"></div>
-    <div id="crud-tab"   class="tab-content" style="padding:0;"></div>
+    <div id="menu-tab" class="tab-content active" style="padding:0;"></div>
+    <div id="game-tab" class="tab-content" style="padding:0;"></div>
+    <div id="allies-tab" class="tab-content" style="padding:0;"></div>
+    <div id="admin-tab" class="tab-content"></div>
+    <div id="char-tab" class="tab-content"></div>
+    <div id="crud-tab" class="tab-content" style="padding:0;"></div>
 
-    <!-- Globals primeiro -->
-    <script src="src/js/globals.js"></script>
-    <script src="src/js/forge.js"></script>
-    <script src="src/js/database.js"></script>
-    <script src="src/js/admin.js"></script>
     <!-- Dev mode: padrão true, Python sobrescreve para false no executável -->
     <script>window.__DEV_MODE__ = true;</script>
 
-    <script src="src/js/allies.js"></script>
-    <script src="src/js/builder.js"></script>
-    <script src="src/js/combat_core.js"></script>
-    <script src="src/js/combat_ui.js"></script>
-    <script src="src/js/dungeon_floors.js"></script>
-    <script src="src/js/game_city.js"></script>
-    <script src="src/js/guild_admin.js"></script>
-    <script src="src/js/guild.js"></script>
-    <script src="src/js/inventory.js"></script>
-    <script src="src/js/level_system.js"></script>
-    <script src="src/js/main_menu.js"></script>
-    <script src="src/js/main.js"></script>
-    <script src="src/js/stats_system.js"></script>
+    <!-- 1. CORE E SISTEMAS (Base de tudo) -->
+    <script src="src/js/core/globals.js"></script>
+    <script src="src/js/core/stats_system.js"></script>
+    <script src="src/js/systems/level_system.js"></script>
+
+    <!-- 2. GAME - MENU E CIDADE -->
+    <script src="src/js/game/menu/main_menu.js"></script>
+    <script src="src/js/game/city/game_city.js"></script>
+    <script src="src/js/game/city/inventory.js"></script>
+    <script src="src/js/game/city/guild.js"></script>
+    <script src="src/js/game/city/allies.js"></script>
+
+    <!-- 3. GAME - DUNGEON E COMBATE -->
+    <script src="src/js/game/dungeon/dungeon_floors.js"></script>
+    <script src="src/js/game/dungeon/combat_core.js"></script>
+    <script src="src/js/game/dungeon/combat_ui.js"></script>
+
+    <!-- 4. ADMIN / FERRAMENTAS (Carregar por último) -->
+    <script src="src/js/admin/forge.js"></script>
+    <script src="src/js/admin/admin_manager.js"></script> <!-- admin.js renomeado -->
+    <script src="src/js/admin/database.js"></script>
+    <script src="src/js/systems/stats_calc.js"></script>
+    <script src="src/js/admin/builder.js"></script>
+    <script src="src/js/admin/guild_admin.js"></script>
+
+    <!-- 5. MAIN (Inicia o app) -->
+    <script src="src/js/core/main.js"></script>
 </body>
+
 </html>
