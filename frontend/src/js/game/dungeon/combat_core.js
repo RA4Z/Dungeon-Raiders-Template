@@ -819,7 +819,7 @@ async function _handleTournamentVictory() {
     }, 3000);
 }
 
-function _handleTournamentDeath() {
+async function _handleTournamentDeath() {
     document.getElementById('combat-dialogue').innerText =
         '💀 Você foi eliminado do torneio! Acorde em casa.';
 
@@ -953,35 +953,6 @@ window.showFloatingDamage = function (containerId, text, typeClass) {
 // ══════════════════════════════════════════════════
 // CONTROLE DE BOTÕES
 // ══════════════════════════════════════════════════
-function toggleCombatButtons(disabled) {
-    // Hotbar
-    document.querySelectorAll('.hotbar-slot:not(.empty)').forEach(btn => {
-        if (disabled) {
-            btn.disabled = true;
-        } else {
-            // Se for vez do player, checa custos
-            const atkId = btn.dataset.atkId;
-            const atk = window.gameData.attacks.find(a => a.id == atkId);
-            if (atk) {
-                const canPay = (atk.hp_cost || 0) <= window.playerHP &&
-                    (atk.mana_cost || 0) <= window.playerMana &&
-                    (atk.stamina_cost || 0) <= window.playerStamina;
-                btn.disabled = !canPay;
-            }
-        }
-    });
-
-    // Fuga
-    const btnFlee = document.getElementById('flee-btn');
-    if (btnFlee) {
-        if (window.combatContext === 'tournament') {
-            btnFlee.style.display = 'none';
-        } else {
-            btnFlee.style.display = 'block';
-            btnFlee.disabled = disabled;
-        }
-    }
-}
 window.restTurn = function () {
     if (window.isTurnBusy) return;
 

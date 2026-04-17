@@ -401,10 +401,10 @@ window._executeManualAllyTurn = async function (actor, attackId) {
     }, 600);
 };
 
-function toggleCombatButtons(state) {
+window.toggleCombatButtons = function (isDisabled) {
     // 1. Desativa/Ativa Hotbar
     document.querySelectorAll('.hotbar-slot:not(.empty)').forEach(btn => {
-        if (disabled) {
+        if (isDisabled) {
             btn.disabled = true;
         } else {
             const atkId = btn.dataset.atkId;
@@ -425,7 +425,7 @@ function toggleCombatButtons(state) {
             btnFlee.style.display = 'none';
         } else {
             btnFlee.style.display = 'block';
-            btnFlee.disabled = disabled;
+            btnFlee.disabled = isDisabled;
         }
     }
 
@@ -438,15 +438,19 @@ function toggleCombatButtons(state) {
             btnRest.id = 'rest-btn';
             btnRest.innerHTML = '💤 Descansar Turno <span style="font-size:0.75em;display:block;">(Recupera +20 MP/SP)</span>';
             btnRest.style.cssText = 'background:#2980b9; width:100%; max-width:250px; margin-top:10px; padding:8px; border-radius:5px; border:none; color:white; font-weight:bold; cursor:pointer;';
-            btnRest.onclick = window.restTurn; // Chama a função que vamos criar abaixo
+            btnRest.onclick = window.restTurn;
 
             if (btnFlee) actionsDiv.insertBefore(btnRest, btnFlee);
             else actionsDiv.appendChild(btnRest);
         }
     }
     if (btnRest) {
-        btnRest.disabled = disabled;
+        btnRest.disabled = isDisabled;
     }
+};
+
+function toggleCombatButtons(state) {
+    window.toggleCombatButtons(state);
 }
 
 // ══════════════════════════════════════════════════

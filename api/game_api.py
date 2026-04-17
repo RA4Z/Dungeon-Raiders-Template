@@ -272,7 +272,7 @@ class GameAPI:
     # ═══════════════════════════════════════════════
     # TORNEIO — SIMULAÇÃO NO BACKEND (Domingo sem player)
     # ═══════════════════════════════════════════════
-    def _simulate_tournament_for_sunday(self, save, world_members, world_events):
+    def _simulate_tournament_for_sunday(self, save, world_members, world_events, target_day=None):
         """Simula o torneio de domingo quando o jogador não participou."""
         save_id = save['id']
         days_passed = int(save.get('days_passed', 1))
