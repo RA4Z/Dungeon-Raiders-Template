@@ -25,18 +25,22 @@ window.buildSelects = function () {
         });
     }
 
+    // ── CORREÇÃO AQUI: Verifica se não existem inputs em vez de checar HTML vazio
     const baseGrid = document.getElementById('builder-base-stats');
-    if (baseGrid && baseGrid.innerHTML === "") {
+    if (baseGrid && baseGrid.querySelectorAll('input').length === 0) {
+        baseGrid.innerHTML = ''; // Limpa os comentários HTML
         for (let k in window.STAT_MAP.base) {
-            // Repare que o oninput chama window.updateLivePreview()
             baseGrid.innerHTML += `<label>${window.STAT_MAP.base[k]} <input type="number" class="char-base-stat" data-stat="${k}" value="1" min="1" oninput="window.updateLivePreview()"></label>`;
         }
     }
 
+    // ── CORREÇÃO AQUI: Verifica se não existem inputs em vez de checar HTML vazio
     const subGrid = document.getElementById('builder-sub-stats');
-    if (subGrid && subGrid.innerHTML === "") {
+    if (subGrid && subGrid.querySelectorAll('input').length === 0) {
+        subGrid.innerHTML = ''; // Limpa os comentários HTML
         for (let k in window.STAT_MAP.derived) {
-            subGrid.innerHTML += `<label>${window.STAT_MAP.derived[k]} <input type="number" class="char-sub-stat" data-stat="${k}" placeholder="Auto" oninput="window.updateLivePreview()"></label>`;
+            // Adicionado step="0.1" para permitir números quebrados como Taxa Crítica
+            subGrid.innerHTML += `<label>${window.STAT_MAP.derived[k]} <input type="number" class="char-sub-stat" data-stat="${k}" placeholder="Auto" step="0.1" oninput="window.updateLivePreview()"></label>`;
         }
     }
 
@@ -64,6 +68,7 @@ window.buildSelects = function () {
         cdItem.value = currentLootVal;
     }
 };
+
 
 window.toggleRaceFields = function () {
     const race = document.getElementById('ch-race').value;

@@ -1,80 +1,140 @@
-<h1>Montagem de Personagem / Monstro</h1>
-<div class="forms-grid" style="align-items: flex-start;">
-    <div class="form-card" style="flex: 2;" id="form-char">
-        <div class="attr-grid">
-            <input type="hidden" id="edit-char-id" value="">
-            <label>Nome <input type="text" id="ch-name" oninput="updateLivePreview()"></label>
-            <label>Raça:
-                <select id="ch-race" onchange="toggleRaceFields()">
-                    <option value="humano">Humanoide (Montar por Peças)</option>
-                    <option value="monstro">Monstro Único (Simples)</option>
-                </select>
-            </label>
-        </div>
-
-        <h4 style="margin-top:10px; color:#f39c12;">Atributos Base (Para Ambos)</h4>
-        <div id="builder-base-stats" class="attr-grid" style="background:#111; padding:10px; border-radius:5px; margin-bottom:15px;"></div>
-
-        <div id="simple-fields" style="display:none;">
-            <label>Img Frente (Corpo inteiro)</label>
-            <div class="file-input-group"><input type="text" id="ch-img-f" oninput="updateLivePreview()"><img id="prev-ch-f" class="mini-preview" src=""></div>
-            <label>Img Verso (Costas)</label>
-            <div class="file-input-group"><input type="text" id="ch-img-b" oninput="updateLivePreview()"><img id="prev-ch-b" class="mini-preview" src=""></div>
-            
-            <h4 style="margin-top:10px; color:#e74c3c;">Sub-Status (Overrides para Monstros)</h4>
-            <p style="font-size:0.8em; color:#777; margin-bottom:5px;">Deixe em branco para usar a fórmula automática baseada nos atributos acima.</p>
-            <div id="builder-sub-stats" class="attr-grid" style="background:#111; padding:10px; border-radius:5px; max-height:150px; overflow-y:auto;"></div>
-
-            <!-- NOVA SEÇÃO PARA OS GOLPES DO PERSONAGEM/MONSTRO -->
-            <div style="background: #222; padding: 15px; border-radius: 8px; margin-top: 15px; border: 1px solid #444;">
-                <h4 style="color: #e74c3c; margin-bottom: 10px;">Habilidades e Ataques do Inimigo</h4>
-                <div id="ch-attacks-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: 150px; overflow-y: auto;">
-                    <!-- Preenchido via JS -->
-                </div>
-            </div>
-
-            <div style="background: #222; padding: 15px; border-radius: 8px; margin-top: 15px; border: 1px solid #444;">
-                <h4 style="color: #3498db; margin-bottom: 10px;">Loot do Monstro</h4>
-                <div class="attr-grid" style="align-items: end;">
-                    <label>Item:<select id="cd-item"></select></label>
-                    <label>Chance Drop (%):<input type="number" id="cd-chance" value="50" min="1" max="100"></label>
-                </div>
-                <button onclick="addCustomDrop()" style="background:#2980b9; padding:8px; margin-bottom:10px;">+ Adicionar à Lista de Loot</button>
-                <ul id="cd-list" style="list-style: none; padding: 0; font-size: 0.9em;"></ul>
-            </div>
-        </div>
-
-        <div id="human-fields" style="margin-top: 15px;">
-            <h4 style="color:#2ecc71; margin-bottom:5px;">Equipamentos Iniciais (Inimigo Humanoide)</h4>
-            <div class="attr-grid">
-                <label>Corpo: <select id="sel-base" onchange="updateLivePreview()"></select></label>
-                <label>Rosto: <select id="sel-face" onchange="updateLivePreview()"></select></label>
-                <label>Cabelo: <select id="sel-hair" onchange="updateLivePreview()"></select></label>
-                <label>Camisa: <select id="sel-shirt" onchange="updateLivePreview()"></select></label>
-                <label>Calças: <select id="sel-pants" onchange="updateLivePreview()"></select></label>
-                <label>Capacete: <select id="sel-helmet" onchange="updateLivePreview()"></select></label>
-                <label>Luvas: <select id="sel-gloves" onchange="updateLivePreview()"></select></label>
-                <label>Botas: <select id="sel-boots" onchange="updateLivePreview()"></select></label>
-                <label>Mão Dir: <select id="sel-hand_r" onchange="updateLivePreview()"></select></label>
-                <label>Mão Esq: <select id="sel-hand_l" onchange="updateLivePreview()"></select></label>
-                <label style="grid-column: span 2;">Acessório: <select id="sel-accessory" onchange="updateLivePreview()"></select></label>
-            </div>
-        </div>
-        <button onclick="saveCharacter()" style="margin-top:20px; font-size:1.2em;">Salvar Inimigo no Banco</button>
-        <p id="char-msg" class="msg-alert"></p>
+<!-- src/pages/builder.html -->
+<div class="builder-page">
+    
+    <div class="builder-header">
+        <h1 class="builder-title">🧙‍♂️ Montagem de Personagem / Monstro</h1>
+        <p class="builder-subtitle">Crie aliados, NPCs e inimigos para povoar o mundo</p>
     </div>
 
-    <!-- PAINEL DIREITO: LIVE PREVIEW -->
-    <div class="form-card" style="flex: 1;" id="preview-panel">
-        <h3>Pré-Visualização</h3>
-        <div class="preview-boxes" style="display:flex; justify-content:space-around; background:#111; padding:20px; border-radius:5px; margin-bottom:15px;">
-            <div class="paper-doll-container" id="prev-front"></div>
-            <div class="paper-doll-container" id="prev-back"></div>
-        </div>
+    <div class="builder-layout">
         
-        <h4 style="color:#3498db; border-bottom:1px solid #444; padding-bottom:5px;">Status Calculados</h4>
-        <div id="live-stats-preview" style="background:#111; padding:10px; border-radius:5px; font-family:monospace; font-size:1em; color:#bdc3c7; display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
-            <!-- Preenchido via JS -->
+        <!-- LADO ESQUERDO: FORMULÁRIO -->
+        <div class="builder-form-panel">
+            <input type="hidden" id="edit-char-id" value="">
+            
+            <!-- SEÇÃO: INFO BÁSICA -->
+            <div class="builder-section">
+                <h3 class="builder-section-title">📝 Informações Básicas</h3>
+                <div class="builder-grid-2">
+                    <div class="builder-field">
+                        <label>Nome do Personagem</label>
+                        <input type="text" id="ch-name" placeholder="Ex: Orc Furioso, Guarda da Cidade..." oninput="window.updateLivePreview()">
+                    </div>
+                    <div class="builder-field">
+                        <label>Raça / Tipo</label>
+                        <select id="ch-race" onchange="window.toggleRaceFields()">
+                            <option value="humano">🧑 Humanoide (Montar por Peças)</option>
+                            <option value="monstro">👹 Monstro Único (Imagem Direta)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEÇÃO: ATRIBUTOS BASE -->
+            <div class="builder-section">
+                <h3 class="builder-section-title" style="color:#f39c12;">📊 Atributos Base</h3>
+                <div id="builder-base-stats" class="builder-stats-grid">
+                    <!-- Preenchido via JS (builder.js) -->
+                </div>
+            </div>
+
+            <!-- ══════════ OPÇÕES PARA MONSTROS ══════════ -->
+            <div id="simple-fields" style="display:none;">
+                <div class="builder-section">
+                    <h3 class="builder-section-title" style="color:#9b59b6;">👹 Aparência do Monstro</h3>
+                    <div class="builder-grid-2">
+                        <div class="builder-field">
+                            <label>Imagem Frente (Avatar)</label>
+                            <input type="text" id="ch-img-f" placeholder="caminho/imagem_frente.png" oninput="window.updateLivePreview()">
+                        </div>
+                        <div class="builder-field">
+                            <label>Imagem Verso (Costas)</label>
+                            <input type="text" id="ch-img-b" placeholder="caminho/imagem_costas.png" oninput="window.updateLivePreview()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="builder-section">
+                    <h3 class="builder-section-title" style="color:#e74c3c;">⚙️ Sub-Status Forçados (Overrides)</h3>
+                    <p class="builder-helper-text">Deixe em branco para usar o cálculo automático baseado nos atributos base.</p>
+                    <div id="builder-sub-stats" class="builder-stats-grid overrides-grid">
+                        <!-- Preenchido via JS -->
+                    </div>
+                </div>
+
+                <!-- ATAQUES -->
+                <div class="builder-section">
+                    <h3 class="builder-section-title" style="color:#e67e22;">⚔️ Habilidades e Ataques</h3>
+                    <div id="ch-attacks-list" class="builder-attacks-grid">
+                        <!-- Preenchido via JS -->
+                    </div>
+                </div>
+
+                <!-- LOOT -->
+                <div class="builder-section">
+                    <h3 class="builder-section-title" style="color:#3498db;">💎 Tabela de Loot</h3>
+                    <div class="builder-loot-input">
+                        <div class="builder-field" style="flex: 2;">
+                            <label>Item</label>
+                            <select id="cd-item"></select>
+                        </div>
+                        <div class="builder-field" style="flex: 1;">
+                            <label>Chance (%)</label>
+                            <input type="number" id="cd-chance" value="50" min="1" max="100">
+                        </div>
+                        <button class="builder-btn-secondary" onclick="window.addCustomDrop()" style="margin-top: 22px;">+ Adicionar</button>
+                    </div>
+                    <ul id="cd-list" class="builder-loot-list"></ul>
+                </div>
+            </div>
+
+            <!-- ══════════ OPÇÕES PARA HUMANOS ══════════ -->
+            <div id="human-fields">
+                <div class="builder-section">
+                    <h3 class="builder-section-title" style="color:#2ecc71;">🛡️ Equipamentos Iniciais</h3>
+                    <div class="builder-grid-2">
+                        <div class="builder-field"><label>Corpo Base</label><select id="sel-base" onchange="window.updateLivePreview()"></select></div>
+                        <div class="builder-field"><label>Rosto / Expressão</label><select id="sel-face" onchange="window.updateLivePreview()"></select></div>
+                        <div class="builder-field"><label>Cabelo</label><select id="sel-hair" onchange="window.updateLivePreview()"></select></div>
+                        <div class="builder-field"><label>Camisa / Tronco</label><select id="sel-shirt" onchange="window.updateLivePreview()"></select></div>
+                        <div class="builder-field"><label>Calças</label><select id="sel-pants" onchange="window.updateLivePreview()"></select></div>
+                        <div class="builder-field"><label>Capacete</label><select id="sel-helmet" onchange="window.updateLivePreview()"></select></div>
+                        <div class="builder-field"><label>Luvas</label><select id="sel-gloves" onchange="window.updateLivePreview()"></select></div>
+                        <div class="builder-field"><label>Botas</label><select id="sel-boots" onchange="window.updateLivePreview()"></select></div>
+                        <div class="builder-field"><label>Mão Direita (Arma)</label><select id="sel-hand_r" onchange="window.updateLivePreview()"></select></div>
+                        <div class="builder-field"><label>Mão Esquerda (Escudo)</label><select id="sel-hand_l" onchange="window.updateLivePreview()"></select></div>
+                        <div class="builder-field" style="grid-column: span 2;"><label>Acessório</label><select id="sel-accessory" onchange="window.updateLivePreview()"></select></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOTÃO SALVAR -->
+            <div style="margin-top: 10px;">
+                <button class="builder-save-btn" onclick="window.saveCharacter()">💾 Salvar no Banco de Dados</button>
+            </div>
+            
         </div>
+
+        <!-- LADO DIREITO: PREVIEW (Fixo na tela) -->
+        <div class="builder-preview-panel">
+            <h3 class="builder-preview-title">👁️ Pré-Visualização</h3>
+            
+            <div class="builder-stage-container">
+                <div class="builder-stage-box">
+                    <span class="stage-label">Frente</span>
+                    <div class="paper-doll-container" id="prev-front"></div>
+                </div>
+                <div class="builder-stage-box">
+                    <span class="stage-label">Costas</span>
+                    <div class="paper-doll-container" id="prev-back"></div>
+                </div>
+            </div>
+            
+            <h3 class="builder-preview-title" style="margin-top: 20px; border-top: 1px solid #30363d; padding-top: 15px;">📈 Status de Combate</h3>
+            <div id="live-stats-preview" class="builder-live-stats">
+                <!-- Preenchido via JS (stats_calc.js) -->
+            </div>
+        </div>
+
     </div>
 </div>

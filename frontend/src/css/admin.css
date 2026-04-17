@@ -215,3 +215,229 @@
 }
 .db-empty-icon { font-size: 3rem; }
 .db-empty p { font-size: 1rem; color: #555; }
+/* ════════════════════════════════════════
+   BUILDER (Montagem de Personagem)
+════════════════════════════════════════ */
+.builder-page {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #0d1117;
+    overflow: hidden;
+}
+
+.builder-header {
+    padding: 16px 24px 10px;
+    border-bottom: 1px solid #21262d;
+    flex-shrink: 0;
+}
+.builder-title {
+    font-size: 1.6rem; font-family: serif;
+    color: #3498db; margin: 0 0 2px 0;
+    text-shadow: 0 0 12px rgba(52,152,219,0.3);
+}
+.builder-subtitle { color: #7f8c8d; font-size: 0.85em; margin: 0; }
+
+.builder-layout {
+    display: grid;
+    grid-template-columns: 1fr 400px; /* Coluna form cresce, preview tem 400px fixos */
+    gap: 20px;
+    padding: 20px 24px;
+    overflow-y: auto;
+    height: 100%;
+    align-items: start;
+}
+
+/* Painel Esquerdo (Form) */
+.builder-form-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.builder-section {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 18px;
+}
+.builder-section-title {
+    font-size: 1rem;
+    color: #ecf0f1;
+    margin: 0 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #21262d;
+}
+.builder-helper-text { font-size: 0.8em; color: #7f8c8d; margin-bottom: 10px; }
+
+/* Grid e Inputs do Form */
+.builder-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.builder-field { display: flex; flex-direction: column; gap: 4px; }
+.builder-field label { font-size: 0.8em; color: #8b949e; font-weight: bold; text-transform: uppercase; }
+.builder-field input, .builder-field select {
+    background: #0d1117; border: 1px solid #30363d; color: #ecf0f1;
+    padding: 8px 12px; border-radius: 6px; outline: none; transition: 0.2s;
+}
+.builder-field input:focus, .builder-field select:focus { border-color: #3498db; }
+
+/* Grid de Atributos Base (Injetados via JS) */
+.builder-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 12px;
+    background: transparent !important; /* Removemos o fundo preto de antes */
+    padding: 10px 0 !important;
+}
+.builder-stats-grid label {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #0d1117; padding: 6px 12px; border-radius: 6px; border: 1px solid #30363d;
+    font-size: 0.85em; color: #bdc3c7; font-weight: bold;
+}
+.builder-stats-grid label input {
+    width: 50px; background: #161b22; border: 1px solid #444; color: #f1c40f;
+    border-radius: 4px; padding: 4px; text-align: center; font-weight: bold;
+}
+
+/* Card Individual de Atributo */
+.stat-card-item {
+    background: #1c2128;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.stat-card-item:hover {
+    border-color: #444;
+    background: #21262d;
+}
+
+/* Label do Atributo */
+.stat-card-item label {
+    font-size: 0.7rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #8b949e !important;
+    margin: 0 !important;
+    font-weight: bold;
+}
+
+/* Input dentro do Card */
+.stat-card-item input {
+    background: #0d1117 !important;
+    border: 1px solid #30363d !important;
+    color: #f1c40f !important; /* Destaque dourado para os números */
+    font-family: 'Consolas', monospace;
+    font-size: 1.1rem !important;
+    font-weight: bold !important;
+    text-align: center;
+    padding: 5px !important;
+    border-radius: 6px !important;
+    width: 100% !important;
+    margin: 0 !important;
+}
+
+.stat-card-item input:focus {
+    border-color: #3498db !important;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+/* Estilo específico para Overrides (Sub-status) */
+.overrides-grid .stat-card-item {
+    border-bottom: 2px solid #30363d;
+}
+
+.overrides-grid .stat-card-item input {
+    color: #e74c3c !important; /* Vermelho para indicar que é um override */
+    font-size: 0.95rem !important;
+}
+
+/* Placeholder "Auto" mais elegante */
+.stat-card-item input::placeholder {
+    color: #444;
+    font-style: italic;
+    font-size: 0.8rem;
+}
+
+/* Cores de acento para Atributos Base (opcional, mas fica bonito) */
+.stat-card-item[data-stat="for"] { border-top: 3px solid #e74c3c; }
+.stat-card-item[data-stat="int"] { border-top: 3px solid #3498db; }
+.stat-card-item[data-stat="des"] { border-top: 3px solid #2ecc71; }
+.stat-card-item[data-stat="car"] { border-top: 3px solid #f1c40f; }
+.stat-card-item[data-stat="res"] { border-top: 3px solid #9b59b6; }
+
+.overrides-grid label input { color: #e74c3c; width: 60px; }
+
+/* Ataques */
+.builder-attacks-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px;
+    max-height: 180px; overflow-y: auto; padding-right: 5px;
+}
+.builder-attacks-grid label {
+    display: flex; align-items: center; gap: 8px; background: #0d1117;
+    padding: 8px 12px; border-radius: 6px; border: 1px solid #30363d;
+    font-size: 0.85em; color: #bdc3c7; cursor: pointer; transition: 0.15s;
+}
+.builder-attacks-grid label:hover { border-color: #555; background: #111720; }
+.builder-attacks-grid input[type="checkbox"] { accent-color: #e67e22; width: 16px; height: 16px; }
+
+/* Loot */
+.builder-loot-input { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 10px; }
+.builder-loot-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.builder-loot-list li {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #0d1117; padding: 8px 12px; border-radius: 6px; border: 1px solid #21262d;
+    font-size: 0.85em; color: #ecf0f1;
+}
+.builder-loot-list li button {
+    background: #c0392b; color: #fff; border: none; border-radius: 4px;
+    padding: 2px 6px; cursor: pointer; font-weight: bold;
+}
+
+/* Botões */
+.builder-btn-secondary {
+    background: #21262d; border: 1px solid #30363d; color: #3498db;
+    padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.15s;
+}
+.builder-btn-secondary:hover { background: #3498db; color: #fff; }
+
+.builder-save-btn {
+    width: 100%; padding: 14px; border-radius: 8px; border: none;
+    background: linear-gradient(135deg, #27ae60, #1e8449); color: #fff;
+    font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: filter 0.2s;
+    box-shadow: 0 4px 15px rgba(39,174,96,0.3);
+}
+.builder-save-btn:hover { filter: brightness(1.15); transform: translateY(-2px); }
+
+/* ════════════════════════════════════════
+   Painel Direito (Preview Fixo)
+════════════════════════════════════════ */
+.builder-preview-panel {
+    background: #161b22; border: 1px solid #30363d; border-radius: 12px;
+    padding: 20px; position: sticky; top: 0;
+}
+.builder-preview-title { font-size: 1rem; color: #ecf0f1; margin: 0 0 15px 0; }
+
+.builder-stage-container {
+    display: flex; justify-content: space-around; gap: 10px;
+    background: radial-gradient(circle at center, #21262d 0%, #0d1117 100%);
+    border: 1px solid #30363d; border-radius: 8px; padding: 20px 10px;
+}
+.builder-stage-box { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.stage-label { font-size: 0.75em; color: #7f8c8d; text-transform: uppercase; font-weight: bold; letter-spacing: 0.05em; }
+
+/* Status Injetados via JS no lado direito */
+.builder-live-stats {
+    display: flex; flex-direction: column; gap: 8px;
+}
+.builder-live-stats span {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #0d1117; padding: 8px 12px; border-radius: 6px;
+    border: 1px solid #21262d; font-size: 0.85em; color: #bdc3c7;
+}
+.builder-live-stats span strong { color: #8b949e; font-weight: normal; }
+.builder-live-stats span span { padding: 0; border: none; background: transparent; font-weight: bold; font-size: 1.1em; }
