@@ -45,18 +45,20 @@ async function renderPartyInBattle() {
 
     for (let i = 0; i < party.length; i++) {
         const memberId = party[i];
-        const ally     = hired.find(a => a.member_id === memberId);
+        
+        // CUIDADO: Transformar ambos em string para evitar erro de tipo (Ex: int vs string no Javascript)
+        const ally = hired.find(a => String(a.member_id) === String(memberId));
         if (!ally) continue;
 
-        // Stats do aliado
-        const allyStats = await window.pywebview.api.load_enemy_full_stats(ally.character_id);
+        // Stats do aliado usando a nova API Python que carrega direto do save!
+        const allyStats = await window.pywebview.api.load_ally_full_stats(window.activeSaveId, memberId);
         if (!allyStats) continue;
 
         window._partyStats[memberId] = {
             ally, stats: allyStats,
-            hp:      ally.hp || allyStats.computed.hp,
-            mana:    ally.mana || allyStats.computed.mana,
-            stamina: ally.stamina || allyStats.computed.stamina,
+            hp:      (ally.hp !== null && ally.hp !== undefined) ? ally.hp : allyStats.computed.hp,
+            mana:    (ally.mana !== null && ally.mana !== undefined) ? ally.mana : allyStats.computed.mana,
+            stamina: (ally.stamina !== null && ally.stamina !== undefined) ? ally.stamina : allyStats.computed.stamina,
             isDead:  false,
         };
 
@@ -84,15 +86,14 @@ async function renderPartyInBattle() {
         </div>`;
     }
 
-    // Aplica as imagens assincronamente (AGORA DE COSTAS NO CAMPO DE BATALHA!)
     for (let i = 0; i < party.length; i++) {
         const memberId = party[i];
-        const ally     = hired.find(a => a.member_id === memberId);
+        const ally     = hired.find(a => String(a.member_id) === String(memberId));
         if (!ally) continue;
         
         const fakeChar = { race: ally.race, img_front: ally.img_front, img_back: ally.img_back, equipment_data: ally.equipment_data };
         
-        // Campo: Virado de costas ('b') para o inimigo
+        // Campo: Virado de costas ('b')
         await buildBattleCharacter(fakeChar, 'b', `party-img-${memberId}`, `party-layers-${memberId}`);
         // HUD: Rosto do aliado ('f')
         await buildBattleCharacter(fakeChar, 'f', `ally-hud-avatar-img-${memberId}`, `ally-hud-avatar-layers-${memberId}`);
@@ -150,7 +151,7 @@ async function spawnEnemies() {
         if (!ps || ps.isDead) continue;
         window.combatants.push({
             id: `ally_${memberId}`, isPlayer: false, isAlly: true,
-            memberId, name: ps.ally.name,
+            memberId: memberId, name: ps.ally.name,
             dex: ps.stats.base.des || 5,
             actionValue: 0, isDead: false
         });
@@ -556,10 +557,46 @@ window.closeLootAndReturn = function() {
     const modal = document.getElementById('loot-modal');
     if (modal) modal.style.display = 'none';
     
+    // Limpa estados de combate para evitar bugs ao entrar novamente
     window.combatants = []; 
     window.currentEnemies = []; 
     window._partyStats = {};
     window.isTurnBusy = false;
     
     backToCity();
+};
+
+// ══════════════════════════════════════════════════
+// HELPER: ATUALIZA AS BARRAS DE VIDA (HUD) CONSTANTEMENTE
+// ══════════════════════════════════════════════════
+window.updateBattleUI = function() {
+    // Player
+    if (window.playerFullStats && window.playerFullStats.computed) {
+        const c = window.playerFullStats.computed;
+        document.getElementById('player-hp-fill').style.width = `${Math.max(0, (window.playerHP / c.hp) * 100)}%`;
+        document.getElementById('player-mp-fill').style.width = `${Math.max(0, (window.playerMana / c.mana) * 100)}%`;
+        document.getElementById('player-sp-fill').style.width = `${Math.max(0, (window.playerStamina / c.stamina) * 100)}%`;
+    }
+
+    // Aliados (Party)
+    updatePartyHUD();
+
+    // Inimigos
+    if (window.currentEnemies) {
+        window.currentEnemies.forEach((e, i) => {
+            const block = document.getElementById(`enemy-hud-block-${i}`);
+            if (!block) return;
+            if (e.isDead) {
+                block.classList.add('dead');
+                return;
+            }
+            const c = e.stats.computed;
+            document.getElementById(`enemy-hp-fill-${i}`).style.width = `${Math.max(0, (e.hp / c.hp) * 100)}%`;
+            document.getElementById(`enemy-mp-fill-${i}`).style.width = `${Math.max(0, (e.mana / c.mana) * 100)}%`;
+            document.getElementById(`enemy-sp-fill-${i}`).style.width = `${Math.max(0, (e.stamina / c.stamina) * 100)}%`;
+        });
+    }
+
+    window.updateATBBars();
+    if (!window.isTurnBusy) toggleCombatButtons(false);
 };

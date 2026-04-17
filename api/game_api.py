@@ -126,6 +126,31 @@ class GameAPI:
         b, c = self.compute_full_stats(base, eq_ids, overrides)
         return {"base": b, "computed": c}
 
+    # NOVA FUNÇÃO PARA CARREGAR STATUS DO ALIADO GERADO PROCEDURALMENTE
+    def load_ally_full_stats(self, save_id, member_id):
+        save = next((s for s in get_all_items("saves") if s['id'] == save_id), None)
+        if not save: return None
+        
+        try: hired = json.loads(save.get('hired_allies', '[]'))
+        except: hired =[]
+        
+        ally = next((a for a in hired if str(a.get('member_id')) == str(member_id)), None)
+        if not ally: return None
+        
+        base = ally.get('base_stats', {"for":1,"int":1,"des":1,"car":1,"res":1})
+        if isinstance(base, str):
+            try: base = json.loads(base)
+            except: base = {"for":1,"int":1,"des":1,"car":1,"res":1}
+            
+        eq_dict = ally.get('equipment_data', '{}')
+        if isinstance(eq_dict, str):
+            try: eq_dict = json.loads(eq_dict)
+            except: eq_dict = {}
+            
+        eq_ids =[int(v) for k, v in eq_dict.items() if str(v).isdigit()]
+        b, c = self.compute_full_stats(base, eq_ids)
+        return {"base": b, "computed": c}
+
     def get_active_set_bonuses(self, save_id):
         save = next((s for s in get_all_items("saves") if s['id'] == save_id), None)
         if not save: return[]
@@ -222,7 +247,7 @@ class GameAPI:
         save = next((s for s in get_all_items("saves") if s['id'] == save_id), None)
         if not save: return {"status": "error"}
         try: active_quests = json.loads(save.get('active_quests', '[]'))
-        except: active_quests =[]
+        except: active_quests = []
         active_quests =[q for q in active_quests if str(q['quest_id']) != str(quest_id)]
         update_item('saves', save_id, {'active_quests': json.dumps(active_quests)})
         return {"status": "success"}
@@ -441,7 +466,7 @@ class GameAPI:
         hired =[a for a in hired if str(a['member_id']) != str(member_id)]
 
         try: party = json.loads(save.get('party_data', '[]'))
-        except: party = []
+        except: party =[]
         party =[p for p in party if str(p) != str(member_id)]
 
         update_item('saves', save_id, {
@@ -575,7 +600,6 @@ class GameAPI:
                     ally['stat_exp'] = stat_exp
                     if leveled_up: messages.append(f"📚 {name} treinou e subiu {train_stat} para Lv {base_stats[train_stat]}!")
             except Exception as e:
-                print(f"Erro aliado: {e}")
                 pass
 
         for member_id in to_fire:
@@ -708,7 +732,6 @@ class GameAPI:
                         world_events.append(f"{npc['name']} foi visto(a) gravemente ferido(a) nas cavernas.")
             
             except Exception as e:
-                # Silencia o erro de um NPC individual para não quebrar o dia inteiro
                 pass
 
         # ── 2b. SISTEMA DE QUESTS: EXPIRAÇÃO ───────────────────────────
