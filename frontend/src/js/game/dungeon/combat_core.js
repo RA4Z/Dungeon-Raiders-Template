@@ -793,37 +793,30 @@ async function _handleTournamentVictory() {
 
     // Registra vitória no banco
     await window.pywebview.api.register_tournament_win(
-        window.activeSaveId,
-        window.activePlayer.name,
-        window.activeSaveId,
-        true,
-        category,
-        prize
+        window.activeSaveId, window.activePlayer.name, window.activeSaveId, true, category, prize
     );
 
     window.playerGold += prize;
     window.updateBattleUI();
-    await window.saveGameState();
 
-    const catLabels = {
-        novato: 'Novato', intermediario: 'Intermediário',
-        avancado: 'Avançado', lendario: 'Lendário'
-    };
-
+    const catLabels = { novato: 'Novato', intermediario: 'Intermediário', avancado: 'Avançado', lendario: 'Lendário' };
     document.getElementById('combat-dialogue').innerText =
-        `🏆 CAMPEÃO DO TORNEIO! Categoria ${catLabels[category] || category}!`;
+        `🏆 CAMPEÃO! Categoria ${catLabels[category] || category}! A plateia grita seu nome, e o dia chega ao fim.`;
 
-    setTimeout(() => {
+    setTimeout(async () => {
         window.combatants = []; window.currentEnemies = []; window._partyStats = {};
         window.isTurnBusy = false;
-        // Mostra modal de vitória do torneio
+
+        // O torneio durou o dia todo. Dorme automaticamente e acorda na Segunda-feira!
+        if (typeof window.healPlayer === 'function') await window.healPlayer();
+
         if (typeof window.showTournamentVictoryModal === 'function') {
             window.showTournamentVictoryModal(prize, category);
         } else {
             alert(`🏆 Você venceu o torneio!\nPrêmio: ${prize} moedas de ouro!`);
             setView('city-screen');
         }
-    }, 2000);
+    }, 3000);
 }
 
 function _handleTournamentDeath() {
@@ -837,6 +830,8 @@ function _handleTournamentDeath() {
 
     window.combatants = []; window.currentEnemies = []; window._partyStats = {};
     window.isTurnBusy = false;
+
+    if (typeof window.healPlayer === 'function') await window.healPlayer();
 
     setTimeout(() => {
         window.saveGameState();
@@ -987,3 +982,32 @@ function toggleCombatButtons(disabled) {
         }
     }
 }
+window.restTurn = function () {
+    if (window.isTurnBusy) return;
+
+    const playerCombatant = window.combatants.find(c => c.isPlayer);
+    if (!playerCombatant || playerCombatant.actionValue < 1000) return;
+
+    window.isTurnBusy = true;
+    if (typeof toggleCombatButtons === 'function') toggleCombatButtons(true);
+
+    // Recupera stats limitados ao MÁXIMO do player
+    const maxHp = window.playerFullStats.computed.hp;
+    const maxMp = window.playerFullStats.computed.mana;
+    const maxSp = window.playerFullStats.computed.stamina;
+
+    window.playerHP = Math.min(maxHp, window.playerHP + 5);
+    window.playerMana = Math.min(maxMp, window.playerMana + 20);
+    window.playerStamina = Math.min(maxSp, window.playerStamina + 20);
+
+    window.updateBattleUI();
+    document.getElementById('combat-dialogue').innerText = `Você descansou e recuperou energia.`;
+
+    playerCombatant.actionValue -= 1000;
+    window.updateATBBars();
+
+    setTimeout(() => {
+        window.isTurnBusy = false;
+        window.processNextTurn();
+    }, 800);
+};

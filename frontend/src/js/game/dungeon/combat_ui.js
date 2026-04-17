@@ -402,27 +402,51 @@ window._executeManualAllyTurn = async function (actor, attackId) {
 };
 
 function toggleCombatButtons(state) {
+    // 1. Desativa/Ativa Hotbar
     document.querySelectorAll('.hotbar-slot:not(.empty)').forEach(btn => {
-        if (state) {
+        if (disabled) {
             btn.disabled = true;
         } else {
-            const isAllyCtrl = window._allyControlMode === 'manual' &&
-                window._activeCombatantControl &&
-                window._activeCombatantControl !== 'player';
-            if (isAllyCtrl) {
-                btn.disabled = false; // simplificado para aliados
-            } else {
-                const atk = window.gameData.attacks.find(a => a.id == btn.dataset.atkId);
-                if (atk) {
-                    btn.disabled = !((atk.hp_cost || 0) <= window.playerHP &&
-                        (atk.mana_cost || 0) <= window.playerMana &&
-                        (atk.stamina_cost || 0) <= window.playerStamina);
-                }
+            const atkId = btn.dataset.atkId;
+            const atk = window.gameData.attacks.find(a => a.id == atkId);
+            if (atk) {
+                const canPay = (atk.hp_cost || 0) <= window.playerHP &&
+                    (atk.mana_cost || 0) <= window.playerMana &&
+                    (atk.stamina_cost || 0) <= window.playerStamina;
+                btn.disabled = !canPay;
             }
         }
     });
+
+    // 2. Desativa/Ativa Fuga (e esconde no torneio)
     const btnFlee = document.getElementById('flee-btn');
-    if (btnFlee) btnFlee.disabled = state;
+    if (btnFlee) {
+        if (window.combatContext === 'tournament') {
+            btnFlee.style.display = 'none';
+        } else {
+            btnFlee.style.display = 'block';
+            btnFlee.disabled = disabled;
+        }
+    }
+
+    // 3. Cria e gerencia o botão de DESCANSAR
+    let btnRest = document.getElementById('rest-btn');
+    if (!btnRest) {
+        const actionsDiv = document.querySelector('.actions');
+        if (actionsDiv) {
+            btnRest = document.createElement('button');
+            btnRest.id = 'rest-btn';
+            btnRest.innerHTML = '💤 Descansar Turno <span style="font-size:0.75em;display:block;">(Recupera +20 MP/SP)</span>';
+            btnRest.style.cssText = 'background:#2980b9; width:100%; max-width:250px; margin-top:10px; padding:8px; border-radius:5px; border:none; color:white; font-weight:bold; cursor:pointer;';
+            btnRest.onclick = window.restTurn; // Chama a função que vamos criar abaixo
+
+            if (btnFlee) actionsDiv.insertBefore(btnRest, btnFlee);
+            else actionsDiv.appendChild(btnRest);
+        }
+    }
+    if (btnRest) {
+        btnRest.disabled = disabled;
+    }
 }
 
 // ══════════════════════════════════════════════════
