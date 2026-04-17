@@ -64,7 +64,7 @@ function renderGuildList() {
 }
 
 function getGuildRankName(guild, rep) {
-    const thresholds = [[5000, 5], [2000, 4], [750, 3], [200, 2], [0, 1]];
+    const thresholds = [[5000, 5], [2000, 4], [750, 3],[200, 2], [0, 1]];
     let rankNum = 1;
     for (const [t, n] of thresholds) { if (rep >= t) { rankNum = n; break; } }
     return [guild[`rank_name_${rankNum}`] || `Rank ${rankNum}`, rankNum];
@@ -92,7 +92,6 @@ async function openGuildDetail(guildId) {
 
     setGuildScreen('guild-detail-screen');
     
-    // Força a reinicialização da tab para mostrar sempre as Quests da guilda recém visitada
     const firstTabBtn = document.querySelector('.guild-tabs .guild-tab-btn');
     if (firstTabBtn) {
         switchGuildTab('quests', firstTabBtn);
@@ -513,16 +512,28 @@ function renderGuildRanking() {
 
 
 // ══════════════════════════════════════════════════
-// HELPER: Sincroniza estado do save
+// HELPER: Sincroniza estado do save e do MUNDO VIVO
 // ══════════════════════════════════════════════════
 async function syncSaveState() {
     const saves = await window.pywebview.api.get_saves();
     const save = saves.find(s => s.id === window.activeSaveId);
     if (!save) return;
+    
     window._currentSave = save;
     try { window._repMap = JSON.parse(save.guild_reputation || '{}'); } catch (e) { window._repMap = {}; }
-    try { window._activeQuests = JSON.parse(save.active_quests || '[]'); } catch (e) { window._activeQuests =[]; }
-    try { window._completedQuests = JSON.parse(save.completed_quests || '[]'); } catch (e) { window._completedQuests =[]; }
-    try { window._hiredAllies = JSON.parse(save.hired_allies || '[]'); } catch (e) { window._hiredAllies =[]; }
-    try { window._party = JSON.parse(save.party_data || '[]'); } catch (e) { window._party =[]; }
+    try { window._activeQuests = JSON.parse(save.active_quests || '[]'); } catch (e) { window._activeQuests = []; }
+    try { window._completedQuests = JSON.parse(save.completed_quests || '[]'); } catch (e) { window._completedQuests = []; }
+    try { window._hiredAllies = JSON.parse(save.hired_allies || '[]'); } catch (e) { window._hiredAllies = []; }
+    try { window._party = JSON.parse(save.party_data || '[]'); } catch (e) { window._party = []; }
+    
+    // ATUALIZAÇÃO CRÍTICA: Sincroniza os dados dinâmicos do mundo (NPCs que evoluíram e Quests novas)
+    try { 
+        window.currentWorld = {
+            guilds: JSON.parse(save.world_guilds || '[]'),
+            members: JSON.parse(save.world_members || '[]'),
+            quests: JSON.parse(save.world_quests || '[]')
+        };
+    } catch (e) {
+        console.error("Erro ao sincronizar dados do mundo:", e);
+    }
 }

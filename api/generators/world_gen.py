@@ -85,6 +85,34 @@ class WorldGenerator:
                 
         return guilds, members, quests
 
+    # ═══════════════════════════════════════════════════════════
+    # GERAÇÃO ISOLADA DE QUESTS (usado pelo ciclo de 30 dias)
+    # ═══════════════════════════════════════════════════════════
+    def generate_quests_for_guilds(self, guilds):
+        """
+        Gera uma nova leva de quests para as guildas fornecidas sem recriar
+        membros ou o mundo inteiro. Ideal para o ciclo de renovação de 30 dias.
+
+        Args:
+            guilds: lista de dicts de guilda (já existentes no save do jogador).
+
+        Returns:
+            list[dict]: lista de novas quests prontas para serem inseridas em world_quests.
+        """
+        if not self.monsters:
+            return []
+
+        new_quests = []
+        for guild in guilds:
+            guild_id = str(guild.get('id', ''))
+            if not guild_id:
+                continue
+            num_new = random.randint(2, 5)
+            for _ in range(num_new):
+                new_quests.append(self._generate_quest(guild_id))
+
+        return new_quests
+
     def _generate_guild(self):
         return {
             "id": str(uuid.uuid4()),
@@ -100,9 +128,8 @@ class WorldGenerator:
         try: base_stats = json.loads(db_char.get('base_stats', '{}'))
         except: base_stats = {"for":1,"int":1,"des":1,"car":1,"res":1}
         
-        power = sum(int(v) for v in base_stats.values()) # Corrigido: Removido o * 5
+        power = sum(int(v) for v in base_stats.values())
         
-        # Mantemos o custo equilibrado ajustando o multiplicador para compensar a retirada do * 5
         calc_hire_cost = power * 75
         calc_wage = int(calc_hire_cost * 0.1)
 
@@ -115,6 +142,7 @@ class WorldGenerator:
             "equipment_data": db_char.get('equipment_data', '{}'),
             "base_stats": json.dumps(base_stats),
             "attacks": db_char.get('attacks', '[1]'),
+            "attack_exp": '{}',
             "hire_cost": hire_cost if hire_cost is not None else calc_hire_cost,
             "daily_wage": daily_wage if daily_wage is not None else calc_wage,
             "power_score": power,
@@ -143,9 +171,12 @@ class WorldGenerator:
         if self.attacks:
             extra_atks = random.sample(self.attacks, k=min(len(self.attacks), power_tier))
             npc_attacks.extend([a['id'] for a in extra_atks if a['id'] != 1])
+
+        # Inicializa XP de ataques zerado para todos os ataques do NPC
+        attack_exp = {str(atk_id): {"xp": 0, "level": 1} for atk_id in npc_attacks}
             
         assigned_guild = random.choice(guilds)['id'] if random.random() > 0.5 else ""
-        power = sum(base_stats.values()) # Corrigido: Removido o * 5
+        power = sum(base_stats.values())
 
         return {
             "id": str(uuid.uuid4()),
@@ -156,6 +187,7 @@ class WorldGenerator:
             "equipment_data": json.dumps(eq_data),
             "base_stats": json.dumps(base_stats),
             "attacks": json.dumps(list(set(npc_attacks))),
+            "attack_exp": json.dumps(attack_exp),
             "hire_cost": power * 75,
             "daily_wage": int((power * 75) * 0.1),
             "power_score": power,
@@ -173,4 +205,3 @@ class WorldGenerator:
             "required_kills": random.randint(2, 8) * diff, "target_character_id": target['id'],
             "time_limit_days": random.choice([0, 7, 14])
         }
-    
