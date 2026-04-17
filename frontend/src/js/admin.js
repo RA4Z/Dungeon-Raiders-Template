@@ -83,31 +83,6 @@ window.filterDbTable = function() {
 // RESTO DAS FUNÇÕES (EQUIPAMENTOS, CORPOS, ETC)
 // ══════════════════════════════════════════════════
 
-window.renderForgeStats = function() {
-    const grid = document.getElementById('forge-stats-grid');
-    if (!grid) return;
-    grid.innerHTML = '';
-    const allStats = { ...window.STAT_MAP.base, ...window.STAT_MAP.derived };
-    for (let k in allStats) {
-        grid.innerHTML += `<label>${allStats[k]}
-            <input type="number" class="stat-mod-input" data-stat="${k}" value="0" step="0.1">
-        </label>`;
-    }
-};
-
-// renderForgeStats — preenchida no novo forge
-window.renderForgeStats = function() {
-    const grid = document.getElementById('forge-stats-grid');
-    if (!grid) return;
-    grid.innerHTML = '';
-    const allStats = { ...window.STAT_MAP.base, ...window.STAT_MAP.derived };
-    for (let k in allStats) {
-        grid.innerHTML += `<label>${allStats[k]}
-            <input type="number" class="stat-mod-input" data-stat="${k}" value="0" step="0.1">
-        </label>`;
-    }
-};
-
 // ── Salvar Corpo ─────────────────────────────────
 async function saveBody() {
     const editId = document.getElementById('edit-bd-id').value;
