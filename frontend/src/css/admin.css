@@ -1,3 +1,6 @@
+/* ════════════════════════════════════════
+   ADMIN / FORGE
+════════════════════════════════════════ */
 .forms-grid { display: flex; gap: 20px; flex-wrap: wrap; }
 .form-card { background: #2a2a2a; padding: 20px; border-radius: 8px; border: 1px solid #444; flex: 1; min-width: 300px;}
 .form-card h3 { color: #f39c12; border-bottom: 1px solid #444; padding-bottom: 5px; margin-bottom: 15px;}
@@ -11,18 +14,204 @@
 .attr-grid input, .attr-grid select { margin-bottom: 0 !important; }
 .msg-alert { color: #f1c40f; font-weight: bold; margin: 10px 0;}
 
-/* Mini Prévias ao lado dos Inputs */
 .file-input-group { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
 .file-input-group input { margin-bottom: 0 !important; flex-grow: 1; }
 .mini-preview { width: 45px; height: 45px; object-fit: contain; background: #000; border: 1px solid #555; border-radius: 4px; }
 
-/* CRUD Tabela */
-#crud-table-select { padding: 10px; background: #333; color: white; border: 1px solid #555; width: 300px;}
-.crud-table { width: 100%; border-collapse: collapse; background: #2a2a2a; font-size: 0.9em;}
-.crud-table th, .crud-table td { border: 1px solid #444; padding: 8px; text-align: left; }
-.crud-table th { background: #111; color: #f39c12; }
-.btn-del { background: #c0392b; color:white; border:none; padding:5px 10px; border-radius:3px; cursor:pointer; font-weight:bold;}
-
 /* Paper Doll Base */
 .paper-doll-container { position: relative; width: 150px; height: 250px; overflow: hidden; background: transparent;}
 .paper-doll-container img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; }
+
+/* ════════════════════════════════════════
+   BANCO DE DADOS — NOVO LAYOUT
+════════════════════════════════════════ */
+.db-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 20px;
+    gap: 14px;
+    background: #0d1117;
+    color: #ecf0f1;
+    font-family: 'Segoe UI', sans-serif;
+    overflow: hidden;
+}
+
+/* Header */
+.db-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-shrink: 0;
+    border-bottom: 1px solid #21262d;
+    padding-bottom: 14px;
+}
+.db-title {
+    font-size: 1.6rem;
+    font-family: serif;
+    color: #f1c40f;
+    margin: 0 0 2px 0;
+    text-shadow: 0 0 10px #e67e2244;
+}
+.db-subtitle { color: #7f8c8d; font-size: 0.85em; margin: 0; }
+.db-header-actions { display: flex; gap: 10px; align-items: center; }
+.db-badge {
+    background: #21262d;
+    border: 1px solid #30363d;
+    color: #bdc3c7;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.82em;
+    font-weight: bold;
+}
+.db-refresh-btn {
+    background: #21262d;
+    border: 1px solid #30363d;
+    color: #bdc3c7;
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85em;
+    transition: 0.15s;
+}
+.db-refresh-btn:hover { background: #30363d; color: #fff; border-color: #e67e22; }
+
+/* Category Tabs */
+.db-category-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+}
+.db-cat-tab {
+    background: #161b22;
+    border: 1px solid #30363d;
+    color: #8b949e;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85em;
+    font-weight: bold;
+    transition: 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.db-cat-tab:hover { background: #21262d; color: #ecf0f1; border-color: #555; }
+.db-cat-tab.active {
+    background: linear-gradient(135deg, #e67e22, #d35400);
+    color: #fff;
+    border-color: #e67e22;
+    box-shadow: 0 2px 12px rgba(230,126,34,0.3);
+}
+.dbt-icon { font-size: 1em; }
+.dbt-label { white-space: nowrap; }
+
+/* Search bar */
+.db-search-bar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-shrink: 0;
+}
+#db-search-input {
+    background: #161b22;
+    border: 1px solid #30363d;
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    width: 300px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+#db-search-input:focus { border-color: #e67e22; box-shadow: 0 0 0 2px rgba(230,126,34,0.15); }
+.db-filter-info { color: #7f8c8d; font-size: 0.82em; }
+
+/* Table Wrapper */
+.db-table-wrapper {
+    flex: 1;
+    overflow: auto;
+    border-radius: 10px;
+    border: 1px solid #21262d;
+    position: relative;
+}
+
+.db-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88em;
+}
+.db-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+.db-table th {
+    background: #161b22;
+    color: #f39c12;
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 0.82em;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid #30363d;
+    white-space: nowrap;
+    user-select: none;
+}
+.db-table th:first-child { border-radius: 8px 0 0 0; }
+.db-table th:last-child  { border-radius: 0 8px 0 0; }
+
+.db-table td {
+    padding: 9px 14px;
+    border-bottom: 1px solid #1c2128;
+    color: #bdc3c7;
+    vertical-align: middle;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.db-row-even { background: #0d1117; }
+.db-row-odd  { background: #111720; }
+.db-table tbody tr { transition: background 0.1s; }
+.db-table tbody tr:hover td { background: #1c2128 !important; color: #ecf0f1; }
+
+/* Action buttons */
+.db-actions-cell { white-space: nowrap; }
+.db-btn-edit {
+    background: #1a2a3d;
+    border: 1px solid #2980b9;
+    color: #3498db;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: 0.15s;
+    margin-right: 4px;
+}
+.db-btn-edit:hover { background: #2980b9; color: #fff; }
+.db-btn-del {
+    background: #2d1a1a;
+    border: 1px solid #c0392b;
+    color: #e74c3c;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: 0.15s;
+}
+.db-btn-del:hover { background: #c0392b; color: #fff; }
+
+/* Empty state */
+.db-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+    color: #444;
+    gap: 10px;
+}
+.db-empty-icon { font-size: 3rem; }
+.db-empty p { font-size: 1rem; color: #555; }

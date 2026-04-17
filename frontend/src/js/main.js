@@ -34,12 +34,6 @@ window.addEventListener('DOMContentLoaded', async () => {
             const guildScreen = document.getElementById('guild-screen');
             if (guildScreen) guildScreen.innerHTML = await guildRes.text();
         }
-
-        const guildForgeRes = await fetch('src/pages/guild_forge.html');
-        if (guildForgeRes.ok) {
-            const adminTab = document.getElementById('admin-tab');
-            if (adminTab) adminTab.insertAdjacentHTML('beforeend', await guildForgeRes.text());
-        }
     } catch(e) {
         console.error("Erro ao carregar arquivos de guilda:", e);
     }
@@ -58,8 +52,23 @@ window.addEventListener('pywebviewready', () => {
 async function checkReady() {
     if (isHtmlLoaded && isApiReady) {
         await window.refreshData();
+        // Aplica modo dev após dados carregados
+        applyDevModeTabs();
     }
 }
+
+// ── Controle de abas Dev vs Jogo ──────────────────
+function applyDevModeTabs() {
+    const isDev = window.__DEV_MODE__ !== false; // padrão true
+    document.querySelectorAll('.dev-only-tab').forEach(el => {
+        el.style.display = isDev ? '' : 'none';
+    });
+}
+
+// Função pública chamada pelo Python
+window.applyDevMode = function() {
+    applyDevModeTabs();
+};
 
 // 4. Função global para buscar os dados no banco
 window.refreshData = async function() {
@@ -86,14 +95,17 @@ window.showTab = function(tabId, btnElement) {
     if (tabId === 'allies-tab' && typeof window.renderAlliesPanel === 'function') {
         window.renderAlliesPanel();
     }
+    
+    // Atualiza o CRUD ao entrar na aba de banco de dados
+    if (tabId === 'crud-tab' && typeof renderCrudTable === 'function') {
+        renderCrudTable();
+    }
 };
 
 // 6. Desbloqueio do botão de Aliados junto com o Jogo
-// Chamado no loadGameSession do main_menu.js
 const _origLoadGameSession = window.loadGameSession;
 window.loadGameSession = async function(save) {
     await _origLoadGameSession?.(save);
-    // Exibe botão de aliados
     const alliesBtn = document.getElementById('btn-tab-allies');
     if (alliesBtn) alliesBtn.style.display = 'block';
 };

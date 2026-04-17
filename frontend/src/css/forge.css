@@ -1,0 +1,503 @@
+/* ════════════════════════════════════════
+   NOVA FORJA
+════════════════════════════════════════ */
+.forge-page {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #0d1117;
+    overflow: hidden;
+}
+
+.forge-header {
+    padding: 16px 24px 10px;
+    border-bottom: 1px solid #21262d;
+    flex-shrink: 0;
+}
+.forge-title {
+    font-size: 1.6rem;
+    font-family: serif;
+    color: #f39c12;
+    margin: 0 0 2px 0;
+    text-shadow: 0 0 12px #e67e2244;
+}
+.forge-subtitle { color: #7f8c8d; font-size: 0.85em; margin: 0; }
+
+/* Nav da forja */
+.forge-nav {
+    display: flex;
+    gap: 4px;
+    padding: 10px 24px;
+    background: #0d1117;
+    border-bottom: 1px solid #21262d;
+    flex-shrink: 0;
+}
+.forge-nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    color: #8b949e;
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.88em;
+    font-weight: bold;
+    transition: 0.15s;
+}
+.forge-nav-btn:hover { background: #21262d; color: #ecf0f1; }
+.forge-nav-btn.active {
+    background: linear-gradient(135deg, #e67e22, #d35400);
+    color: #fff;
+    border-color: #e67e22;
+    box-shadow: 0 2px 10px rgba(230,126,34,0.3);
+}
+.fnb-icon { font-size: 1.1em; }
+
+/* Tab content */
+.forge-tab-content {
+    display: none;
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+}
+.forge-tab-content.active-forge-tab { display: block; }
+
+/* Layout 2 colunas: form + lista */
+.forge-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 20px;
+    align-items: start;
+}
+
+/* Painel de form */
+.forge-form-panel {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.forge-form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #30363d;
+    padding-bottom: 12px;
+}
+.forge-form-header h2 {
+    font-size: 1.1rem;
+    color: #f39c12;
+    margin: 0;
+    font-family: serif;
+}
+.forge-clear-btn {
+    background: #21262d;
+    border: 1px solid #30363d;
+    color: #2ecc71;
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.82em;
+    font-weight: bold;
+    transition: 0.15s;
+}
+.forge-clear-btn:hover { background: #1a3d2b; border-color: #27ae60; }
+
+.forge-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.forge-field label {
+    font-size: 0.82em;
+    color: #8b949e;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.forge-field input,
+.forge-field select,
+.forge-field textarea {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    color: #ecf0f1;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    transition: border-color 0.15s;
+    outline: none;
+}
+.forge-field input:focus,
+.forge-field select:focus,
+.forge-field textarea:focus {
+    border-color: #e67e22;
+    box-shadow: 0 0 0 2px rgba(230,126,34,0.1);
+}
+.forge-field textarea { resize: vertical; min-height: 60px; }
+
+.forge-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+/* Seção de gênero */
+.forge-gender-section {
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 8px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.forge-gender-section h4 {
+    font-size: 0.85em;
+    color: #8b949e;
+    margin: 0;
+    font-weight: bold;
+}
+
+.forge-img-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+.forge-img-field { display: flex; flex-direction: column; gap: 4px; }
+.forge-img-field label {
+    font-size: 0.78em;
+    color: #7f8c8d;
+    font-weight: bold;
+}
+.forge-img-input {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.forge-img-input input {
+    flex: 1;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    color: #ecf0f1;
+    padding: 6px 10px;
+    border-radius: 5px;
+    font-size: 0.82em;
+}
+.forge-mini-prev {
+    width: 44px;
+    height: 44px;
+    background: #111;
+    border: 1px solid #30363d;
+    border-radius: 5px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.forge-mini-prev img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: none;
+}
+
+.forge-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.88em;
+    color: #f1c40f;
+    background: #111;
+    padding: 10px 14px;
+    border-radius: 6px;
+    border: 1px solid #333;
+    cursor: pointer;
+}
+.forge-checkbox-label input[type=checkbox] { width: 16px; height: 16px; }
+
+.forge-save-btn {
+    padding: 12px;
+    background: linear-gradient(135deg, #27ae60, #1e8449);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: filter 0.15s;
+    margin-top: 4px;
+}
+.forge-save-btn:hover { filter: brightness(1.15); }
+
+/* Stats mods grid */
+.forge-stats-mods {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    background: #0d1117;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #21262d;
+    max-height: 200px;
+    overflow-y: auto;
+}
+.forge-stats-mods label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8em;
+    color: #bdc3c7;
+}
+.forge-stats-mods input {
+    width: 65px;
+    padding: 3px 6px;
+    background: #111;
+    border: 1px solid #444;
+    color: #ecf0f1;
+    border-radius: 4px;
+    font-size: 0.85em;
+}
+
+/* Scaling grid */
+.forge-scaling-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    background: #0d1117;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #21262d;
+}
+.forge-scaling-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.8em;
+    color: #bdc3c7;
+}
+.forge-scaling-grid input {
+    padding: 5px 8px;
+    background: #111;
+    border: 1px solid #444;
+    color: #ecf0f1;
+    border-radius: 4px;
+}
+
+/* Painel de lista */
+.forge-list-panel {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: calc(100vh - 220px);
+    overflow-y: auto;
+    position: sticky;
+    top: 0;
+}
+.forge-list-title {
+    font-size: 0.9rem;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #21262d;
+}
+.forge-item-list { display: flex; flex-direction: column; gap: 6px; }
+.forge-list-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #0d1117;
+    border: 1px solid #1c2128;
+    border-radius: 8px;
+    padding: 8px 10px;
+    transition: 0.15s;
+}
+.forge-list-item:hover { border-color: #e67e22; background: #111720; }
+.fli-preview {
+    width: 36px;
+    height: 36px;
+    border-radius: 5px;
+    background: #21262d;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1.1rem;
+}
+.fli-preview img { width: 100%; height: 100%; object-fit: contain; }
+.fli-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+.fli-info strong { color: #ecf0f1; font-size: 0.88em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fli-info span { color: #7f8c8d; font-size: 0.75em; }
+.fli-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.fli-actions button {
+    background: #21262d;
+    border: 1px solid #30363d;
+    color: #bdc3c7;
+    padding: 3px 7px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: 0.12s;
+}
+.fli-actions button:hover { background: #2980b9; border-color: #2980b9; color: #fff; }
+.fli-del:hover { background: #c0392b !important; border-color: #c0392b !important; }
+.forge-empty { color: #444; text-align: center; padding: 20px 0; font-size: 0.9em; }
+
+/* ── Set bonus ── */
+.set-bonus-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+.sbt {
+    background: #21262d;
+    border: 1px solid #30363d;
+    color: #8b949e;
+    padding: 5px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.82em;
+    font-weight: bold;
+    transition: 0.15s;
+}
+.sbt:hover { background: #30363d; color: #fff; }
+.sbt.active { background: #f39c12; border-color: #f39c12; color: #000; }
+
+.set-bonus-content { min-height: 80px; }
+.set-bonus-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    background: #0d1117;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #21262d;
+}
+.set-bonus-grid label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8em;
+    color: #bdc3c7;
+}
+.set-bonus-grid input {
+    width: 60px;
+    padding: 3px 6px;
+    background: #111;
+    border: 1px solid #444;
+    color: #ecf0f1;
+    border-radius: 4px;
+    font-size: 0.82em;
+}
+.forge-set-bonuses {
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 8px;
+    padding: 14px;
+}
+
+/* ════════════════════════════════════════
+   ADIÇÕES AO forge.css
+   Cole no final do arquivo forge.css existente
+════════════════════════════════════════ */
+
+/* ── Sub-navegação interna da aba Guildas ── */
+.guild-forge-subnav {
+    display: flex;
+    gap: 6px;
+    padding: 10px 24px 0;
+    border-bottom: 1px solid #21262d;
+    background: #0d1117;
+    flex-shrink: 0;
+}
+
+.gf-subnav-btn {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-bottom: none;
+    color: #8b949e;
+    padding: 8px 18px;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    font-size: 0.88em;
+    font-weight: bold;
+    transition: 0.15s;
+    position: relative;
+    bottom: -1px;
+}
+.gf-subnav-btn:hover { background: #21262d; color: #ecf0f1; }
+.gf-subnav-btn.active {
+    background: #0d1117;
+    color: #f39c12;
+    border-color: #21262d;
+    border-bottom-color: #0d1117;
+}
+
+/* ── Seções da aba Guildas ── */
+.gf-section {
+    display: none;
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+}
+.gf-section.active-gf-section {
+    display: block;
+}
+
+/* ── Ranks de guilda ── */
+.forge-guild-ranks {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: #0d1117;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #21262d;
+}
+.forge-rank-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.forge-rank-req {
+    font-size: 0.75em;
+    color: #f39c12;
+    font-weight: bold;
+    background: #21262d;
+    padding: 3px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+    min-width: 60px;
+    text-align: center;
+}
+.forge-rank-row input {
+    flex: 1;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    color: #ecf0f1;
+    padding: 6px 10px;
+    border-radius: 5px;
+    font-size: 0.88em;
+}
+.forge-rank-row input:focus {
+    border-color: #e67e22;
+    outline: none;
+}

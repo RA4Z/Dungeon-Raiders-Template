@@ -57,8 +57,35 @@ class GameAPI:
                 "is_crit":is_crit,"atk_type":atk_type}
 
     # ═══════════════════════════════════════════════
-    # STATS
+    # STATS + BÔNUS DE SET
     # ═══════════════════════════════════════════════
+    def _get_set_bonus(self, equipment_ids):
+        """Calcula bônus de set baseado nos equipamentos equipados."""
+        equipments_db = get_all_items("equipments")
+        sets_db       = get_all_items("equipment_sets")
+
+        # Conta quantos equipamentos de cada set estão equipados
+        set_counts = {}
+        for eq_id in equipment_ids:
+            eq = next((e for e in equipments_db if e['id'] == eq_id), None)
+            if eq and int(eq.get('set_id', 0)) > 0:
+                sid = int(eq['set_id'])
+                set_counts[sid] = set_counts.get(sid, 0) + 1
+
+        bonus = {}
+        for sid, count in set_counts.items():
+            s = next((x for x in sets_db if x['id'] == sid), None)
+            if not s: continue
+            # Aplica bônus para cada threshold atingido (2,3,4,5,6)
+            for threshold in [2, 3, 4, 5, 6]:
+                if count >= threshold:
+                    try:
+                        b = json.loads(s.get(f'bonus_{threshold}', '{}') or '{}')
+                        for k, v in b.items():
+                            bonus[k] = bonus.get(k, 0) + float(v)
+                    except: pass
+        return bonus
+
     def compute_full_stats(self, base_stats, equipment_ids, overrides=None):
         bonus = {}
         equipments_db = get_all_items("equipments")
@@ -69,6 +96,12 @@ class GameAPI:
                 except: mods = {}
                 for k, v in mods.items():
                     bonus[k] = bonus.get(k, 0) + float(v)
+
+        # Adiciona bônus de set
+        set_bonus = self._get_set_bonus(equipment_ids)
+        for k, v in set_bonus.items():
+            bonus[k] = bonus.get(k, 0) + v
+
         return StatsEngine.calculate_derived(base_stats, bonus, overrides)
 
     def load_save_full_stats(self, save_id):
@@ -96,6 +129,42 @@ class GameAPI:
             eq_ids = [int(v) for k, v in eq_dict.items() if str(v).isdigit()]
         b, c = self.compute_full_stats(base, eq_ids, overrides)
         return {"base": b, "computed": c}
+
+    def get_active_set_bonuses(self, save_id):
+        """Retorna os bônus de set ativos para o save."""
+        save = next((s for s in get_all_items("saves") if s['id'] == save_id), None)
+        if not save: return []
+        try: eq_dict = json.loads(save['equipment_data'])
+        except: eq_dict = {}
+        eq_ids = [int(v) for k, v in eq_dict.items() if str(v).isdigit()]
+
+        equipments_db = get_all_items("equipments")
+        sets_db       = get_all_items("equipment_sets")
+
+        set_counts = {}
+        for eq_id in eq_ids:
+            eq = next((e for e in equipments_db if e['id'] == eq_id), None)
+            if eq and int(eq.get('set_id', 0)) > 0:
+                sid = int(eq['set_id'])
+                set_counts[sid] = set_counts.get(sid, 0) + 1
+
+        result = []
+        for sid, count in set_counts.items():
+            s = next((x for x in sets_db if x['id'] == sid), None)
+            if not s: continue
+            active_bonuses = []
+            for threshold in [2, 3, 4, 5, 6]:
+                if count >= threshold:
+                    try:
+                        b = json.loads(s.get(f'bonus_{threshold}', '{}') or '{}')
+                        if b: active_bonuses.append({"pieces": threshold, "bonus": b})
+                    except: pass
+            result.append({
+                "set_name": s['name'],
+                "count": count,
+                "active_bonuses": active_bonuses
+            })
+        return result
 
     # ═══════════════════════════════════════════════
     # POWER SCORE
@@ -172,15 +241,16 @@ class GameAPI:
 
     def load_data(self):
         return {
-            "scenarios":    get_all_items("scenarios"),
-            "bodies":       get_all_items("bodies"),
-            "equipments":   get_all_items("equipments"),
-            "consumables":  get_all_items("consumables"),
-            "characters":   get_all_items("characters"),
-            "attacks":      get_all_items("attacks"),
-            "guilds":       get_all_items("guilds"),
-            "guild_quests": get_all_items("guild_quests"),
-            "guild_members":get_all_items("guild_members"),
+            "scenarios":       get_all_items("scenarios"),
+            "bodies":          get_all_items("bodies"),
+            "equipments":      get_all_items("equipments"),
+            "consumables":     get_all_items("consumables"),
+            "characters":      get_all_items("characters"),
+            "attacks":         get_all_items("attacks"),
+            "guilds":          get_all_items("guilds"),
+            "guild_quests":    get_all_items("guild_quests"),
+            "guild_members":   get_all_items("guild_members"),
+            "equipment_sets":  get_all_items("equipment_sets"),
         }
 
     # ═══════════════════════════════════════════════
@@ -189,7 +259,7 @@ class GameAPI:
     def get_saves(self):
         return get_all_items("saves")
 
-    def create_save(self, name, body_id, face_id, hair_id, skin_color, base_stats):
+    def create_save(self, name, body_id, face_id, hair_id, skin_color, base_stats, gender='male'):
         try:
             eq_data = {"base": int(body_id), "skin_color": skin_color}
             if face_id: eq_data["face"] = int(face_id)
@@ -198,205 +268,100 @@ class GameAPI:
             save_data = {
                 "name": name, "body_id": int(body_id),
                 "equipment_data": json.dumps(eq_data),
-                "gold": 0, "current_hp": 9999, "current_mana": 9999, "current_stamina": 9999,
+                "inventory_data": json.dumps({"equipments": [], "consumables": {}}),
                 "base_stats": json.dumps(base_stats),
-                "inventory_data": '{"equipments":[],"consumables":{}}',
-                "days_passed": 1,
-                "stat_exp": '{"for":0,"int":0,"des":0,"car":0,"res":0}',
-                "attacks": "[1]",
-                "hotbar_data": '[1,null,null,null,null,null,null,null,null,null]',
-                "attack_exp": '{"1":{"xp":0,"level":1}}',
-                "party_data": "[]",
-                "hired_allies": "[]",
-                "guild_reputation": "{}",
-                "active_quests": "[]",
-                "completed_quests": "[]",
-                "dungeon_max_floor": 1,
-                "dungeon_current_floor": 1,
+                "stat_exp": json.dumps({"for":0,"int":0,"des":0,"car":0,"res":0}),
+                "attacks": json.dumps([1]),
+                "hotbar_data": json.dumps([1,None,None,None,None,None,None,None,None,None]),
+                "attack_exp": json.dumps({"1":{"xp":0,"level":1}}),
                 "power_score": power_score,
+                "gender": gender,
             }
-            insert_item('saves', save_data)
-            conn = get_save_connection()
-            conn.row_factory = sqlite3.Row
-            cur = conn.cursor()
-            cur.execute("SELECT * FROM saves ORDER BY id DESC LIMIT 1")
-            new_save = dict(cur.fetchone())
-            conn.close()
+            insert_item("saves", save_data)
+            saves = get_all_items("saves")
+            new_save = saves[-1]
             return {"status": "success", "save": new_save}
-        except Exception as e: return {"status": "error", "message": str(e)}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
 
-    def sync_player_state(self, save_id, current_hp, current_mana, current_stamina,
-                          gold, inventory_json_str, equipment_data_str, days_passed,
-                          base_stats_str, stat_exp_str, attacks_str, hotbar_str,
-                          attack_exp_str, party_data_str=None, hired_allies_str=None,
-                          guild_reputation_str=None, active_quests_str=None,
-                          completed_quests_str=None, dungeon_max_floor=None,
-                          dungeon_current_floor=None):
+    def sync_player_state(self, save_id, hp, mana, stamina, gold,
+                          inventory_str, equipment_str,
+                          days_passed, base_stats_str, stat_exp_str,
+                          attacks_str, hotbar_str, attack_exp_str,
+                          party_data_str=None, hired_allies_str=None,
+                          guild_rep_str=None, active_quests_str=None,
+                          completed_quests_str=None,
+                          dungeon_max_floor=1, dungeon_current_floor=1):
         data = {
-            'current_hp': current_hp, 'current_mana': current_mana,
-            'current_stamina': current_stamina, 'gold': gold,
-            'inventory_data': inventory_json_str, 'equipment_data': equipment_data_str,
-            'days_passed': days_passed, 'base_stats': base_stats_str,
+            'current_hp': hp, 'current_mana': mana, 'current_stamina': stamina,
+            'gold': gold, 'inventory_data': inventory_str,
+            'equipment_data': equipment_str, 'days_passed': days_passed,
+            'base_stats': base_stats_str,
             'stat_exp': stat_exp_str, 'attacks': attacks_str,
             'hotbar_data': hotbar_str, 'attack_exp': attack_exp_str,
+            'dungeon_max_floor': dungeon_max_floor,
+            'dungeon_current_floor': dungeon_current_floor,
         }
-        if party_data_str         is not None: data['party_data']          = party_data_str
-        if hired_allies_str       is not None: data['hired_allies']         = hired_allies_str
-        if guild_reputation_str   is not None: data['guild_reputation']     = guild_reputation_str
-        if active_quests_str      is not None: data['active_quests']        = active_quests_str
-        if completed_quests_str   is not None: data['completed_quests']     = completed_quests_str
-        if dungeon_max_floor      is not None: data['dungeon_max_floor']    = dungeon_max_floor
-        if dungeon_current_floor  is not None: data['dungeon_current_floor']= dungeon_current_floor
+        if party_data_str       is not None: data['party_data']         = party_data_str
+        if hired_allies_str     is not None: data['hired_allies']       = hired_allies_str
+        if guild_rep_str        is not None: data['guild_reputation']   = guild_rep_str
+        if active_quests_str    is not None: data['active_quests']      = active_quests_str
+        if completed_quests_str is not None: data['completed_quests']   = completed_quests_str
+        update_item('saves', save_id, data)
+        return {"status": "success"}
 
-        try:
-            base = json.loads(base_stats_str)
-            data['power_score'] = self.calculate_power_score(base)
-        except: pass
+    def get_dungeon_info(self, save_id):
+        save = next((s for s in get_all_items("saves") if s['id'] == save_id), None)
+        if not save: return None
+        return {"max_floor": save.get('dungeon_max_floor', 1),
+                "current_floor": save.get('dungeon_current_floor', 1)}
 
+    def set_dungeon_floor(self, save_id, floor, is_new_max=False):
+        data = {'dungeon_current_floor': floor}
+        if is_new_max: data['dungeon_max_floor'] = floor
         update_item('saves', save_id, data)
         return {"status": "success"}
 
     # ═══════════════════════════════════════════════
-    # GUILDAS
-    # ═══════════════════════════════════════════════
-    def get_guild_rank_name(self, guild, rep):
-        thresholds = [(500, 5), (200, 4), (75, 3), (20, 2), (0, 1)]
-        rank_num = 1
-        for threshold, num in thresholds:
-            if rep >= threshold:
-                rank_num = num
-                break
-        return guild.get(f'rank_name_{rank_num}', f'Rank {rank_num}'), rank_num
-
-    def accept_quest(self, save_id, quest_id):
-        saves = get_all_items("saves")
-        save = next((s for s in saves if s['id'] == save_id), None)
-        if not save: return {"status": "error", "message": "Save não encontrado"}
-        try: active = json.loads(save.get('active_quests', '[]'))
-        except: active = []
-        try: completed = json.loads(save.get('completed_quests', '[]'))
-        except: completed = []
-        if quest_id in completed:
-            return {"status": "error", "message": "Quest já completada!"}
-        if any(q['quest_id'] == quest_id for q in active):
-            return {"status": "error", "message": "Quest já aceita!"}
-        quest = next((q for q in get_all_items("guild_quests") if q['id'] == quest_id), None)
-        if not quest: return {"status": "error", "message": "Quest não encontrada"}
-        active.append({"quest_id": quest_id, "guild_id": quest['guild_id'],
-                        "kills_done": 0, "started_day": save.get('days_passed', 1)})
-        update_item('saves', save_id, {'active_quests': json.dumps(active)})
-        return {"status": "success", "message": f"Quest '{quest['name']}' aceita!"}
-
-    def abandon_quest(self, save_id, quest_id):
-        saves = get_all_items("saves")
-        save = next((s for s in saves if s['id'] == save_id), None)
-        if not save: return {"status": "error", "message": "Save não encontrado"}
-        try: active = json.loads(save.get('active_quests', '[]'))
-        except: active = []
-        active = [q for q in active if q['quest_id'] != quest_id]
-        update_item('saves', save_id, {'active_quests': json.dumps(active)})
-        return {"status": "success"}
-
-    def turn_in_quest(self, save_id, quest_id):
-        saves = get_all_items("saves")
-        save = next((s for s in saves if s['id'] == save_id), None)
-        if not save: return {"status": "error", "message": "Save não encontrado"}
-        try: active = json.loads(save.get('active_quests', '[]'))
-        except: active = []
-        try: completed = json.loads(save.get('completed_quests', '[]'))
-        except: completed = []
-        try: rep_map = json.loads(save.get('guild_reputation', '{}'))
-        except: rep_map = {}
-
-        aq = next((q for q in active if q['quest_id'] == quest_id), None)
-        if not aq: return {"status": "error", "message": "Quest não está ativa"}
-        quest = next((q for q in get_all_items("guild_quests") if q['id'] == quest_id), None)
-        if not quest: return {"status": "error", "message": "Quest não encontrada"}
-
-        required = int(quest.get('required_kills', 0))
-        if required > 0 and aq['kills_done'] < required:
-            return {"status": "error", "message": f"Kills insuficientes: {aq['kills_done']}/{required}"}
-
-        gold_reward = int(quest.get('gold_reward', 0))
-        rep_reward  = int(quest.get('rep_reward', 0))
-        guild_id_str = str(quest['guild_id'])
-
-        new_gold = int(save.get('gold', 0)) + gold_reward
-        rep_map[guild_id_str] = int(rep_map.get(guild_id_str, 0)) + rep_reward
-        active = [q for q in active if q['quest_id'] != quest_id]
-        completed.append(quest_id)
-
-        update_item('saves', save_id, {
-            'gold': new_gold,
-            'active_quests': json.dumps(active),
-            'completed_quests': json.dumps(completed),
-            'guild_reputation': json.dumps(rep_map),
-        })
-        return {"status": "success", "gold_reward": gold_reward, "rep_reward": rep_reward,
-                "new_gold": new_gold, "new_rep": rep_map[guild_id_str]}
-
-    def update_quest_kills(self, save_id, enemy_id):
-        saves = get_all_items("saves")
-        save = next((s for s in saves if s['id'] == save_id), None)
-        if not save: return
-        try: active = json.loads(save.get('active_quests', '[]'))
-        except: return
-        quests_db = get_all_items("guild_quests")
-        updated = False
-        for aq in active:
-            quest = next((q for q in quests_db if q['id'] == aq['quest_id']), None)
-            if not quest: continue
-            target = int(quest.get('target_character_id', 0))
-            if target == 0 or target == enemy_id:
-                aq['kills_done'] = aq.get('kills_done', 0) + 1
-                updated = True
-        if updated:
-            update_item('saves', save_id, {'active_quests': json.dumps(active)})
-
-    # ═══════════════════════════════════════════════
-    # PARTY / ALIADOS
+    # ALIADOS — sistema completo com correção do train
     # ═══════════════════════════════════════════════
     def hire_ally(self, save_id, member_id):
-        saves = get_all_items("saves")
-        save = next((s for s in saves if s['id'] == save_id), None)
-        if not save: return {"status": "error", "message": "Save não encontrado"}
-
+        saves   = get_all_items("saves")
+        save    = next((s for s in saves if s['id'] == save_id), None)
         members = get_all_items("guild_members")
+        chars   = get_all_items("characters")
+
         member = next((m for m in members if m['id'] == member_id), None)
-        if not member: return {"status": "error", "message": "Membro não encontrado"}
+        if not member: return {"status":"error","message":"Membro não encontrado"}
 
-        base_cost = int(member.get('hire_cost', 100))
+        char = next((c for c in chars if c['id'] == member['character_id']), None)
+        if not char: return {"status":"error","message":"Personagem não encontrado"}
 
-        char = next((c for c in get_all_items("characters") if c['id'] == member['character_id']), None)
-        if not char: return {"status": "error", "message": "Personagem do aliado não encontrado"}
+        gold = int(save.get('gold', 0))
+        hire_cost = int(member.get('hire_cost', 100))
+
+        try: fired_zero = json.loads(save.get('fired_zero_moral', '[]'))
+        except: fired_zero = []
+        if member_id in fired_zero:
+            hire_cost *= 5
+
+        if gold < hire_cost:
+            return {"status":"error","message":f"Ouro insuficiente! Precisa de {hire_cost}"}
 
         try: hired = json.loads(save.get('hired_allies', '[]'))
         except: hired = []
 
         if any(a['member_id'] == member_id for a in hired):
-            return {"status": "error", "message": "Aliado já contratado!"}
+            return {"status":"error","message":"Aliado já contratado"}
 
-        # ── Verifica se precisa pagar penalidade por moral zero ──────────
-        try: fired_zero = json.loads(save.get('fired_zero_moral', '[]'))
-        except: fired_zero = []
+        gold -= hire_cost
 
-        cost = base_cost * 5 if member_id in fired_zero else base_cost
-        gold = int(save.get('gold', 0))
+        try: base_stats = json.loads(char.get('base_stats', '{}'))
+        except: base_stats = {"for":1,"int":1,"des":1,"car":1,"res":1}
+        try: attacks_list = json.loads(char.get('attacks', '[1]'))
+        except: attacks_list = [1]
 
-        if gold < cost:
-            penalty_note = " (penalidade de moral)" if member_id in fired_zero else ""
-            return {"status": "error", "message": f"Ouro insuficiente! Precisa de {cost} moedas{penalty_note}."}
-
-        # Carrega stats completos do aliado
-        ally_stats = self.load_enemy_full_stats(char['id'])
-
-        # Calcula custo diário (wage base + soma de stats base)
-        try: char_base = json.loads(char.get('base_stats', '{}'))
-        except: char_base = {}
-        stat_sum   = sum(int(v) for v in char_base.values() if str(v).isdigit())
-        daily_cost = int(member.get('daily_wage', 10)) + stat_sum
-
-        hired.append({
+        ally_obj = {
             "member_id":          member_id,
             "character_id":       char['id'],
             "name":               char['name'],
@@ -404,65 +369,54 @@ class GameAPI:
             "img_front":          char.get('img_front', ''),
             "img_back":           char.get('img_back', ''),
             "equipment_data":     char.get('equipment_data', '{}'),
-            "base_stats":         json.loads(char.get('base_stats', '{}')),
+            "base_stats":         base_stats,
             "stat_exp":           {"for":0,"int":0,"des":0,"car":0,"res":0},
-            "attacks":            json.loads(char.get('attacks', '[1]')),
-            "hotbar":             json.loads(char.get('attacks', '[1]')),
-            "hp":                 ally_stats['computed']['hp'] if ally_stats else 100,
-            "mana":               ally_stats['computed']['mana'] if ally_stats else 50,
-            "stamina":            ally_stats['computed']['stamina'] if ally_stats else 50,
+            "attacks":            attacks_list,
+            "hotbar":             attacks_list[:10] + [None]*(10-len(attacks_list[:10])),
             "daily_wage":         int(member.get('daily_wage', 10)),
-            "original_hire_cost": base_cost,    # custo original para penalidade futura
-            "routine":            "idle",        # idle | hunt | train
-            "train_stat":         "for",         # atributo padrão de treino
-            "moral":              100,           # 0–100
-        })
-
-        # Remove da lista de moral-zero se foi recontratado
-        if member_id in fired_zero:
-            fired_zero.remove(member_id)
-
-        new_gold = gold - cost
+            "original_hire_cost": int(member.get('hire_cost', 100)),
+            "moral":              100,
+            "routine":            "idle",
+            "train_stat":         "for",
+            "hp":                 None,
+            "mana":               None,
+            "stamina":            None,
+        }
+        hired.append(ally_obj)
         update_item('saves', save_id, {
-            'gold': new_gold,
+            'gold':         gold,
             'hired_allies': json.dumps(hired),
-            'fired_zero_moral': json.dumps(fired_zero),
         })
-        penalty_msg = f" (custo x5 por abandono anterior)" if cost > base_cost else ""
-        return {"status": "success", "message": f"{char['name']} contratado!{penalty_msg}", "new_gold": new_gold}
+        return {"status":"success","new_gold":gold}
 
     def fire_ally(self, save_id, member_id):
         saves = get_all_items("saves")
-        save = next((s for s in saves if s['id'] == save_id), None)
-        if not save: return {"status": "error"}
+        save  = next((s for s in saves if s['id'] == save_id), None)
+        if not save: return {"status":"error"}
+
         try: hired = json.loads(save.get('hired_allies', '[]'))
         except: hired = []
-        try: party = json.loads(save.get('party_data', '[]'))
-        except: party = []
-
-        # Verifica se abandonou com moral zero (para penalidade de recontratar)
-        ally_leaving = next((a for a in hired if a['member_id'] == member_id), None)
-        try: fired_zero = json.loads(save.get('fired_zero_moral', '[]'))
-        except: fired_zero = []
-
-        if ally_leaving and int(ally_leaving.get('moral', 100)) <= 0:
-            if member_id not in fired_zero:
-                fired_zero.append(member_id)
 
         hired = [a for a in hired if a['member_id'] != member_id]
+
+        try: party = json.loads(save.get('party_data', '[]'))
+        except: party = []
         party = [p for p in party if p != member_id]
 
         update_item('saves', save_id, {
-            'hired_allies':     json.dumps(hired),
-            'party_data':       json.dumps(party),
-            'fired_zero_moral': json.dumps(fired_zero),
+            'hired_allies': json.dumps(hired),
+            'party_data':   json.dumps(party),
         })
-        return {"status": "success"}
+        return {"status":"success"}
+
+    def set_party(self, save_id, party_list):
+        update_item('saves', save_id, {'party_data': json.dumps(party_list)})
+        return {"status":"success"}
 
     def set_ally_routine(self, save_id, member_id, routine):
         saves = get_all_items("saves")
-        save = next((s for s in saves if s['id'] == save_id), None)
-        if not save: return {"status": "error"}
+        save  = next((s for s in saves if s['id'] == save_id), None)
+        if not save: return {"status":"error"}
         try: hired = json.loads(save.get('hired_allies', '[]'))
         except: hired = []
         for a in hired:
@@ -470,13 +424,12 @@ class GameAPI:
                 a['routine'] = routine
                 break
         update_item('saves', save_id, {'hired_allies': json.dumps(hired)})
-        return {"status": "success"}
+        return {"status":"success"}
 
     def set_ally_train_stat(self, save_id, member_id, stat_key):
-        """Define qual atributo o aliado vai treinar."""
         saves = get_all_items("saves")
-        save = next((s for s in saves if s['id'] == save_id), None)
-        if not save: return {"status": "error"}
+        save  = next((s for s in saves if s['id'] == save_id), None)
+        if not save: return {"status":"error"}
         try: hired = json.loads(save.get('hired_allies', '[]'))
         except: hired = []
         for a in hired:
@@ -484,34 +437,29 @@ class GameAPI:
                 a['train_stat'] = stat_key
                 break
         update_item('saves', save_id, {'hired_allies': json.dumps(hired)})
-        return {"status": "success"}
+        return {"status":"success"}
 
     def set_ally_hotbar(self, save_id, member_id, hotbar_list):
         saves = get_all_items("saves")
-        save = next((s for s in saves if s['id'] == save_id), None)
-        if not save: return {"status": "error"}
+        save  = next((s for s in saves if s['id'] == save_id), None)
+        if not save: return {"status":"error"}
         try: hired = json.loads(save.get('hired_allies', '[]'))
         except: hired = []
+        # Garante 10 slots
+        while len(hotbar_list) < 10:
+            hotbar_list.append(None)
+        hotbar_list = hotbar_list[:10]
         for a in hired:
             if a['member_id'] == member_id:
                 a['hotbar'] = hotbar_list
                 break
         update_item('saves', save_id, {'hired_allies': json.dumps(hired)})
-        return {"status": "success"}
+        return {"status":"success"}
 
-    def set_party(self, save_id, member_ids):
-        if len(member_ids) > 2:
-            return {"status": "error", "message": "Máximo de 2 aliados na party!"}
-        update_item('saves', save_id, {'party_data': json.dumps(member_ids)})
-        return {"status": "success"}
-
+    # ─── FIX: process_daily_routines com stat_exp correto ─────────
     def process_daily_routines(self, save_id):
-        """
-        Processa rotinas dos aliados ao passar 1 dia.
-        Inclui: salário + moral + treino com XP (igual ao sistema do player).
-        """
         saves = get_all_items("saves")
-        save = next((s for s in saves if s['id'] == save_id), None)
+        save  = next((s for s in saves if s['id'] == save_id), None)
         if not save: return {"gold_earned": 0, "messages": []}
 
         try: hired = json.loads(save.get('hired_allies', '[]'))
@@ -524,11 +472,11 @@ class GameAPI:
         to_fire   = []
 
         HUNT_GOLD_MIN, HUNT_GOLD_MAX = 15, 45
-        TRAIN_XP = 50   # igual ao treino do player no quartel
-        XP_PER_LEVEL = 100  # level * 100
+        TRAIN_XP    = 50
+        XP_PER_LVL  = 100
 
         def xp_required(level):
-            return level * XP_PER_LEVEL
+            return int(level) * XP_PER_LVL
 
         for ally in hired:
             cost    = int(ally.get('daily_wage', 10)) + sum(
@@ -538,34 +486,41 @@ class GameAPI:
             routine = ally.get('routine', 'idle')
             name    = ally['name']
 
-            # ── Pagamento do salário ────────────────────────────────
+            # ── Pagamento ───────────────────────────────────
             if gold >= cost:
                 gold -= cost
-                # Moral se recupera 5 pontos ao receber pagamento (até 100)
                 ally['moral'] = min(100, moral + 5)
             else:
                 new_moral = max(0, moral - 10)
                 ally['moral'] = new_moral
                 if new_moral <= 0:
                     to_fire.append(ally['member_id'])
-                    messages.append(f"💔 {name} abandonou a equipe! Moral chegou a zero por falta de pagamento.")
+                    messages.append(f"💔 {name} abandonou a equipe! Moral chegou a zero.")
                     continue
                 else:
                     messages.append(f"😤 {name} não recebeu pagamento! Moral: {new_moral}/100")
 
-            # ── Rotina diária ───────────────────────────────────────
+            # ── Rotinas ─────────────────────────────────────
             if routine == 'hunt':
                 earned = random.randint(HUNT_GOLD_MIN, HUNT_GOLD_MAX)
                 gold  += earned
                 messages.append(f"⚔️ {name} caçou e trouxe {earned} moedas!")
 
             elif routine == 'train':
-                train_stat = ally.get('train_stat', '')
+                # FIX: garante que stat_exp é um dict válido
                 base_stats = ally.get('base_stats') or {}
-                stat_exp   = ally.get('stat_exp')   or {}
+                stat_exp   = ally.get('stat_exp')
+                if not isinstance(stat_exp, dict):
+                    try:    stat_exp = json.loads(stat_exp) if stat_exp else {}
+                    except: stat_exp = {}
 
+                # Garante que todos os atributos existem no stat_exp
+                for k in ['for','int','des','car','res']:
+                    if k not in stat_exp:
+                        stat_exp[k] = 0
+
+                train_stat = ally.get('train_stat', '')
                 if not train_stat or train_stat not in base_stats:
-                    # Escolhe o atributo com menor nível se não configurado
                     train_stat = min(base_stats, key=lambda k: int(base_stats.get(k, 1)))
                     ally['train_stat'] = train_stat
 
@@ -575,7 +530,6 @@ class GameAPI:
                 stat_exp[train_stat] = int(stat_exp.get(train_stat, 0)) + TRAIN_XP
                 leveled_up = False
 
-                # Loop de level up (igual ao player)
                 while True:
                     cur_lvl = int(base_stats.get(train_stat, 1))
                     req     = xp_required(cur_lvl)
@@ -586,26 +540,28 @@ class GameAPI:
                     else:
                         break
 
+                # FIX: garante que base_stats e stat_exp são sempre salvos como dict
                 ally['base_stats'] = base_stats
                 ally['stat_exp']   = stat_exp
 
                 if leveled_up:
                     new_lvl = int(base_stats[train_stat])
-                    messages.append(f"📚 {name} treinou {stat_name} e subiu de nível! (Lv {new_lvl}) 🎉")
+                    messages.append(f"📚 {name} treinou {stat_name} e subiu para Lv {new_lvl}! 🎉")
                 else:
-                    messages.append(f"📚 {name} treinou {stat_name}. (+{TRAIN_XP} XP)")
-
+                    current_xp = stat_exp[train_stat]
+                    cur_lvl    = int(base_stats.get(train_stat, 1))
+                    req        = xp_required(cur_lvl)
+                    messages.append(f"📚 {name} treinou {stat_name}. (+{TRAIN_XP} XP | {current_xp}/{req})")
             else:
                 messages.append(f"💤 {name} descansou.")
 
-        # ── Remove aliados com moral zero ───────────────────────────
+        # Remove aliados com moral zero
         for member_id in to_fire:
             ally_leaving = next((a for a in hired if a['member_id'] == member_id), None)
             if ally_leaving and member_id not in fired_zero:
                 fired_zero.append(member_id)
             hired = [a for a in hired if a['member_id'] != member_id]
 
-        # Atualiza party
         try: party = json.loads(save.get('party_data', '[]'))
         except: party = []
         party = [p for p in party if p not in to_fire]
@@ -616,91 +572,68 @@ class GameAPI:
             'party_data':       json.dumps(party),
             'fired_zero_moral': json.dumps(fired_zero),
         })
+
+        old_gold = int(save.get('gold', 0))
         return {
-            "gold_earned": gold - int(save.get('gold', 0)),
-            "messages":    messages,
             "new_gold":    gold,
+            "gold_earned": gold - old_gold,
+            "messages":    messages,
             "fired_allies": to_fire,
         }
 
-    def get_ally_hire_cost(self, save_id, member_id):
-        """Retorna o custo de contratação considerando penalidade de moral."""
-        saves = get_all_items("saves")
-        save = next((s for s in saves if s['id'] == save_id), None)
-
-        members = get_all_items("guild_members")
-        member = next((m for m in members if m['id'] == member_id), None)
-        if not member: return {"cost": 0, "penalized": False}
-
-        base_cost = int(member.get('hire_cost', 100))
-
-        try: fired_zero = json.loads(save.get('fired_zero_moral', '[]')) if save else []
-        except: fired_zero = []
-
-        penalized = member_id in fired_zero
-        cost      = base_cost * 5 if penalized else base_cost
-        return {"cost": cost, "penalized": penalized, "base_cost": base_cost}
-
     # ═══════════════════════════════════════════════
-    # DUNGEON FLOORS
+    # LOOT / INVENTÁRIO
     # ═══════════════════════════════════════════════
-    def get_dungeon_info(self, save_id):
-        save = next((s for s in get_all_items("saves") if s['id'] == save_id), None)
-        if not save: return None
-        return {
-            "max_floor":     int(save.get('dungeon_max_floor', 1)),
-            "current_floor": int(save.get('dungeon_current_floor', 1)),
-        }
+    def generate_loot(self, enemy_id, save_id):
+        enemy = next((e for e in get_all_items("characters") if e['id'] == enemy_id), None)
+        save  = next((s for s in get_all_items("saves") if s['id'] == save_id), None)
+        if not enemy or not save:
+            return {"loot_list": [], "new_inventory": {"equipments":[], "consumables":{}}, "new_gold": 0}
 
-    def set_dungeon_floor(self, save_id, floor, is_max=False):
-        data = {'dungeon_current_floor': floor}
-        if is_max:
-            save = next((s for s in get_all_items("saves") if s['id'] == save_id), None)
-            if save and floor > int(save.get('dungeon_max_floor', 1)):
-                data['dungeon_max_floor'] = floor
-        update_item('saves', save_id, data)
-        return {"status": "success"}
+        try: inventory = json.loads(save['inventory_data'])
+        except: inventory = {"equipments": [], "consumables": {}}
+        gold = int(save.get('gold', 0))
 
-    # ═══════════════════════════════════════════════
-    # LOOT & MISC
-    # ═══════════════════════════════════════════════
-    def get_random_enemy(self, dummy=None):
-        conn = get_game_connection()
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM characters ORDER BY RANDOM() LIMIT 1')
-        enemy = cursor.fetchone()
-        conn.close()
-        return dict(enemy) if enemy else None
+        loot_list  = []
+        gold_drop  = random.randint(5, 20)
+        gold      += gold_drop
+        loot_list.append(f"🪙 {gold_drop} moedas de ouro")
 
-    def generate_loot(self, defeated_enemy_id, save_id):
-        saves = get_all_items("saves")
-        player_save = next((s for s in saves if s['id'] == save_id), None)
-        if not player_save: return {"loot_list":[],"new_inventory":{},"new_gold":0}
-        inventory = json.loads(player_save.get('inventory_data') or '{"equipments":[],"consumables":{}}')
-        gold = int(player_save.get('gold', 0))
-        gold += random.randint(5, 30)
-        loot_msgs = ["Ouro Encontrado!"]
-        enemy = next((c for c in get_all_items("characters") if c['id'] == defeated_enemy_id), None)
-        if enemy:
-            if enemy['race'] == 'monstro':
-                try: custom_drops = json.loads(enemy.get('custom_drops', '[]'))
-                except: custom_drops = []
-                for drop in custom_drops:
-                    if random.randint(1,100) <= drop.get('chance',0):
-                        if drop['type'] == 'cons':
-                            inventory['consumables'][str(drop['id'])] = inventory['consumables'].get(str(drop['id']),0)+1
-                        elif drop['type'] == 'equip':
-                            inventory['equipments'].append(int(drop['id']))
-                        loot_msgs.append(f"Drop: {drop['name']}")
-            elif enemy['race'] == 'humano':
-                try: eq_data = json.loads(enemy.get('equipment_data','{}'))
-                except: eq_data = {}
-                for slot, eq_id in eq_data.items():
-                    if slot not in ['base','face','hair'] and eq_id:
-                        if random.randint(1,100) <= 5:
-                            inventory['equipments'].append(int(eq_id))
-                            loot_msgs.append("Roubado Peça de Equipamento!")
-        self.update_quest_kills(save_id, defeated_enemy_id)
-        update_item("saves", save_id, {"gold": gold, "inventory_data": json.dumps(inventory)})
-        return {"loot_list": loot_msgs, "new_inventory": inventory, "new_gold": gold}
+        try: custom_drops = json.loads(enemy.get('custom_drops', '[]'))
+        except: custom_drops = []
+
+        if custom_drops:
+            for drop in custom_drops:
+                roll = random.randint(1, 100)
+                if roll <= int(drop.get('chance', 10)):
+                    dtype = drop.get('type', '')
+                    did   = drop.get('id', 0)
+                    if dtype == 'equip':
+                        item = next((e for e in get_all_items("equipments") if e['id'] == did), None)
+                        if item:
+                            inventory['equipments'].append(did)
+                            loot_list.append(f"⚔️ {item['name']}")
+                    elif dtype == 'cons':
+                        item = next((c for c in get_all_items("consumables") if c['id'] == did), None)
+                        if item:
+                            cid = str(did)
+                            inventory['consumables'][cid] = inventory['consumables'].get(cid, 0) + 1
+                            loot_list.append(f"🧪 {item['name']}")
+        else:
+            all_equips = get_all_items("equipments")
+            all_cons   = get_all_items("consumables")
+            for eq in all_equips:
+                if random.randint(1, 100) <= int(eq.get('drop_chance', 5)):
+                    inventory['equipments'].append(eq['id'])
+                    loot_list.append(f"⚔️ {eq['name']}")
+            for cons in all_cons:
+                if random.randint(1, 100) <= int(cons.get('drop_chance', 10)):
+                    cid = str(cons['id'])
+                    inventory['consumables'][cid] = inventory['consumables'].get(cid, 0) + 1
+                    loot_list.append(f"🧪 {cons['name']}")
+
+        update_item('saves', save_id, {
+            'gold':           gold,
+            'inventory_data': json.dumps(inventory)
+        })
+        return {"loot_list": loot_list, "new_inventory": inventory, "new_gold": gold}

@@ -11,9 +11,9 @@ window._alliesDetailTarget = null; // { idx, ally (cópia) }
 /** Calcula a guilda de um aliado (via guild_members) */
 function getAllyGuild(ally) {
     const members = window.gameData.guild_members || [];
-    const member  = members.find(m => m.id === ally.member_id);
+    const member = members.find(m => m.id === ally.member_id);
     if (!member) return null;
-    const guilds  = window.gameData.guilds || [];
+    const guilds = window.gameData.guilds || [];
     return guilds.find(g => g.id == member.guild_id) || null;
 }
 
@@ -28,8 +28,8 @@ function allyXpRequired(level) {
  */
 function getAllyDailyCost(ally) {
     const baseWage = parseInt(ally.daily_wage || 0);
-    const stats    = ally.base_stats || {};
-    const statSum  = Object.values(stats).reduce((acc, v) => acc + (parseInt(v) || 0), 0);
+    const stats = ally.base_stats || {};
+    const statSum = Object.values(stats).reduce((acc, v) => acc + (parseInt(v) || 0), 0);
     return baseWage + statSum;
 }
 
@@ -45,7 +45,7 @@ function getMoralStyle(moral) {
 // ══════════════════════════════════════════════════
 // ABERTURA DA TELA
 // ══════════════════════════════════════════════════
-window.openAlliesPanel = async function() {
+window.openAlliesPanel = async function () {
     if (!window.activePlayer) return alert('Nenhum personagem ativo!');
     await syncAlliesState();
     showTab('allies-tab', document.getElementById('btn-tab-allies'));
@@ -54,40 +54,40 @@ window.openAlliesPanel = async function() {
 
 async function syncAlliesState() {
     const saves = await window.pywebview.api.get_saves();
-    const save  = saves.find(s => s.id === window.activeSaveId);
+    const save = saves.find(s => s.id === window.activeSaveId);
     if (!save) return;
     window._currentSave = save;
-    try { window._hiredAllies = JSON.parse(save.hired_allies     || '[]'); } catch(e) { window._hiredAllies = []; }
-    try { window._party       = JSON.parse(save.party_data       || '[]'); } catch(e) { window._party = []; }
-    try { window._repMap      = JSON.parse(save.guild_reputation || '{}'); } catch(e) { window._repMap = {}; }
+    try { window._hiredAllies = JSON.parse(save.hired_allies || '[]'); } catch (e) { window._hiredAllies = []; }
+    try { window._party = JSON.parse(save.party_data || '[]'); } catch (e) { window._party = []; }
+    try { window._repMap = JSON.parse(save.guild_reputation || '{}'); } catch (e) { window._repMap = {}; }
 }
 
 // ══════════════════════════════════════════════════
 // RENDER PRINCIPAL
 // ══════════════════════════════════════════════════
-window.renderAlliesPanel = function() {
-    const hired  = window._hiredAllies || [];
-    const party  = window._party       || [];
+window.renderAlliesPanel = function () {
+    const hired = window._hiredAllies || [];
+    const party = window._party || [];
 
     // Atualiza resumo do cabeçalho
     const totalCost = hired.reduce((acc, a) => acc + getAllyDailyCost(a), 0);
     const el = id => document.getElementById(id);
-    if (el('as-count'))      el('as-count').innerText      = `${hired.length} aliado${hired.length !== 1 ? 's' : ''}`;
-    if (el('as-party'))      el('as-party').innerText      = `Party: ${party.length + 1}/3`;
+    if (el('as-count')) el('as-count').innerText = `${hired.length} aliado${hired.length !== 1 ? 's' : ''}`;
+    if (el('as-party')) el('as-party').innerText = `Party: ${party.length + 1}/3`;
     if (el('as-daily-cost')) el('as-daily-cost').innerText = `💸 ${totalCost}/dia`;
-    if (el('as-gold'))       el('as-gold').innerText       = `🪙 ${window.playerGold}`;
+    if (el('as-gold')) el('as-gold').innerText = `🪙 ${window.playerGold}`;
 
     // Filtra
-    const search  = (el('ally-search')?.value || '').toLowerCase();
-    let visible   = hired.filter((ally, idx) => {
+    const search = (el('ally-search')?.value || '').toLowerCase();
+    let visible = hired.filter((ally, idx) => {
         const matchSearch = ally.name.toLowerCase().includes(search);
         const inParty = party.includes(ally.member_id);
-        const filter  = window._alliesFilter;
+        const filter = window._alliesFilter;
         if (!matchSearch) return false;
-        if (filter === 'all')   return true;
+        if (filter === 'all') return true;
         if (filter === 'party') return inParty;
-        if (filter === 'idle')  return !inParty && (ally.routine === 'idle' || !ally.routine);
-        if (filter === 'hunt')  return ally.routine === 'hunt';
+        if (filter === 'idle') return !inParty && (ally.routine === 'idle' || !ally.routine);
+        if (filter === 'hunt') return ally.routine === 'hunt';
         if (filter === 'train') return ally.routine === 'train';
         return true;
     });
@@ -104,19 +104,19 @@ window.renderAlliesPanel = function() {
 
     grid.innerHTML = '';
     visible.forEach((ally) => {
-        const realIdx  = hired.indexOf(ally);
-        const inParty  = party.includes(ally.member_id);
-        const guild    = getAllyGuild(ally);
-        const moral    = parseInt(ally.moral ?? 100);
+        const realIdx = hired.indexOf(ally);
+        const inParty = party.includes(ally.member_id);
+        const guild = getAllyGuild(ally);
+        const moral = parseInt(ally.moral ?? 100);
         const moralStyle = getMoralStyle(moral);
-        const dailyCost  = getAllyDailyCost(ally);
-        const routine  = inParty ? 'party' : (ally.routine || 'idle');
+        const dailyCost = getAllyDailyCost(ally);
+        const routine = inParty ? 'party' : (ally.routine || 'idle');
 
         const routineLabels = {
-            idle:  { icon: '💤', label: 'Ocioso',   cls: 'apc-routine-idle'  },
+            idle: { icon: '💤', label: 'Ocioso', cls: 'apc-routine-idle' },
             party: { icon: '⚔️', label: 'Na Party', cls: 'apc-routine-party' },
-            hunt:  { icon: '🏹', label: 'Caçando',  cls: 'apc-routine-hunt'  },
-            train: { icon: '📚', label: 'Treinando',cls: 'apc-routine-train' },
+            hunt: { icon: '🏹', label: 'Caçando', cls: 'apc-routine-hunt' },
+            train: { icon: '📚', label: 'Treinando', cls: 'apc-routine-train' },
         };
         const rl = routineLabels[routine] || routineLabels.idle;
 
@@ -125,20 +125,20 @@ window.renderAlliesPanel = function() {
 
         const card = document.createElement('div');
         card.className = `ally-panel-card${inParty ? ' in-party' : ''}${lowMoral ? ' low-morale' : ''}`;
-        card.onclick   = () => openAllyDetail(realIdx);
+        card.onclick = () => openAllyDetail(realIdx);
         card.innerHTML = `
             <div class="apc-header">
                 <div class="apc-avatar" id="apc-avatar-${realIdx}">
                     ${ally.race !== 'humano'
-                        ? `<img src="${ally.img_front || ''}" style="max-width:100%; max-height:100%; object-fit:contain;">`
-                        : `<div class="paper-doll-container" id="apc-doll-${realIdx}"></div>`}
+                ? `<img src="${ally.img_front || ''}" style="max-width:100%; max-height:100%; object-fit:contain;">`
+                : `<div class="paper-doll-container" id="apc-doll-${realIdx}"></div>`}
                 </div>
                 <div class="apc-info">
                     <div class="apc-name">${ally.name}</div>
                     <div class="apc-race">${ally.race}</div>
                     ${guild
-                        ? `<div class="apc-guild-badge" style="background:${guild.emblem_color}22; color:${guild.emblem_color}; border:1px solid ${guild.emblem_color}55;">${guild.emblem_icon} ${guild.name}</div>`
-                        : ''}
+                ? `<div class="apc-guild-badge" style="background:${guild.emblem_color}22; color:${guild.emblem_color}; border:1px solid ${guild.emblem_color}55;">${guild.emblem_icon} ${guild.name}</div>`
+                : ''}
                 </div>
             </div>
             <div class="apc-routine-badge ${rl.cls}">${rl.icon} ${rl.label}</div>
@@ -169,8 +169,8 @@ window.renderAlliesPanel = function() {
     });
 };
 
-window.filterAlliesPanel = function() { renderAlliesPanel(); };
-window.setAlliesFilter   = function(filter, btn) {
+window.filterAlliesPanel = function () { renderAlliesPanel(); };
+window.setAlliesFilter = function (filter, btn) {
     window._alliesFilter = filter;
     document.querySelectorAll('.af-tab').forEach(b => b.classList.remove('active'));
     if (btn) btn.classList.add('active');
@@ -180,9 +180,9 @@ window.setAlliesFilter   = function(filter, btn) {
 // ══════════════════════════════════════════════════
 // MODAL DE DETALHE
 // ══════════════════════════════════════════════════
-window.openAllyDetail = function(idx) {
+window.openAllyDetail = function (idx) {
     const hired = window._hiredAllies || [];
-    const ally  = hired[idx];
+    const ally = hired[idx];
     if (!ally) return;
 
     // Cópia profunda para edição não-destrutiva
@@ -215,8 +215,8 @@ function _renderAllyDetailModal() {
     if (guild) {
         $('ad-guild-badge').innerHTML = `${guild.emblem_icon} ${guild.name}`;
         $('ad-guild-badge').style.background = guild.emblem_color + '22';
-        $('ad-guild-badge').style.color       = guild.emblem_color;
-        $('ad-guild-badge').style.border      = `1px solid ${guild.emblem_color}66`;
+        $('ad-guild-badge').style.color = guild.emblem_color;
+        $('ad-guild-badge').style.border = `1px solid ${guild.emblem_color}66`;
     } else {
         $('ad-guild-badge').innerHTML = '— Sem guilda —';
         $('ad-guild-badge').style.background = '#21262d';
@@ -238,21 +238,21 @@ function _renderAllyDetailModal() {
     // Moral
     $('ad-moral-value').innerText = moral;
     $('ad-moral-value').style.color = moralStyle.color;
-    $('ad-moral-fill').style.width      = `${moral}%`;
+    $('ad-moral-fill').style.width = `${moral}%`;
     $('ad-moral-fill').style.background = moralStyle.color;
     $('ad-moral-desc').innerText = moralStyle.label;
 
     // Custo diário
     const baseWage = parseInt(ally.daily_wage || 0);
-    const stats    = ally.base_stats || {};
-    const statSum  = Object.values(stats).reduce((acc, v) => acc + (parseInt(v) || 0), 0);
-    $('ad-daily-cost').innerText       = dailyCost;
-    $('ad-cost-breakdown').innerText   = `(${baseWage} base + ${statSum} atributos)`;
+    const stats = ally.base_stats || {};
+    const statSum = Object.values(stats).reduce((acc, v) => acc + (parseInt(v) || 0), 0);
+    $('ad-daily-cost').innerText = dailyCost;
+    $('ad-cost-breakdown').innerText = `(${baseWage} base + ${statSum} atributos)`;
 
     // Stats resumidos
     const statsEl = $('ad-stats-list');
     statsEl.innerHTML = '';
-    const statNames = window.STAT_MAP?.base || { 'for':'Força','int':'Inteligência','des':'Destreza','car':'Carisma','res':'Resistência' };
+    const statNames = window.STAT_MAP?.base || { 'for': 'Força', 'int': 'Inteligência', 'des': 'Destreza', 'car': 'Carisma', 'res': 'Resistência' };
     for (const [k, name] of Object.entries(statNames)) {
         const lvl = parseInt(stats[k] || 1);
         statsEl.innerHTML += `<div class="stat-row"><span>${name}</span><strong>${lvl}</strong></div>`;
@@ -260,9 +260,9 @@ function _renderAllyDetailModal() {
 
     // Rotina
     const routines = [
-        { key: 'idle',  icon: '💤', label: 'Descansar',   desc: 'Recupera energia, sem custo extra.', color: '#555' },
-        { key: 'hunt',  icon: '🏹', label: 'Caçar',       desc: 'Traz 15–45 moedas por dia.',         color: '#e74c3c' },
-        { key: 'train', icon: '📚', label: 'Treinar',      desc: '+50 XP em 1 atributo por dia.',      color: '#3498db' },
+        { key: 'idle', icon: '💤', label: 'Descansar', desc: 'Recupera energia, sem custo extra.', color: '#555' },
+        { key: 'hunt', icon: '🏹', label: 'Caçar', desc: 'Traz 15–45 moedas por dia.', color: '#e74c3c' },
+        { key: 'train', icon: '📚', label: 'Treinar', desc: '+50 XP em 1 atributo por dia.', color: '#3498db' },
     ];
     const routineGrid = $('ad-routine-grid');
     routineGrid.innerHTML = '';
@@ -277,8 +277,8 @@ function _renderAllyDetailModal() {
             div.onclick = () => _selectRoutine(r.key);
         } else {
             div.style.opacity = '0.4';
-            div.style.cursor  = 'not-allowed';
-            div.title          = 'Aliado está na party. Remova-o para alterar a rotina.';
+            div.style.cursor = 'not-allowed';
+            div.title = 'Aliado está na party. Remova-o para alterar a rotina.';
         }
         routineGrid.appendChild(div);
     });
@@ -313,13 +313,13 @@ function _renderTrainSection(inParty) {
     const isTraining = !inParty && ally.routine === 'train';
     section.style.display = isTraining ? 'block' : 'none';
 
-    const grid  = document.getElementById('ad-train-grid');
-    if (!grid)  return;
+    const grid = document.getElementById('ad-train-grid');
+    if (!grid) return;
     grid.innerHTML = '';
 
-    const statNames = window.STAT_MAP?.base || { 'for':'FOR','int':'INT','des':'DES','car':'CAR','res':'RES' };
-    const stats     = ally.base_stats  || {};
-    const statExp   = ally.stat_exp    || {};
+    const statNames = window.STAT_MAP?.base || { 'for': 'FOR', 'int': 'INT', 'des': 'DES', 'car': 'CAR', 'res': 'RES' };
+    const stats = ally.base_stats || {};
+    const statExp = ally.stat_exp || {};
     const selectedStat = ally.train_stat || Object.keys(statNames)[0];
 
     for (const [k, name] of Object.entries(statNames)) {
@@ -327,8 +327,8 @@ function _renderTrainSection(inParty) {
         const sel = selectedStat === k;
         const div = document.createElement('div');
         div.className = `train-option${sel ? ' selected' : ''}`;
-        div.innerHTML = `<span>${name.substring(0,3).toUpperCase()}</span><span class="to-level">Lv${lvl}</span>`;
-        div.onclick   = () => _selectTrainStat(k);
+        div.innerHTML = `<span>${name.substring(0, 3).toUpperCase()}</span><span class="to-level">Lv${lvl}</span>`;
+        div.onclick = () => _selectTrainStat(k);
         grid.appendChild(div);
     }
 }
@@ -337,15 +337,15 @@ function _selectTrainStat(key) {
     window._alliesDetailTarget.ally.train_stat = key;
     document.querySelectorAll('.train-option').forEach(el => el.classList.remove('selected'));
     const els = document.querySelectorAll('.train-option');
-    const statNames = Object.keys(window.STAT_MAP?.base || { 'for':1,'int':1,'des':1,'car':1,'res':1 });
+    const statNames = Object.keys(window.STAT_MAP?.base || { 'for': 1, 'int': 1, 'des': 1, 'car': 1, 'res': 1 });
     const idx2 = statNames.indexOf(key);
     if (els[idx2]) els[idx2].classList.add('selected');
 }
 
 function _renderPartySection(inParty) {
     const { ally } = window._alliesDetailTarget;
-    const party    = window._party || [];
-    const section  = document.getElementById('ad-party-section');
+    const party = window._party || [];
+    const section = document.getElementById('ad-party-section');
     if (!section) return;
 
     if (inParty) {
@@ -363,13 +363,13 @@ function _renderPartySection(inParty) {
                     Party atual: <strong style="color:#f1c40f;">${party.length + 1}/3</strong> (você + ${party.length} aliado${party.length !== 1 ? 's' : ''})
                 </p>
                 ${canAdd
-                    ? `<button class="btn-add-party" onclick="addToPartyDetail()">+ Adicionar à Party</button>`
-                    : `<p style="color:#e74c3c; font-size:0.83em;">Party cheia! Remova um aliado primeiro.</p>`}
+                ? `<button class="btn-add-party" onclick="addToPartyDetail()">+ Adicionar à Party</button>`
+                : `<p style="color:#e74c3c; font-size:0.83em;">Party cheia! Remova um aliado primeiro.</p>`}
             </div>`;
     }
 }
 
-window.addToPartyDetail = async function() {
+window.addToPartyDetail = async function () {
     const { idx, ally } = window._alliesDetailTarget;
     const party = window._party || [];
     if (party.length >= 2) return window.showToast('Party cheia!', 'error');
@@ -382,7 +382,7 @@ window.addToPartyDetail = async function() {
     renderAlliesPanel();
 };
 
-window.removeFromPartyDetail = async function() {
+window.removeFromPartyDetail = async function () {
     const { ally } = window._alliesDetailTarget;
     window._party = (window._party || []).filter(id => id !== ally.member_id);
     await window.pywebview.api.set_party(window.activeSaveId, window._party);
@@ -393,16 +393,17 @@ window.removeFromPartyDetail = async function() {
 
 function _renderAllyDetailHotbar() {
     const { ally } = window._alliesDetailTarget;
-    const hotbar   = ally.hotbar  || [];
-    const attacks  = ally.attacks || [];
-    const hbEl     = document.getElementById('ad-hotbar-grid');
-    const skEl     = document.getElementById('ad-skills-list');
+    const HOTBAR_SIZE = 10; // igual ao player
+    const hotbar = Array.from({ length: HOTBAR_SIZE }, (_, i) => (ally.hotbar || [])[i] ?? null);
+    const attacks = ally.attacks || [];
+    const hbEl = document.getElementById('ad-hotbar-grid');
+    const skEl = document.getElementById('ad-skills-list');
     if (!hbEl || !skEl) return;
 
     hbEl.innerHTML = '';
-    for (let i = 0; i < 6; i++) {
-        const atkId = hotbar[i] ?? null;
-        const atk   = atkId ? (window.gameData.attacks || []).find(a => a.id == atkId) : null;
+    for (let i = 0; i < HOTBAR_SIZE; i++) {
+        const atkId = hotbar[i];
+        const atk = atkId ? (window.gameData.attacks || []).find(a => a.id == atkId) : null;
         hbEl.innerHTML += `
             <div class="hotbar-slot ${atk ? `hb-atk-${atk.atk_type}` : 'empty'}"
                  onclick="removeAllyDetailHotbarSlot(${i})" title="${atk ? 'Clique para remover' : 'Vazio'}">
@@ -421,18 +422,19 @@ function _renderAllyDetailHotbar() {
     });
 }
 
-window.addAllyDetailHotbarSkill = function(atkId) {
+window.addAllyDetailHotbarSkill = function (atkId) {
     const ally = window._alliesDetailTarget?.ally;
     if (!ally) return;
     if (!ally.hotbar) ally.hotbar = [];
+    // Preenche até 10 slots
+    while (ally.hotbar.length < 10) ally.hotbar.push(null);
     const emptySlot = ally.hotbar.findIndex(s => s === null || s === undefined);
-    if (emptySlot === -1 && ally.hotbar.length >= 6) return window.showToast('Barra cheia!', 'error');
-    if (emptySlot === -1) ally.hotbar.push(atkId);
-    else ally.hotbar[emptySlot] = atkId;
+    if (emptySlot === -1) return window.showToast('Barra cheia! (10/10)', 'error');
+    ally.hotbar[emptySlot] = atkId;
     _renderAllyDetailHotbar();
 };
 
-window.removeAllyDetailHotbarSlot = function(i) {
+window.removeAllyDetailHotbarSlot = function (i) {
     const ally = window._alliesDetailTarget?.ally;
     if (!ally || !ally.hotbar) return;
     ally.hotbar[i] = null;
@@ -441,17 +443,17 @@ window.removeAllyDetailHotbarSlot = function(i) {
 
 function _renderAttrProgress() {
     const { ally } = window._alliesDetailTarget;
-    const stats   = ally.base_stats || {};
-    const statExp = ally.stat_exp   || {};
-    const el      = document.getElementById('ad-attr-progress');
+    const stats = ally.base_stats || {};
+    const statExp = ally.stat_exp || {};
+    const el = document.getElementById('ad-attr-progress');
     if (!el) return;
-    const statNames = window.STAT_MAP?.base || { 'for':'Força','int':'Inteligência','des':'Destreza','car':'Carisma','res':'Resistência' };
+    const statNames = window.STAT_MAP?.base || { 'for': 'Força', 'int': 'Inteligência', 'des': 'Destreza', 'car': 'Carisma', 'res': 'Resistência' };
     el.innerHTML = '';
     for (const [k, name] of Object.entries(statNames)) {
-        const lvl  = parseInt(stats[k] || 1);
-        const xp   = parseInt(statExp[k] || 0);
-        const req  = allyXpRequired(lvl);
-        const pct  = Math.min(100, (xp / req) * 100);
+        const lvl = parseInt(stats[k] || 1);
+        const xp = parseInt(statExp[k] || 0);
+        const req = allyXpRequired(lvl);
+        const pct = Math.min(100, (xp / req) * 100);
         el.innerHTML += `
             <div class="aap-row">
                 <div class="aap-label">
@@ -468,12 +470,12 @@ function _renderAttrProgress() {
 // ══════════════════════════════════════════════════
 // SALVAR / DISPENSAR
 // ══════════════════════════════════════════════════
-window.saveAllyDetail = async function() {
+window.saveAllyDetail = async function () {
     const { idx, ally } = window._alliesDetailTarget || {};
     if (idx === undefined) return;
 
     const hired = window._hiredAllies || [];
-    hired[idx]  = ally;
+    hired[idx] = ally;
     window._hiredAllies = hired;
 
     await window.pywebview.api.set_ally_routine(window.activeSaveId, ally.member_id, ally.routine || 'idle');
@@ -486,12 +488,12 @@ window.saveAllyDetail = async function() {
     window.showToast(`${ally.name} atualizado!`, 'success');
 };
 
-window.fireAllyDetail = async function() {
+window.fireAllyDetail = async function () {
     const { idx, ally } = window._alliesDetailTarget || {};
     if (idx === undefined) return;
 
-    const moral       = parseInt(ally.moral ?? 100);
-    const hiringBase  = ally.original_hire_cost || 0;
+    const moral = parseInt(ally.moral ?? 100);
+    const hiringBase = ally.original_hire_cost || 0;
 
     if (moral <= 0 && hiringBase > 0) {
         // Aliado já abandonou — apenas limpa sem custo
@@ -508,7 +510,7 @@ window.fireAllyDetail = async function() {
     window.showToast(`${ally.name} foi dispensado.`, 'success');
 };
 
-window.closeAllyDetail = function() {
+window.closeAllyDetail = function () {
     document.getElementById('ally-detail-modal').style.display = 'none';
     window._alliesDetailTarget = null;
 };
@@ -523,16 +525,16 @@ window.closeAllyDetail = function() {
  * Verifica pagamento e reduz moral, ou abandona.
  * Retorna mensagens sobre aliados.
  */
-window.processMoralAndWages = async function() {
-    const hired     = window._hiredAllies || [];
-    const messages  = [];
-    let   gold      = window.playerGold;
-    const toFire    = [];
+window.processMoralAndWages = async function () {
+    const hired = window._hiredAllies || [];
+    const messages = [];
+    let gold = window.playerGold;
+    const toFire = [];
 
     for (let i = 0; i < hired.length; i++) {
-        const ally     = hired[i];
-        const cost     = getAllyDailyCost(ally);
-        const moral    = parseInt(ally.moral ?? 100);
+        const ally = hired[i];
+        const cost = getAllyDailyCost(ally);
+        const moral = parseInt(ally.moral ?? 100);
 
         if (gold >= cost) {
             // Pagamento OK — mantém moral
@@ -578,12 +580,12 @@ window.processMoralAndWages = async function() {
  * Essa lógica é aplicada no back-end (game_api.py),
  * mas sinalizamos via flag na guild.js.
  */
-window.getHireCostWithMoralPenalty = function(memberId) {
+window.getHireCostWithMoralPenalty = function (memberId) {
     // Verifica se este membro já foi contratado e abandonou com moral 0
     // O flag é armazenado em window._firedWithZeroMoral = Set de member_ids
     if (!window._firedWithZeroMoral) window._firedWithZeroMoral = new Set();
-    const members  = window.gameData.guild_members || [];
-    const member   = members.find(m => m.id === memberId);
+    const members = window.gameData.guild_members || [];
+    const member = members.find(m => m.id === memberId);
     if (!member) return 0;
     const baseCost = parseInt(member.hire_cost || 100);
     return window._firedWithZeroMoral.has(memberId) ? baseCost * 5 : baseCost;
@@ -597,18 +599,18 @@ window.getHireCostWithMoralPenalty = function(memberId) {
  * Processa o treino de um aliado (XP + level up igual ao player).
  * Chamado dentro do loop de rotinas diárias.
  */
-window.processAllyDailyTrain = function(ally) {
+window.processAllyDailyTrain = function (ally) {
     const trainStat = ally.train_stat;
     if (!trainStat) return null; // sem stat configurado, não faz nada
 
     if (!ally.stat_exp) ally.stat_exp = {};
-    const XP_GAIN  = 50;
+    const XP_GAIN = 50;
     ally.stat_exp[trainStat] = (parseInt(ally.stat_exp[trainStat] || 0)) + XP_GAIN;
 
     let leveledUp = false;
     while (true) {
         const curLvl = parseInt(ally.base_stats[trainStat] || 1);
-        const req    = allyXpRequired(curLvl);
+        const req = allyXpRequired(curLvl);
         if (ally.stat_exp[trainStat] >= req) {
             ally.stat_exp[trainStat] -= req;
             ally.base_stats[trainStat] = curLvl + 1;

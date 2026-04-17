@@ -1,9 +1,18 @@
 # database/db_manager.py
 import sqlite3
+import sys
 import os
 
-# GAME_DB_PATH = resource_path('game_data.db')
-GAME_DB_PATH = os.path.join(os.path.abspath(os.getcwd()), 'game_data.db')
+def resource_path(relative_path):
+    """ Retorna o caminho absoluto para o recurso, funciona em dev e no PyInstaller """
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+GAME_DB_PATH = resource_path('game_data.db')
 SAVE_DB_PATH = os.path.join(os.path.abspath(os.getcwd()), 'saves.db')
 
 def get_game_connection():
@@ -32,14 +41,37 @@ def init_db():
 
     c.execute('''CREATE TABLE IF NOT EXISTS bodies (
         id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT,
-        img_front TEXT, img_back TEXT, is_playable INTEGER DEFAULT 0)''')
+        img_front TEXT, img_back TEXT,
+        img_front_f TEXT DEFAULT '', img_back_f TEXT DEFAULT '',
+        is_playable INTEGER DEFAULT 0)''')
     run_migration(conn, "ALTER TABLE bodies ADD COLUMN is_playable INTEGER DEFAULT 0")
+    run_migration(conn, "ALTER TABLE bodies ADD COLUMN img_front_f TEXT DEFAULT ''")
+    run_migration(conn, "ALTER TABLE bodies ADD COLUMN img_back_f TEXT DEFAULT ''")
+
+    # ── SETS DE EQUIPAMENTOS ──────────────────────────────
+    c.execute('''CREATE TABLE IF NOT EXISTS equipment_sets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        description TEXT DEFAULT '',
+        bonus_2 TEXT DEFAULT '{}',
+        bonus_3 TEXT DEFAULT '{}',
+        bonus_4 TEXT DEFAULT '{}',
+        bonus_5 TEXT DEFAULT '{}',
+        bonus_6 TEXT DEFAULT '{}')''')
 
     c.execute('''CREATE TABLE IF NOT EXISTS equipments (
         id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, type TEXT,
-        img_front TEXT, img_back TEXT, drop_chance INTEGER DEFAULT 10,
-        stats_modifiers TEXT DEFAULT '{}')''')
+        img_front TEXT, img_back TEXT,
+        img_front_f TEXT DEFAULT '', img_back_f TEXT DEFAULT '',
+        gender TEXT DEFAULT 'both',
+        drop_chance INTEGER DEFAULT 10,
+        stats_modifiers TEXT DEFAULT '{}',
+        set_id INTEGER DEFAULT 0)''')
     run_migration(conn, "ALTER TABLE equipments ADD COLUMN stats_modifiers TEXT DEFAULT '{}'")
+    run_migration(conn, "ALTER TABLE equipments ADD COLUMN img_front_f TEXT DEFAULT ''")
+    run_migration(conn, "ALTER TABLE equipments ADD COLUMN img_back_f TEXT DEFAULT ''")
+    run_migration(conn, "ALTER TABLE equipments ADD COLUMN gender TEXT DEFAULT 'both'")
+    run_migration(conn, "ALTER TABLE equipments ADD COLUMN set_id INTEGER DEFAULT 0")
 
     c.execute('''CREATE TABLE IF NOT EXISTS consumables (
         id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, effect_type TEXT,
@@ -54,13 +86,11 @@ def init_db():
     run_migration(conn, "ALTER TABLE attacks ADD COLUMN mana_cost INTEGER DEFAULT 0")
     run_migration(conn, "ALTER TABLE attacks ADD COLUMN stamina_cost INTEGER DEFAULT 0")
     run_migration(conn, "ALTER TABLE attacks ADD COLUMN description TEXT DEFAULT ''")
-    try: c.execute("ALTER TABLE attacks DROP COLUMN cost")
-    except sqlite3.OperationalError: pass
 
     c.execute("SELECT COUNT(*) FROM attacks")
     if c.fetchone()[0] == 0:
         c.execute("INSERT INTO attacks (name,atk_type,base_power,stamina_cost,description,scaling) VALUES ('Soco Simples','phys',5,5,'Um ataque físico básico.','{\"for\":1.0}')")
-        c.execute("INSERT INTO attacks (name,atk_type,base_power,mana_cost,description,scaling) VALUES ('Míssil Mágico','mag',8,8,'Um projétil arcano.', '{\"int\":1.2}')")
+        c.execute("INSERT INTO attacks (name,atk_type,base_power,mana_cost,description,scaling) VALUES ('Míssil Mágico','mag',8,8,'Um projétil arcano.','{\"int\":1.2}')")
 
     c.execute('''CREATE TABLE IF NOT EXISTS characters (
         id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, race TEXT,
@@ -135,7 +165,8 @@ def init_db():
         dungeon_max_floor INTEGER DEFAULT 1,
         dungeon_current_floor INTEGER DEFAULT 1,
         power_score INTEGER DEFAULT 0,
-        fired_zero_moral TEXT DEFAULT '[]'
+        fired_zero_moral TEXT DEFAULT '[]',
+        gender TEXT DEFAULT 'male'
     )''')
 
     for sql in [
@@ -155,8 +186,8 @@ def init_db():
         "ALTER TABLE saves ADD COLUMN dungeon_max_floor INTEGER DEFAULT 1",
         "ALTER TABLE saves ADD COLUMN dungeon_current_floor INTEGER DEFAULT 1",
         "ALTER TABLE saves ADD COLUMN power_score INTEGER DEFAULT 0",
-        # Nova coluna para penalidade de moral zero
         "ALTER TABLE saves ADD COLUMN fired_zero_moral TEXT DEFAULT '[]'",
+        "ALTER TABLE saves ADD COLUMN gender TEXT DEFAULT 'male'",
     ]:
         run_migration(conn_save, sql)
 
