@@ -1,3 +1,4 @@
+
 .game-view { display: none; width: 100%; height: 100%; position: relative; }
 .active-view { display: block; }
 
@@ -44,14 +45,48 @@
 .mini-avatar-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .mini-avatar-box .paper-doll-container { width: 150px; height: 250px; transform: scale(0.25); transform-origin: top center; top: 5px; left: 50%; margin-left: -75px; position: absolute;}
 
-/* BATTLEFIELD */
+/* ==================================================================
+   BATTLEFIELD (POSICIONAMENTO DA TELA DE COMBATE AJUSTADO)
+   ================================================================== */
 #battlefield { position: absolute; bottom: 200px; width: 100%; height: calc(100% - 200px); }
-#player-container { position: absolute; bottom: 5%; left: 20%; transform: translateX(-50%) scale(2.2); transform-origin: bottom center; z-index: 10; }
-#party-battlefield-container { position: absolute; bottom: 5%; left: 35%; display: flex; gap: 40px; align-items: flex-end; }
-#enemies-battlefield-container { position: absolute; bottom: 28%; right: 15%; display: flex; gap: 50px; align-items: flex-end; justify-content: flex-end; width: 50%; }
 
-.party-member-slot { transform: scale(1.8); transform-origin: bottom center; position: relative; transition: opacity 0.5s; display: flex; flex-direction: column; align-items: center; }
+/* Jogador Principal mais encostado na esquerda */
+#player-container { 
+    position: absolute; 
+    bottom: 5%; 
+    left: 25%; 
+    transform: translateX(-50%) scale(1.9); 
+    transform-origin: bottom center; 
+    z-index: 10; 
+}
+
+/* Container da Party colado no jogador */
+#party-battlefield-container { 
+    position: absolute; 
+    bottom: 5%; 
+    display: flex; 
+    align-items: flex-end; 
+}
+
+/* Aliados com margem negativa para ignorar o espaço vazio da imagem */
+.party-member-slot { 
+    transform: scale(1.9); 
+    transform-origin: bottom center; 
+    position: relative; 
+    transition: opacity 0.5s; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+}
+/* O primeiro aliado não precisa de margem negativa para trás */
+.party-member-slot:first-child {
+    margin-left: 0;
+}
+
 .party-member-slot.dead { opacity: 0.2; filter: grayscale(100%); pointer-events: none; }
+
+/* Inimigos (Reduzido o gap de 50px para 20px para não ficarem tão longe uns dos outros) */
+#enemies-battlefield-container { position: absolute; bottom: 28%; right: 15%; display: flex; gap: 20px; align-items: flex-end; justify-content: flex-end; width: 50%; }
 
 .enemy-container-slot { transform: scale(1.6); transform-origin: bottom center; position: relative; transition: filter 0.3s, transform 0.2s, opacity 1s, margin-bottom 1s; cursor: crosshair;}
 .enemy-container-slot:hover { filter: brightness(1.3) drop-shadow(0 0 10px #e74c3c); transform: scale(1.65); }
@@ -104,7 +139,11 @@
 .loot-actions button { padding: 10px 15px; border: none; color: white; font-weight: bold; cursor: pointer; border-radius: 5px;}
 
 .player-attack { animation: lungeRight 0.2s; }
-@keyframes lungeRight { 0% {transform: translateX(-50%) scale(2.2);} 50% {transform: translateX(-30%) scale(2.2);} 100% {transform: translateX(-50%) scale(2.2);} }
+@keyframes lungeRight { 
+    0%   { transform: translateX(-50%) scale(1.9); } 
+    50%  { transform: translateX(-30%) scale(1.9); } 
+    100% { transform: translateX(-50%) scale(1.9); } 
+}
 .enemy-hit { filter: brightness(200%) drop-shadow(0 0 10px red) !important; animation: shakeEnemy 0.2s; }
 @keyframes shakeEnemy { 0%, 100% {transform: translateX(-50%) scale(1.6) rotate(0deg);} 50% {transform: translateX(-48%) scale(1.6) rotate(5deg);} }
 .ranking-row {
