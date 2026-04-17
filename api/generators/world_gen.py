@@ -5,7 +5,7 @@ import uuid
 # ==========================================
 # DICIONÁRIOS DE GERAÇÃO
 # ==========================================
-FIRST_NAMES_M = [
+FIRST_NAMES_M =[
     "Kael", "Thorin", "Garrick", "Bram", "Darius", "Vane", "Rurik", "Finn", "Alden", "Cormac",
     "Lucian", "Ronan", "Silas", "Eamon", "Gareth", "Kian", "Orson", "Rowan", "Talon", "Zane",
     "Raziel", "Kaelen", "Draven", "Gideon", "Mael", "Nox", "Soren", "Vance", "Alistair", "Bjorn",
@@ -23,7 +23,7 @@ FIRST_NAMES_M = [
     "Grendel", "Hestian", "Irwin", "Jareth", "Kaelum", "Lukan", "Malik", "Norix", "Orion", "Zalthar"
 ]
 
-FIRST_NAMES_F = [
+FIRST_NAMES_F =[
     "Lyra", "Elowen", "Seris", "Vex", "Thalia", "Aria", "Briar", "Cora", "Dara", "Elara",
     "Fae", "Gael", "Isla", "Juno", "Kira", "Lira", "Maeve", "Nia", "Oria", "Ria",
     "Sylas", "Tia", "Vira", "Zara", "Aeliana", "Caelia", "Elysia", "Ilyana", "Kaela", "Liana",
@@ -41,7 +41,7 @@ FIRST_NAMES_F = [
     "Gwyneth", "Helene", "Isolde", "Jilly", "Kora", "Luthien", "Medea", "Neri", "Orenda", "Zalthea"
 ]
 
-TITLES = [
+TITLES =[
     "o Destemido", "a Sombra", "Pé-Leve", "o Quebrado", "Olho de Águia", "o Sábio", "Mão de Ferro",
     "o Esquecido", "Sangue Frio", "o Errante", "Lâmina Rápida", "o Justo", "o Louco", "Coração de Leão",
     "o Implacável", "a Fúria", "o Oculto", "o Caçador", "Traz-Tormentas", "o Silencioso", "Sem-Rosto",
@@ -61,7 +61,7 @@ TITLES = [
     "o Soberano", "a Calamidade", "o Martelo do Norte", "o Sol de Inverno", "a Maré Escura"
 ]
 
-GUILD_ADJECTIVES = [
+GUILD_ADJECTIVES =[
     "Ordem", "Irmandade", "Pacto", "Clã", "Legião", "Círculo", "Sindicato", "Guilda", "Companhia",
     "Aliança", "Conselho", "Corte", "Exército", "Secta", "Bastião", "Esquadrão", "Enclave", "Comuna",
     "Tribunal", "Domínio", "Horda", "Santuário", "Templo", "Frente", "Liga", "Cartel", "União",
@@ -69,7 +69,7 @@ GUILD_ADJECTIVES = [
     "Falange", "Brigada", "Conclave", "Assembleia", "Dinastia", "Kahal", "Cabal", "Fundação", "Instituto"
 ]
 
-GUILD_NOUNS = [
+GUILD_NOUNS =[
     "do Aço", "das Sombras", "do Corvo", "da Chama", "do Lobo", "de Sangue", "do Alvorecer", "da Noite", "da Prata", "do Dragão", "do Urso", "da Caveira",
     "do Abismo", "do Vazio", "da Tempestade", "da Montanha", "do Carvalho", "da Fênix", "da Névoa", "do Trovão", "da Rosa", "do Trono", "do Punho", "do Cálice",
     "do Destino", "da Ruína", "da Glória", "da Estrela", "da Lua", "do Sol", "da Vingança", "da Justiça", "da Honra", "da Traição", "do Labirinto", "do Cristal",
@@ -77,14 +77,14 @@ GUILD_NOUNS = [
     "do Leão", "do Tigre", "da Hydra", "do Kraken", "do Grifo", "do Unicórnio", "do Gelo", "da Obsidiana", "do Éter", "da Eternidade", "do Infinito", "da Aurora"
 ]
 
-COLORS = [
+COLORS =[
     '#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22', '#1abc9c', '#34495e', '#7f8c8d', # Originais
     '#c0392b', '#2980b9', '#27ae60', '#f39c12', '#8e44ad', '#d35400', '#16a085', '#2c3e50', '#95a5a6', # Versões Escuras
     '#ff7675', '#74b9ff', '#55efc4', '#ffeaa7', '#a29bfe', '#fab1a0', '#81ecec', '#636e72', '#b2bec3', # Tons Pastel
     '#d63031', '#0984e3', '#00b894', '#fdcb6e', '#6c5ce7', '#e17055', '#00cec9', '#2d3436', '#dfe6e9', # Vibrantes
     '#1e272e', '#485460', '#ffa801', '#ffd32a', '#ff5e57', '#ff3f34', '#05c46b', '#0be881', '#575fcf'  # Modernos/Neon
 ]
-ICONS = [
+ICONS =[
     '⚔️', '🛡️', '🐺', '🦅', '🔥', '💧', '⚡', '🌙', '☀️', '💀', '🐉', '🌲', # Originais
     '🏹', '🗡️', '⚒️', '⛏️', '📜', '📖', '🧪', '💎', '💰', '🗝️', '🎭', '🔮', # Itens/Magia
     '🦁', '🐍', '🐘', '🕷️', '🦂', '🦉', '🦋', '🐎', '🐂', '🦈', '🐗', '🦇', # Animais
@@ -165,9 +165,9 @@ class WorldGenerator:
             list[dict]: lista de novas quests prontas para serem inseridas em world_quests.
         """
         if not self.monsters:
-            return []
+            return[]
 
-        new_quests = []
+        new_quests =[]
         for guild in guilds:
             guild_id = str(guild.get('id', ''))
             if not guild_id:
@@ -198,6 +198,22 @@ class WorldGenerator:
         calc_hire_cost = power * 75
         calc_wage = int(calc_hire_cost * 0.1)
 
+        try:
+            attacks = json.loads(db_char.get('attacks', '[1]'))
+        except:
+            attacks = [1]
+            
+        power_tier = 1
+        if power > 50: power_tier = 2
+        if power > 150: power_tier = 3
+        if power > 400: power_tier = 4
+        if power > 800: power_tier = 5
+        
+        attack_exp = {}
+        for atk_id in set(attacks):
+            atk_lvl = max(1, int(power_tier * random.uniform(0.8, 2.5)))
+            attack_exp[str(atk_id)] = {"xp": 0, "level": atk_lvl}
+
         return {
             "id": str(uuid.uuid4()),
             "guild_id": guild_id,
@@ -206,8 +222,8 @@ class WorldGenerator:
             "gender": "male",
             "equipment_data": db_char.get('equipment_data', '{}'),
             "base_stats": json.dumps(base_stats),
-            "attacks": db_char.get('attacks', '[1]'),
-            "attack_exp": '{}',
+            "attacks": json.dumps(attacks),
+            "attack_exp": json.dumps(attack_exp),
             "hire_cost": hire_cost if hire_cost is not None else calc_hire_cost,
             "daily_wage": daily_wage if daily_wage is not None else calc_wage,
             "power_score": power,
@@ -221,10 +237,36 @@ class WorldGenerator:
         name = random.choice(FIRST_NAMES_M if gender == 'male' else FIRST_NAMES_F)
         if random.random() > 0.4: name += f" {random.choice(TITLES)}"
             
-        power_tier = random.choices([1, 2, 3, 4, 5], weights=[40, 30, 15, 10, 5])[0]
+        target_power = random.choices([
+                random.randint(10, 50),     # Novato 
+                random.randint(51, 150),    # Intermediario 
+                random.randint(151, 400),   # Avançado 
+                random.randint(401, 800),   # Lendário 
+                random.randint(801, 1500)   # Lendário Absoluto 
+            ],
+            weights=[40, 30, 15, 10, 5]
+        )[0]
         
-        base_stats = { k: random.randint(1 * power_tier, 5 * power_tier) for k in['for','int','des','car','res'] }
-        base_stats[random.choice(list(base_stats.keys()))] += (5 * power_tier)
+        weights = [random.uniform(0.2, 1.0) for _ in range(5)]
+        weights[random.randint(0,4)] += 1.5
+        total_w = sum(weights)
+        
+        base_stats = {}
+        keys =['for','int','des','car','res']
+        allocated = 0
+        for i in range(4):
+            val = max(1, int((weights[i]/total_w) * target_power))
+            base_stats[keys[i]] = val
+            allocated += val
+        base_stats[keys[4]] = max(1, target_power - allocated)
+        
+        power = sum(base_stats.values())
+        
+        power_tier = 1
+        if power > 50: power_tier = 2
+        if power > 150: power_tier = 3
+        if power > 400: power_tier = 4
+        if power > 800: power_tier = 5
 
         eq_data = {"base": random.choice(self.bodies)['id'], "skin_color": random.choice(SKIN_COLORS)}
         for slot in['face', 'hair', 'shirt', 'pants', 'boots', 'gloves', 'hand_r']:
@@ -234,14 +276,17 @@ class WorldGenerator:
 
         npc_attacks = [1]
         if self.attacks:
-            extra_atks = random.sample(self.attacks, k=min(len(self.attacks), power_tier))
+            num_extra_attacks = min(len(self.attacks), power_tier + random.randint(0, 2))
+            extra_atks = random.sample(self.attacks, k=num_extra_attacks)
             npc_attacks.extend([a['id'] for a in extra_atks if a['id'] != 1])
 
-        # Inicializa XP de ataques zerado para todos os ataques do NPC
-        attack_exp = {str(atk_id): {"xp": 0, "level": 1} for atk_id in npc_attacks}
+        # Inicializa XP de ataques com níveis condizentes ao power_tier
+        attack_exp = {}
+        for atk_id in set(npc_attacks):
+            atk_lvl = max(1, int(power_tier * random.uniform(0.8, 2.5)))
+            attack_exp[str(atk_id)] = {"xp": 0, "level": atk_lvl}
             
         assigned_guild = random.choice(guilds)['id'] if random.random() > 0.5 else ""
-        power = sum(base_stats.values())
 
         return {
             "id": str(uuid.uuid4()),
@@ -270,3 +315,4 @@ class WorldGenerator:
             "required_kills": random.randint(2, 8) * diff, "target_character_id": target['id'],
             "time_limit_days": random.choice([0, 7, 14])
         }
+    

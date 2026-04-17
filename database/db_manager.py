@@ -9,7 +9,6 @@ def resource_path(relative_path):
         base_path = sys._MEIPASS
     except Exception:
         base_path = os.path.abspath(".")
-
     return os.path.join(base_path, relative_path)
 
 GAME_DB_PATH = resource_path('game_data.db')
@@ -24,7 +23,7 @@ def get_save_connection():
     return sqlite3.connect(SAVE_DB_PATH)
 
 def _get_conn(table):
-    if table in ('saves', 'save_party'): return get_save_connection()
+    if table in ('saves', 'save_party', 'tournament_history'): return get_save_connection()
     return get_game_connection()
 
 def run_migration(conn, sql):
@@ -156,10 +155,15 @@ def init_db():
         active_quests TEXT DEFAULT '[]', completed_quests TEXT DEFAULT '[]',
         dungeon_max_floor INTEGER DEFAULT 1, dungeon_current_floor INTEGER DEFAULT 1,
         power_score INTEGER DEFAULT 0, fired_zero_moral TEXT DEFAULT '[]', gender TEXT DEFAULT 'male',
-        world_guilds TEXT DEFAULT '[]', world_members TEXT DEFAULT '[]', world_quests TEXT DEFAULT '[]'
+        world_guilds TEXT DEFAULT '[]', world_members TEXT DEFAULT '[]', world_quests TEXT DEFAULT '[]',
+        calendar_day INTEGER DEFAULT 1,
+        calendar_month INTEGER DEFAULT 1,
+        calendar_year INTEGER DEFAULT 1,
+        last_tournament_day INTEGER DEFAULT 0,
+        tournament_history TEXT DEFAULT '[]'
     )''')
 
-    for sql in [
+    migrations = [
         "ALTER TABLE saves ADD COLUMN base_stats TEXT DEFAULT '{\"for\":1,\"int\":1,\"des\":1,\"car\":1,\"res\":1}'",
         "ALTER TABLE saves ADD COLUMN days_passed INTEGER DEFAULT 1",
         "ALTER TABLE saves ADD COLUMN stat_exp TEXT DEFAULT '{\"for\":0,\"int\":0,\"des\":0,\"car\":0,\"res\":0}'",
@@ -181,8 +185,30 @@ def init_db():
         "ALTER TABLE saves ADD COLUMN world_guilds TEXT DEFAULT '[]'",
         "ALTER TABLE saves ADD COLUMN world_members TEXT DEFAULT '[]'",
         "ALTER TABLE saves ADD COLUMN world_quests TEXT DEFAULT '[]'",
-    ]:
+        # ── NOVAS COLUNAS: CALENDÁRIO E TORNEIO ──────────────
+        "ALTER TABLE saves ADD COLUMN calendar_day INTEGER DEFAULT 1",
+        "ALTER TABLE saves ADD COLUMN calendar_month INTEGER DEFAULT 1",
+        "ALTER TABLE saves ADD COLUMN calendar_year INTEGER DEFAULT 1",
+        "ALTER TABLE saves ADD COLUMN last_tournament_day INTEGER DEFAULT 0",
+        "ALTER TABLE saves ADD COLUMN tournament_history TEXT DEFAULT '[]'",
+    ]
+    for sql in migrations:
         run_migration(conn_save, sql)
+
+    # ── TABELA DE HISTÓRICO DE TORNEIOS ──────────────────────
+    # Registra cada vitória de torneio individualmente para o Hall da Fama
+    c_save.execute('''CREATE TABLE IF NOT EXISTS tournament_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        save_id INTEGER NOT NULL,
+        winner_name TEXT NOT NULL,
+        winner_id TEXT DEFAULT '',
+        is_player INTEGER DEFAULT 0,
+        category TEXT NOT NULL,
+        day INTEGER DEFAULT 1,
+        month INTEGER DEFAULT 1,
+        year INTEGER DEFAULT 1,
+        prize_gold INTEGER DEFAULT 0
+    )''')
 
     conn_save.commit()
     conn_save.close()
@@ -224,3 +250,44 @@ def get_all_items(table):
         conn.close()
         return [dict(row) for row in rows]
     except: return []
+
+def get_tournament_hall_of_fame(save_id):
+    """Retorna Top 10 vencedores por categoria direto do banco de dados."""
+    try:
+        conn = get_save_connection()
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        results = {}
+        categories = ['novato', 'intermediario', 'avancado', 'lendario']
+        for cat in categories:
+            c.execute('''
+                SELECT winner_name, winner_id, is_player,
+                       COUNT(*) as wins,
+                       SUM(prize_gold) as total_gold
+                FROM tournament_history
+                WHERE save_id = ? AND category = ?
+                GROUP BY winner_name, winner_id
+                ORDER BY wins DESC
+                LIMIT 10
+            ''', (save_id, cat))
+            results[cat] = [dict(row) for row in c.fetchall()]
+        conn.close()
+        return results
+    except:
+        return {}
+
+def insert_tournament_result(save_id, winner_name, winner_id, is_player, category, day, month, year, prize_gold):
+    """Registra um resultado de torneio no banco de dados."""
+    try:
+        conn = get_save_connection()
+        c = conn.cursor()
+        c.execute('''INSERT INTO tournament_history
+            (save_id, winner_name, winner_id, is_player, category, day, month, year, prize_gold)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+            (save_id, winner_name, str(winner_id), 1 if is_player else 0,
+             category, day, month, year, prize_gold))
+        conn.commit()
+        conn.close()
+        return True
+    except:
+        return False

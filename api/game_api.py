@@ -1,9 +1,37 @@
-from database.db_manager import get_save_connection, get_game_connection, insert_item, get_all_items, update_item, delete_item
+from database.db_manager import (get_save_connection, get_game_connection,
+    insert_item, get_all_items, update_item, delete_item,
+    get_tournament_hall_of_fame, insert_tournament_result)
 from api.stats_engine import StatsEngine
 from api.generators.world_gen import WorldGenerator
 import json
 import random
 import sqlite3
+
+# ═══════════════════════════════════════════════════════════
+# CONSTANTES DE TORNEIO
+# ═══════════════════════════════════════════════════════════
+TOURNAMENT_CATEGORIES = {
+    'novato':        {'min': 0,   'max': 50,   'entry': 100,   'prize': 1000},
+    'intermediario': {'min': 51,  'max': 150,  'entry': 500,   'prize': 5000},
+    'avancado':      {'min': 151, 'max': 400,  'entry': 2000,  'prize': 25000},
+    'lendario':      {'min': 401, 'max': 99999,'entry': 10000, 'prize': 150000},
+}
+
+DAYS_OF_WEEK = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo']
+
+def _day_of_week(total_days_passed):
+    """Retorna 0=Segunda … 6=Domingo. Dia 1 cai em Segunda."""
+    return (total_days_passed - 1) % 7
+
+def _calendar_from_days(total_days):
+    """Converte dias totais em (dia, mês, ano). Dia 1 = 1/1/Ano1."""
+    total_days = max(1, int(total_days))
+    year  = (total_days - 1) // 360 + 1
+    rem   = (total_days - 1) % 360
+    month = rem // 30 + 1
+    day   = rem % 30 + 1
+    return day, month, year
+
 
 class GameAPI:
 
@@ -74,7 +102,7 @@ class GameAPI:
         for sid, count in set_counts.items():
             s = next((x for x in sets_db if x['id'] == sid), None)
             if not s: continue
-            for threshold in[2, 3, 4, 5, 6]:
+            for threshold in [2, 3, 4, 5, 6]:
                 if count >= threshold:
                     try:
                         b = json.loads(s.get(f'bonus_{threshold}', '{}') or '{}')
@@ -107,7 +135,7 @@ class GameAPI:
         except: base = {"for":1,"int":1,"des":1,"car":1,"res":1}
         try: eq_dict = json.loads(save['equipment_data'])
         except: eq_dict = {}
-        eq_ids =[int(v) for k, v in eq_dict.items() if str(v).isdigit()]
+        eq_ids = [int(v) for k, v in eq_dict.items() if str(v).isdigit()]
         b, c = self.compute_full_stats(base, eq_ids)
         return {"base": b, "computed": c}
 
@@ -118,45 +146,39 @@ class GameAPI:
         except: base = {"for":1,"int":1,"des":1,"car":1,"res":1}
         try: overrides = json.loads(enemy['custom_substats'])
         except: overrides = {}
-        eq_ids =[]
+        eq_ids = []
         if enemy['race'] == 'humano':
             try: eq_dict = json.loads(enemy['equipment_data'])
             except: eq_dict = {}
-            eq_ids =[int(v) for k, v in eq_dict.items() if str(v).isdigit()]
+            eq_ids = [int(v) for k, v in eq_dict.items() if str(v).isdigit()]
         b, c = self.compute_full_stats(base, eq_ids, overrides)
         return {"base": b, "computed": c}
 
-    # NOVA FUNÇÃO PARA CARREGAR STATUS DO ALIADO GERADO PROCEDURALMENTE
     def load_ally_full_stats(self, save_id, member_id):
         save = next((s for s in get_all_items("saves") if s['id'] == save_id), None)
         if not save: return None
-        
         try: hired = json.loads(save.get('hired_allies', '[]'))
-        except: hired =[]
-        
+        except: hired = []
         ally = next((a for a in hired if str(a.get('member_id')) == str(member_id)), None)
         if not ally: return None
-        
         base = ally.get('base_stats', {"for":1,"int":1,"des":1,"car":1,"res":1})
         if isinstance(base, str):
             try: base = json.loads(base)
             except: base = {"for":1,"int":1,"des":1,"car":1,"res":1}
-            
         eq_dict = ally.get('equipment_data', '{}')
         if isinstance(eq_dict, str):
             try: eq_dict = json.loads(eq_dict)
             except: eq_dict = {}
-            
-        eq_ids =[int(v) for k, v in eq_dict.items() if str(v).isdigit()]
+        eq_ids = [int(v) for k, v in eq_dict.items() if str(v).isdigit()]
         b, c = self.compute_full_stats(base, eq_ids)
         return {"base": b, "computed": c}
 
     def get_active_set_bonuses(self, save_id):
         save = next((s for s in get_all_items("saves") if s['id'] == save_id), None)
-        if not save: return[]
+        if not save: return []
         try: eq_dict = json.loads(save['equipment_data'])
         except: eq_dict = {}
-        eq_ids =[int(v) for k, v in eq_dict.items() if str(v).isdigit()]
+        eq_ids = [int(v) for k, v in eq_dict.items() if str(v).isdigit()]
 
         equipments_db = get_all_items("equipments")
         sets_db       = get_all_items("equipment_sets")
@@ -168,12 +190,12 @@ class GameAPI:
                 sid = int(eq['set_id'])
                 set_counts[sid] = set_counts.get(sid, 0) + 1
 
-        result =[]
+        result = []
         for sid, count in set_counts.items():
             s = next((x for x in sets_db if x['id'] == sid), None)
             if not s: continue
-            active_bonuses =[]
-            for threshold in[2, 3, 4, 5, 6]:
+            active_bonuses = []
+            for threshold in [2, 3, 4, 5, 6]:
                 if count >= threshold:
                     try:
                         b = json.loads(s.get(f'bonus_{threshold}', '{}') or '{}')
@@ -209,12 +231,12 @@ class GameAPI:
 
     def get_enemies_for_floor(self, floor):
         characters = get_all_items("characters")
-        monsters =[c for c in characters if str(c.get('race', '')).lower() != 'humano']
+        monsters = [c for c in characters if str(c.get('race', '')).lower() != 'humano']
         if not monsters:
-            return[]
+            return []
         min_score = max(0, (floor - 1) * 3)
         max_score = floor * 15 + 10
-        eligible =[c for c in monsters if min_score <= int(c.get('power_score', 0)) <= max_score]
+        eligible = [c for c in monsters if min_score <= int(c.get('power_score', 0)) <= max_score]
         if not eligible:
             eligible = monsters
         return eligible
@@ -225,13 +247,208 @@ class GameAPI:
         return random.choice(eligible)
 
     # ═══════════════════════════════════════════════
+    # CALENDÁRIO
+    # ═══════════════════════════════════════════════
+    def get_calendar_info(self, save_id):
+        """Retorna informações do calendário para o save especificado."""
+        save = next((s for s in get_all_items("saves") if s['id'] == save_id), None)
+        if not save: return None
+
+        days_passed = int(save.get('days_passed', 1))
+        day, month, year = _calendar_from_days(days_passed)
+        dow_index = _day_of_week(days_passed)
+        dow_name  = DAYS_OF_WEEK[dow_index]
+
+        return {
+            "day": day,
+            "month": month,
+            "year": year,
+            "day_of_week": dow_name,
+            "day_of_week_index": dow_index,
+            "is_sunday": dow_index == 6,
+            "total_days": days_passed,
+        }
+
+    # ═══════════════════════════════════════════════
+    # TORNEIO — SIMULAÇÃO NO BACKEND (Domingo sem player)
+    # ═══════════════════════════════════════════════
+    def _simulate_tournament_for_sunday(self, save, world_members, world_events):
+        """Simula o torneio de domingo quando o jogador não participou."""
+        save_id = save['id']
+        days_passed = int(save.get('days_passed', 1))
+        
+        # Se um dia específico foi passado (ex: ontem), simula para ele, senão usa o dia atual
+        simulate_day = target_day if target_day else days_passed
+        last_tournament_day = int(save.get('last_tournament_day', 0))
+
+        # Só simula uma vez por domingo
+        if last_tournament_day == simulate_day:
+            return world_events
+
+        day, month, year = _calendar_from_days(simulate_day)
+
+        for cat_name, cat_cfg in TOURNAMENT_CATEGORIES.items():
+            # Filtra NPCs na faixa de power_score da categoria
+            eligible = [
+                m for m in world_members
+                if cat_cfg['min'] <= int(m.get('power_score', 0)) <= cat_cfg['max']
+            ]
+            if not eligible:
+                continue
+
+            # Preenche com NPCs gerados se não houver suficientes
+            pool = (eligible * 16)[:16]
+            if len(pool) < 1:
+                continue
+
+            # Simula mata-mata simples: vence quem tem maior power_score (com aleatoriedade)
+            participants = random.sample(pool, min(16, len(pool)))
+            winner = self._simulate_bracket(participants)
+
+            winner_name = winner.get('name', 'Herói Desconhecido')
+            winner_id   = str(winner.get('id', ''))
+            prize       = cat_cfg['prize']
+
+            # Registra o vencedor no banco
+            insert_tournament_result(
+                save_id, winner_name, winner_id, False,
+                cat_name, day, month, year, prize
+            )
+
+            # Anuncia no jornal
+            cat_label = {'novato':'Novato','intermediario':'Intermediário',
+                         'avancado':'Avançado','lendario':'Lendário'}.get(cat_name, cat_name)
+            world_events.append(
+                f"🏆 Boatos dizem que <strong>{winner_name}</strong> foi o grande "
+                f"campeão da categoria <em>{cat_label}</em> no Coliseu desta semana!"
+            )
+
+        # Marca que o torneio desta semana já foi simulado
+        update_item('saves', save_id, {'last_tournament_day': simulate_day})
+        return world_events
+
+    def _simulate_bracket(self, participants):
+        """Simula um chaveamento mata-mata entre participantes."""
+        pool = list(participants)
+        random.shuffle(pool)
+        # Garante potência de 2
+        while len(pool) > 1:
+            next_round = []
+            for i in range(0, len(pool) - 1, 2):
+                a = pool[i]
+                b = pool[i + 1]
+                winner = self._simulate_fight(a, b)
+                next_round.append(winner)
+            if len(pool) % 2 == 1:
+                next_round.append(pool[-1])
+            pool = next_round
+        return pool[0] if pool else participants[0]
+
+    def _simulate_fight(self, a, b):
+        """Resolve uma luta entre dois NPCs de forma simples e rápida."""
+        power_a = int(a.get('power_score', 1)) + random.randint(0, 20)
+        power_b = int(b.get('power_score', 1)) + random.randint(0, 20)
+        return a if power_a >= power_b else b
+
+    # ═══════════════════════════════════════════════
+    # TORNEIO — ENDPOINTS PARA O FRONTEND
+    # ═══════════════════════════════════════════════
+    def get_tournament_opponents(self, save_id, category):
+        """Retorna 15 oponentes NPC para o torneio (o 16º é o player)."""
+        save = next((s for s in get_all_items("saves") if s['id'] == save_id), None)
+        if not save: return {"status": "error", "message": "Save não encontrado"}
+
+        cfg = TOURNAMENT_CATEGORIES.get(category)
+        if not cfg: return {"status": "error", "message": "Categoria inválida"}
+
+        try: world_members = json.loads(save.get('world_members', '[]'))
+        except: world_members = []
+
+        eligible = [
+            m for m in world_members
+            if cfg['min'] <= int(m.get('power_score', 0)) <= cfg['max']
+        ]
+
+        # Preenche com NPCs temporários se não houver suficientes
+        opponents = list(eligible)
+        temp_id_counter = -1
+        while len(opponents) < 15:
+            power = random.randint(cfg['min'], max(cfg['min'] + 10, cfg['max']))
+            stats = {s: random.randint(max(1, power // 5), max(2, power // 3))
+                     for s in ['for', 'int', 'des', 'car', 'res']}
+            opponents.append({
+                "id": temp_id_counter,
+                "name": f"Gladiador #{abs(temp_id_counter)}",
+                "race": "humano",
+                "power_score": power,
+                "base_stats": json.dumps(stats),
+                "equipment_data": "{}",
+                "is_temp": True,
+            })
+            temp_id_counter -= 1
+
+        selected = random.sample(opponents, min(15, len(opponents)))
+        return {
+            "status": "ok",
+            "opponents": selected,
+            "entry_cost": cfg['entry'],
+            "prize": cfg['prize'],
+        }
+
+    def register_tournament_win(self, save_id, winner_name, winner_id, is_player, category, prize_gold):
+        """Registra uma vitória de torneio no banco de dados."""
+        save = next((s for s in get_all_items("saves") if s['id'] == save_id), None)
+        if not save: return {"status": "error"}
+
+        days_passed = int(save.get('days_passed', 1))
+        day, month, year = _calendar_from_days(days_passed)
+
+        insert_tournament_result(
+            save_id, winner_name, str(winner_id),
+            bool(is_player), category, day, month, year, prize_gold
+        )
+
+        # Se jogador ganhou, adiciona o prêmio ao ouro
+        if is_player:
+            gold = int(save.get('gold', 0)) + int(prize_gold)
+            update_item('saves', save_id, {
+                'gold': gold,
+                'last_tournament_day': days_passed,
+            })
+            return {"status": "ok", "new_gold": gold}
+
+        update_item('saves', save_id, {'last_tournament_day': days_passed})
+        return {"status": "ok"}
+
+    def get_hall_of_fame(self, save_id):
+        """Retorna o Hall da Fama (Top 10 por categoria)."""
+        return get_tournament_hall_of_fame(save_id)
+
+    def get_tournament_status(self, save_id):
+        """Informa se o torneio está disponível hoje (Domingo) e se já foi participado."""
+        save = next((s for s in get_all_items("saves") if s['id'] == save_id), None)
+        if not save: return {"available": False}
+
+        days_passed = int(save.get('days_passed', 1))
+        dow = _day_of_week(days_passed)
+        is_sunday = (dow == 6)
+        already_played = int(save.get('last_tournament_day', 0)) == days_passed
+
+        return {
+            "available": is_sunday,
+            "already_played": already_played,
+            "is_sunday": is_sunday,
+            "day_of_week_index": dow,
+        }
+
+    # ═══════════════════════════════════════════════
     # CRUD GENÉRICO E QUESTS
     # ═══════════════════════════════════════════════
     def accept_quest(self, save_id, quest_id):
         save = next((s for s in get_all_items("saves") if s['id'] == save_id), None)
         if not save: return {"status": "error", "message": "Save não encontrado"}
         try: active_quests = json.loads(save.get('active_quests', '[]'))
-        except: active_quests =[]
+        except: active_quests = []
         if any(str(q['quest_id']) == str(quest_id) for q in active_quests):
             return {"status": "error", "message": "Quest já aceita!"}
         if len(active_quests) >= 5:
@@ -248,7 +465,7 @@ class GameAPI:
         if not save: return {"status": "error"}
         try: active_quests = json.loads(save.get('active_quests', '[]'))
         except: active_quests = []
-        active_quests =[q for q in active_quests if str(q['quest_id']) != str(quest_id)]
+        active_quests = [q for q in active_quests if str(q['quest_id']) != str(quest_id)]
         update_item('saves', save_id, {'active_quests': json.dumps(active_quests)})
         return {"status": "success"}
 
@@ -256,9 +473,9 @@ class GameAPI:
         save = next((s for s in get_all_items("saves") if s['id'] == save_id), None)
         if not save: return {"status": "error", "message": "Save não encontrado"}
         try: active_quests = json.loads(save.get('active_quests', '[]'))
-        except: active_quests =[]
+        except: active_quests = []
         try: completed_quests = json.loads(save.get('completed_quests', '[]'))
-        except: completed_quests =[]
+        except: completed_quests = []
         quest_state = next((q for q in active_quests if str(q['quest_id']) == str(quest_id)), None)
         if not quest_state: return {"status": "error", "message": "Quest não está ativa."}
         quest_data = next((q for q in json.loads(save.get('world_quests', '[]')) if str(q['id']) == str(quest_id)), None)
@@ -270,7 +487,7 @@ class GameAPI:
         except: rep_map = {}
         guild_id = str(quest_data['guild_id'])
         rep_map[guild_id] = int(rep_map.get(guild_id, 0)) + int(quest_data.get('rep_reward', 0))
-        active_quests =[q for q in active_quests if str(q['quest_id']) != str(quest_id)]
+        active_quests = [q for q in active_quests if str(q['quest_id']) != str(quest_id)]
         completed_quests.append(str(quest_id))
         update_item('saves', save_id, {'active_quests': json.dumps(active_quests), 'completed_quests': json.dumps(completed_quests), 'gold': gold, 'guild_reputation': json.dumps(rep_map)})
         return {"status": "success", "new_gold": gold, "new_rep": rep_map[guild_id], "gold_reward": quest_data.get('gold_reward', 0), "rep_reward": quest_data.get('rep_reward', 0)}
@@ -329,18 +546,28 @@ class GameAPI:
     def get_saves(self):
         return get_all_items("saves")
 
-    def create_save(self, name, body_id, face_id, hair_id, skin_color, base_stats, gender='male', num_guilds=6, num_npcs=100):
+    def create_save(self, name, body_id, face_id, hair_id, skin_color, base_stats, gender, num_guilds, num_npcs):
         try:
-            eq_data = {"base": int(body_id), "skin_color": skin_color}
-            if face_id: eq_data["face"] = int(face_id)
-            if hair_id: eq_data["hair"] = int(hair_id)
             power_score = self.calculate_power_score(base_stats)
+            game_data = self.load_data()
             
-            generator = WorldGenerator(self.load_data())
+            # ── 1. GERAÇÃO DO MUNDO (agora integrado perfeitamente) ──
+            generator = WorldGenerator(game_data)
+            # Converte os valores vindos do JS para int antes de mandar pro gerador
             guilds, members, quests = generator.generate_world(int(num_guilds), int(num_npcs))
             
+            # ── 2. DADOS DE EQUIPAMENTO E APARÊNCIA DO JOGADOR ──
+            eq_data = {
+                "base": body_id,
+                "skin_color": skin_color
+            }
+            if face_id: eq_data["face"] = face_id
+            if hair_id: eq_data["hair"] = hair_id
+
+            # ── 3. SALVAR ──
             save_data = {
-                "name": name, "body_id": int(body_id),
+                "name": name, 
+                "body_id": body_id,
                 "equipment_data": json.dumps(eq_data),
                 "inventory_data": json.dumps({"equipments":[], "consumables": {}}),
                 "base_stats": json.dumps(base_stats),
@@ -353,17 +580,18 @@ class GameAPI:
                 "world_guilds": json.dumps(guilds),
                 "world_members": json.dumps([m for m in members if m]),
                 "world_quests": json.dumps(quests),
-                "gold": 0, "days_passed": 1, "current_hp": 100, 
-                "current_mana": 9999, "current_stamina": 9999
+                "gold": 0, "days_passed": 1, "current_hp": 100,
+                "current_mana": 9999, "current_stamina": 9999,
+                "calendar_day": 1, "calendar_month": 1, "calendar_year": 1,
+                "last_tournament_day": 0,
             }
             insert_item('saves', save_data)
-            
             saves = get_all_items("saves")
             new_save = saves[-1]
             return {"status": "success", "save": new_save}
         except Exception as e:
             return {"status": "error", "message": str(e)}
-
+        
     def sync_player_state(self, save_id, hp, mana, stamina, gold,
                           inventory_str, equipment_str,
                           days_passed, base_stats_str, stat_exp_str,
@@ -372,6 +600,8 @@ class GameAPI:
                           guild_rep_str=None, active_quests_str=None,
                           completed_quests_str=None,
                           dungeon_max_floor=1, dungeon_current_floor=1):
+        # Recalcula o calendário baseado nos dias passados
+        day, month, year = _calendar_from_days(int(days_passed))
         data = {
             'current_hp': hp, 'current_mana': mana, 'current_stamina': stamina,
             'gold': gold, 'inventory_data': inventory_str,
@@ -381,6 +611,9 @@ class GameAPI:
             'hotbar_data': hotbar_str, 'attack_exp': attack_exp_str,
             'dungeon_max_floor': dungeon_max_floor,
             'dungeon_current_floor': dungeon_current_floor,
+            'calendar_day': day,
+            'calendar_month': month,
+            'calendar_year': year,
         }
         if party_data_str       is not None: data['party_data']         = party_data_str
         if hired_allies_str     is not None: data['hired_allies']       = hired_allies_str
@@ -422,7 +655,7 @@ class GameAPI:
             return {"status":"error","message":f"Ouro insuficiente! Precisa de {hire_cost}"}
 
         try: hired = json.loads(save.get('hired_allies', '[]'))
-        except: hired =[]
+        except: hired = []
 
         if any(str(a['member_id']) == str(member_id) for a in hired):
             return {"status":"error","message":"Aliado já contratado"}
@@ -432,7 +665,7 @@ class GameAPI:
         try: base_stats = json.loads(member.get('base_stats', '{}'))
         except: base_stats = {"for":1,"int":1,"des":1,"car":1,"res":1}
         try: attacks_list = json.loads(member.get('attacks', '[1]'))
-        except: attacks_list =[1]
+        except: attacks_list = [1]
 
         ally_obj = {
             "member_id":          str(member_id),
@@ -454,20 +687,20 @@ class GameAPI:
         hired.append(ally_obj)
         update_item('saves', save_id, {'gold': gold, 'hired_allies': json.dumps(hired)})
         return {"status":"success","new_gold":gold}
-    
+
     def fire_ally(self, save_id, member_id):
         saves = get_all_items("saves")
         save  = next((s for s in saves if s['id'] == save_id), None)
         if not save: return {"status":"error"}
 
         try: hired = json.loads(save.get('hired_allies', '[]'))
-        except: hired =[]
+        except: hired = []
 
-        hired =[a for a in hired if str(a['member_id']) != str(member_id)]
+        hired = [a for a in hired if str(a['member_id']) != str(member_id)]
 
         try: party = json.loads(save.get('party_data', '[]'))
-        except: party =[]
-        party =[p for p in party if str(p) != str(member_id)]
+        except: party = []
+        party = [p for p in party if str(p) != str(member_id)]
 
         update_item('saves', save_id, {
             'hired_allies': json.dumps(hired),
@@ -484,7 +717,7 @@ class GameAPI:
         save  = next((s for s in saves if s['id'] == save_id), None)
         if not save: return {"status":"error"}
         try: hired = json.loads(save.get('hired_allies', '[]'))
-        except: hired =[]
+        except: hired = []
         for a in hired:
             if str(a['member_id']) == str(member_id):
                 a['routine'] = routine
@@ -497,7 +730,7 @@ class GameAPI:
         save  = next((s for s in saves if s['id'] == save_id), None)
         if not save: return {"status":"error"}
         try: hired = json.loads(save.get('hired_allies', '[]'))
-        except: hired =[]
+        except: hired = []
         for a in hired:
             if str(a['member_id']) == str(member_id):
                 a['train_stat'] = stat_key
@@ -505,144 +738,100 @@ class GameAPI:
         update_item('saves', save_id, {'hired_allies': json.dumps(hired)})
         return {"status":"success"}
 
-    def set_ally_hotbar(self, save_id, member_id, hotbar_list):
-        saves = get_all_items("saves")
-        save  = next((s for s in saves if s['id'] == save_id), None)
-        if not save: return {"status":"error"}
-        try: hired = json.loads(save.get('hired_allies', '[]'))
-        except: hired =[]
-        while len(hotbar_list) < 10:
-            hotbar_list.append(None)
-        hotbar_list = hotbar_list[:10]
-        for a in hired:
-            if str(a['member_id']) == str(member_id):
-                a['hotbar'] = hotbar_list
-                break
-        update_item('saves', save_id, {'hired_allies': json.dumps(hired)})
-        return {"status":"success"}
-
     def get_ally_hire_cost(self, save_id, member_id):
         saves = get_all_items("saves")
         save = next((s for s in saves if s['id'] == save_id), None)
-        if not save: return {"cost": 100, "penalized": False}
+        if not save: return {"cost": 100}
 
         world_members = json.loads(save.get('world_members', '[]'))
         member = next((m for m in world_members if str(m['id']) == str(member_id)), None)
-        if not member: return {"cost": 100, "penalized": False}
+        if not member: return {"cost": 100}
 
         base_cost = int(member.get('hire_cost', 100))
-        try: fired_zero = json.loads(save.get('fired_zero_moral', '[]'))
-        except: fired_zero =[]
-
-        if str(member_id) in fired_zero:
-            return {"cost": base_cost * 5, "penalized": True}
-            
-        return {"cost": base_cost, "penalized": False}
+        power = int(member.get('power_score', 0))
+        cost = base_cost + power * 2
+        return {"cost": cost}
 
     # ═══════════════════════════════════════════════
-    # ROTINAS DIÁRIAS E MUNDO VIVO
+    # ROTINAS DIÁRIAS — com simulação de torneio dominical
     # ═══════════════════════════════════════════════
     def process_daily_routines(self, save_id):
         saves = get_all_items("saves")
         save  = next((s for s in saves if s['id'] == save_id), None)
-        if not save: return {"gold_earned": 0, "messages":[]}
+        if not save: return {"new_gold": 0, "messages": [], "fired_allies": []}
 
-        # ── 1. ALIADOS CONTRATADOS DO JOGADOR ──────────────────────────
         try: hired = json.loads(save.get('hired_allies', '[]'))
-        except: hired =[]
+        except: hired = []
+        try: party = json.loads(save.get('party_data', '[]'))
+        except: party = []
         try: fired_zero = json.loads(save.get('fired_zero_moral', '[]'))
-        except: fired_zero =[]
+        except: fired_zero = []
+        try: world_members = json.loads(save.get('world_members', '[]'))
+        except: world_members = []
+        try: world_guilds = json.loads(save.get('world_guilds', '[]'))
+        except: world_guilds = []
+        try: world_quests = json.loads(save.get('world_quests', '[]'))
+        except: world_quests = []
+        try: active_quests = json.loads(save.get('active_quests', '[]'))
+        except: active_quests = []
+        try: guild_reputation = json.loads(save.get('guild_reputation', '{}'))
+        except: guild_reputation = {}
 
         gold = int(save.get('gold', 0))
-        messages =[]
-        to_fire =[]
-
-        for ally in hired:
-            try:
-                cost = int(ally.get('daily_wage', 10)) + sum(int(v) for v in (ally.get('base_stats') or {}).values() if str(v).isdigit())
-                moral = int(ally.get('moral', 100))
-                routine = ally.get('routine', 'idle')
-                name = ally['name']
-
-                if gold >= cost:
-                    gold -= cost
-                    ally['moral'] = min(100, moral + 5)
-                else:
-                    new_moral = max(0, moral - 10)
-                    ally['moral'] = new_moral
-                    if new_moral <= 0:
-                        to_fire.append(str(ally['member_id']))
-                        messages.append(f"💔 {name} abandonou a equipe! Moral chegou a zero.")
-                        continue
-                    else:
-                        messages.append(f"😤 {name} não recebeu pagamento! Moral: {new_moral}/100")
-
-                if routine == 'hunt':
-                    earned = random.randint(15, 45)
-                    gold += earned
-                    messages.append(f"⚔️ {name} caçou e trouxe {earned} moedas!")
-                elif routine == 'train':
-                    base_stats = ally.get('base_stats') or {}
-                    stat_exp = ally.get('stat_exp', {})
-                    if not isinstance(stat_exp, dict): stat_exp = {}
-                    
-                    train_stat = ally.get('train_stat', 'for')
-                    
-                    stat_exp[train_stat] = int(stat_exp.get(train_stat, 0)) + 50
-                    leveled_up = False
-                    
-                    while stat_exp[train_stat] >= (int(base_stats.get(train_stat, 1)) * 100):
-                        stat_exp[train_stat] -= (int(base_stats.get(train_stat, 1)) * 100)
-                        base_stats[train_stat] = int(base_stats.get(train_stat, 1)) + 1
-                        leveled_up = True
-                        
-                    ally['base_stats'] = base_stats
-                    ally['stat_exp'] = stat_exp
-                    if leveled_up: messages.append(f"📚 {name} treinou e subiu {train_stat} para Lv {base_stats[train_stat]}!")
-            except Exception as e:
-                pass
-
-        for member_id in to_fire:
-            if str(member_id) not in fired_zero: fired_zero.append(str(member_id))
-            hired =[a for a in hired if str(a['member_id']) != str(member_id)]
-
-        try: party = json.loads(save.get('party_data', '[]'))
-        except: party =[]
-        party =[p for p in party if str(p) not in to_fire]
-
-        # ── 2. MUNDO VIVO — NPCs NÃO CONTRATADOS ───────────────────────
-        try: world_members = json.loads(save.get('world_members', '[]'))
-        except: world_members =[]
-        try: world_quests = json.loads(save.get('world_quests', '[]'))
-        except: world_quests =[]
-        try: world_guilds = json.loads(save.get('world_guilds', '[]'))
-        except: world_guilds =[]
-        try: active_quests = json.loads(save.get('active_quests', '[]'))
-        except: active_quests =[]
-        try: guild_reputation = json.loads(save.get('guild_reputation', '{}'))
-        except: guild_reputation ={}
-
         all_equips = get_all_items("equipments")
         all_atks   = get_all_items("attacks")
-        world_events =[]
+        world_events = []
+        messages = []
 
         player_active_quest_ids = {str(q['quest_id']) for q in active_quests}
         hired_member_ids = {str(a['member_id']) for a in hired}
 
         STAT_NAMES = {"for":"Força","int":"Inteligência","des":"Destreza","car":"Carisma","res":"Resistência"}
 
+        # ── 1. ROTINAS DOS ALIADOS CONTRATADOS ─────────────────
+        to_fire = []
+        for ally in hired:
+            mid = str(ally.get('member_id', ''))
+            wage = int(ally.get('daily_wage', 10))
+            if gold >= wage:
+                gold -= wage
+            else:
+                ally['moral'] = max(0, int(ally.get('moral', 100)) - 25)
+                if ally['moral'] <= 0 and mid not in fired_zero:
+                    to_fire.append(mid)
+                    fired_zero.append(mid)
+                    messages.append(f"⚠️ {ally['name']} abandonou você por falta de pagamento!")
+                    continue
+
+            routine = ally.get('routine', 'idle')
+            if routine == 'train':
+                stat_key = ally.get('train_stat', 'for')
+                try:
+                    b = ally.get('base_stats', {})
+                    if isinstance(b, str): b = json.loads(b)
+                    b[stat_key] = int(b.get(stat_key, 1)) + 1
+                    ally['base_stats'] = b
+                except: pass
+            elif routine == 'explore':
+                earned = random.randint(10, 50)
+                gold += earned
+                if earned > 30:
+                    messages.append(f"💰 {ally['name']} encontrou {earned} moedas explorando!")
+
+        hired = [a for a in hired if str(a.get('member_id', '')) not in to_fire]
+        party = [p for p in party if str(p) not in to_fire]
+
+        # ── 2. MUNDO VIVO: EVENTOS DOS NPCs ────────────────────
         for npc in world_members:
             if str(npc.get('id', '')) in hired_member_ids:
                 continue
-
             if random.random() >= 0.15:
                 continue
-            
             try:
-                event_type = random.choices(['earn_gold', 'skill_levelup', 'stat_up', 'find_item', 'learn_skill', 'hurt'],
+                event_type = random.choices(
+                    ['earn_gold', 'skill_levelup', 'stat_up', 'find_item', 'learn_skill', 'hurt'],
                     weights=[30, 20, 10, 20, 10, 10]
                 )[0]
-
                 power = int(npc.get('power_score') or 5)
 
                 if event_type == 'earn_gold':
@@ -653,24 +842,16 @@ class GameAPI:
                         world_events.append(f"{npc['name']} voltou de uma caçada lucrativa com {earned} moedas.")
 
                 elif event_type == 'skill_levelup':
-                    try:
-                        npc_atk_ids = json.loads(npc.get('attacks', '[]'))
-                    except:
-                        npc_atk_ids =[]
-
+                    try: npc_atk_ids = json.loads(npc.get('attacks', '[]'))
+                    except: npc_atk_ids = []
                     if npc_atk_ids:
                         chosen_atk_id = str(random.choice(npc_atk_ids))
-                        try:
-                            atk_exp = json.loads(npc.get('attack_exp', '{}'))
-                        except:
-                            atk_exp = {}
-
+                        try: atk_exp = json.loads(npc.get('attack_exp', '{}'))
+                        except: atk_exp = {}
                         if chosen_atk_id not in atk_exp:
                             atk_exp[chosen_atk_id] = {"xp": 0, "level": 1}
-
                         xp_gain = random.randint(20, 60)
                         atk_exp[chosen_atk_id]["xp"] += xp_gain
-
                         current_lvl = int(atk_exp[chosen_atk_id].get("level") or 1)
                         xp_required = current_lvl * 100
                         leveled_up = False
@@ -680,9 +861,7 @@ class GameAPI:
                             current_lvl = atk_exp[chosen_atk_id]["level"]
                             xp_required = current_lvl * 100
                             leveled_up = True
-
                         npc['attack_exp'] = json.dumps(atk_exp)
-
                         if leveled_up and power > 20:
                             atk_obj = next((a for a in all_atks if str(a['id']) == chosen_atk_id), None)
                             atk_name = atk_obj['name'] if atk_obj else f"Habilidade #{chosen_atk_id}"
@@ -698,15 +877,12 @@ class GameAPI:
                             npc['power_score'] = sum(int(v or 0) for v in b_stats.values())
                             if npc['power_score'] > 30:
                                 world_events.append(f"Boatos: {npc['name']} está mais forte! Sua {STAT_NAMES.get(stat, stat)} cresceu.")
-                    except:
-                        pass
+                    except: pass
 
                 elif event_type == 'find_item' and all_equips:
                     new_item = random.choice(all_equips)
-                    try:
-                        eq_data = json.loads(npc.get('equipment_data', '{}'))
-                    except:
-                        eq_data = {}
+                    try: eq_data = json.loads(npc.get('equipment_data', '{}'))
+                    except: eq_data = {}
                     slot = new_item['type']
                     if slot not in eq_data or random.random() < 0.2:
                         eq_data[slot] = new_item['id']
@@ -715,10 +891,8 @@ class GameAPI:
 
                 elif event_type == 'learn_skill' and all_atks:
                     new_atk = random.choice(all_atks)
-                    try:
-                        npc_atks = json.loads(npc.get('attacks', '[]'))
-                    except:
-                        npc_atks = []
+                    try: npc_atks = json.loads(npc.get('attacks', '[]'))
+                    except: npc_atks = []
                     if new_atk['id'] not in npc_atks:
                         npc_atks.append(new_atk['id'])
                         npc['attacks'] = json.dumps(npc_atks)
@@ -730,26 +904,22 @@ class GameAPI:
                     npc['gold'] = max(0, int(npc.get('gold') or 0) - loss)
                     if power > 30:
                         world_events.append(f"{npc['name']} foi visto(a) gravemente ferido(a) nas cavernas.")
-            
-            except Exception as e:
+            except Exception:
                 pass
 
-        # ── 2b. SISTEMA DE QUESTS: EXPIRAÇÃO ───────────────────────────
-        surviving_quests =[]
+        # ── 2b. SISTEMA DE QUESTS: EXPIRAÇÃO ───────────────────
+        surviving_quests = []
         expired_count = 0
 
         for quest in world_quests:
             try:
                 quest_id_str = str(quest.get('id', ''))
                 time_limit = int(quest.get('time_limit_days') or 0)
-
                 if time_limit <= 0 or quest_id_str in player_active_quest_ids:
                     surviving_quests.append(quest)
                     continue
-
                 new_limit = time_limit - 1
                 quest['time_limit_days'] = new_limit
-
                 if new_limit <= 0:
                     expired_count += 1
                 else:
@@ -760,32 +930,28 @@ class GameAPI:
         if expired_count > 0:
             world_events.append(f"📋 {expired_count} contrato(s) de guilda expiraram sem ser completados.")
 
-        # ── 2c. CONCLUSÃO DE QUESTS POR NPCs ───────────────────────────
+        # ── 2c. CONCLUSÃO DE QUESTS POR NPCs ───────────────────
         guild_members_map = {}
         for npc in world_members:
             gid = str(npc.get('guild_id', ''))
             if gid:
-                guild_members_map.setdefault(gid,[]).append(npc)
+                guild_members_map.setdefault(gid, []).append(npc)
 
-        quests_completed_by_npcs =[]
+        quests_completed_by_npcs = []
         for quest in surviving_quests:
             try:
                 quest_id_str = str(quest.get('id', ''))
                 if quest_id_str in player_active_quest_ids:
                     continue
-
                 guild_id = str(quest.get('guild_id', ''))
-                guild_npcs = guild_members_map.get(guild_id,[])
+                guild_npcs = guild_members_map.get(guild_id, [])
                 if not guild_npcs:
                     continue
-
                 completion_chance = min(0.30, len(guild_npcs) * 0.02)
                 if random.random() < completion_chance:
                     hero_npc = random.choice(guild_npcs)
                     quests_completed_by_npcs.append(quest_id_str)
-
                     guild_reputation[guild_id] = int(guild_reputation.get(guild_id) or 0) + int(quest.get('rep_reward') or 10)
-
                     if int(quest.get('difficulty') or 1) >= 3:
                         guild_obj = next((g for g in world_guilds if str(g.get('id', '')) == guild_id), None)
                         guild_name = guild_obj['name'] if guild_obj else "Uma guilda"
@@ -793,17 +959,29 @@ class GameAPI:
             except:
                 pass
 
-        surviving_quests =[q for q in surviving_quests if str(q.get('id', '')) not in quests_completed_by_npcs]
+        surviving_quests = [q for q in surviving_quests if str(q.get('id', '')) not in quests_completed_by_npcs]
         world_quests = surviving_quests
 
-        # ── 2d. CICLO DE 30 DIAS: REGENERAÇÃO DE QUESTS ────────────────
+        # ── 2d. CICLO DE 30 DIAS: REGENERAÇÃO DE QUESTS ────────
         days_passed = int(save.get('days_passed', 1))
-
         if days_passed > 0 and days_passed % 30 == 0:
-            world_quests, world_events = self._regenerate_world_quests(world_guilds, world_quests, player_active_quest_ids, world_events)
+            world_quests, world_events = self._regenerate_world_quests(
+                world_guilds, world_quests, player_active_quest_ids, world_events
+            )
 
-        # ── 3. PERSISTÊNCIA: SALVA TUDO ────────────────────────────────
+        # ── 2e. SIMULAÇÃO DO TORNEIO DE DOMINGO ────────────────
+        dow = _day_of_week(days_passed)
+        if dow == 0 and days_passed > 1:  # 0 = Segunda-feira
+            last_t = int(save.get('last_tournament_day', 0))
+            # Verifica se o torneio de ontem (Domingo) foi jogado
+            if last_t != days_passed - 1:
+                world_events = self._simulate_tournament_for_sunday(
+                    save, world_members, world_events, target_day=days_passed - 1
+                )
+
+        # ── 3. PERSISTÊNCIA ────────────────────────────────────
         old_gold = int(save.get('gold', 0))
+        day, month, year = _calendar_from_days(days_passed)
 
         update_item('saves', save_id, {
             'gold':             gold,
@@ -813,6 +991,9 @@ class GameAPI:
             'world_members':    json.dumps(world_members),
             'world_quests':     json.dumps(world_quests),
             'guild_reputation': json.dumps(guild_reputation),
+            'calendar_day':     day,
+            'calendar_month':   month,
+            'calendar_year':    year,
         })
 
         if world_events:
@@ -830,20 +1011,17 @@ class GameAPI:
     # REGENERAÇÃO DE QUESTS (CICLO DE 30 DIAS)
     # ═══════════════════════════════════════════════
     def _regenerate_world_quests(self, world_guilds, world_quests, player_active_quest_ids, world_events):
-        kept_quests =[q for q in world_quests if str(q.get('id', '')) in player_active_quest_ids]
+        kept_quests = [q for q in world_quests if str(q.get('id', '')) in player_active_quest_ids]
         try:
             game_data = self.load_data()
             generator = WorldGenerator(game_data)
             new_quests = generator.generate_quests_for_guilds(world_guilds)
             kept_quests.extend(new_quests)
-
             removed_count = len(world_quests) - len([q for q in world_quests if str(q.get('id', '')) in player_active_quest_ids])
             added_count = len(new_quests)
-
             world_events.append(f"📅 Ciclo mensal: {removed_count} contrato(s) antigo(s) arquivado(s). {added_count} novo(s) contrato(s) disponível(is) nas guildas!")
         except Exception as e:
             world_events.append(f"[Erro na regeneração de quests: {e}]")
-
         return kept_quests, world_events
 
     # ═══════════════════════════════════════════════
@@ -859,13 +1037,13 @@ class GameAPI:
         except: inventory = {"equipments":[], "consumables": {}}
         gold = int(save.get('gold', 0))
 
-        loot_list  =[]
+        loot_list  = []
         gold_drop  = random.randint(5, 20)
         gold      += gold_drop
         loot_list.append(f"🪙 {gold_drop} moedas de ouro")
 
         try: custom_drops = json.loads(enemy.get('custom_drops', '[]'))
-        except: custom_drops =[]
+        except: custom_drops = []
 
         if custom_drops:
             for drop in custom_drops:
@@ -902,3 +1080,50 @@ class GameAPI:
             'inventory_data': json.dumps(inventory)
         })
         return {"loot_list": loot_list, "new_inventory": inventory, "new_gold": gold}
+
+    # ═══════════════════════════════════════════════
+    # NÍVEL / XP DE STATS
+    # ═══════════════════════════════════════════════
+    def add_stat_exp(self, save_id, stat_key, xp_gain):
+        save = next((s for s in get_all_items("saves") if s['id'] == save_id), None)
+        if not save: return {"leveled_up": False}
+        try: stat_exp = json.loads(save.get('stat_exp', '{}'))
+        except: stat_exp = {}
+        try: base_stats = json.loads(save.get('base_stats', '{}'))
+        except: base_stats = {"for":1,"int":1,"des":1,"car":1,"res":1}
+
+        current_xp = int(stat_exp.get(stat_key, 0)) + xp_gain
+        current_lvl = int(base_stats.get(stat_key, 1))
+        xp_required = current_lvl * 100
+        leveled_up = False
+
+        while current_xp >= xp_required:
+            current_xp -= xp_required
+            current_lvl += 1
+            xp_required = current_lvl * 100
+            leveled_up = True
+
+        stat_exp[stat_key] = current_xp
+        base_stats[stat_key] = current_lvl
+        power_score = self.calculate_power_score(base_stats)
+
+        update_item('saves', save_id, {
+            'stat_exp':    json.dumps(stat_exp),
+            'base_stats':  json.dumps(base_stats),
+            'power_score': power_score,
+        })
+        return {"leveled_up": leveled_up, "new_level": current_lvl, "new_xp": current_xp}
+
+    # ═══════════════════════════════════════════════
+    # MUNDO / SYNC
+    # ═══════════════════════════════════════════════
+    def get_world_state(self, save_id):
+        save = next((s for s in get_all_items("saves") if s['id'] == save_id), None)
+        if not save: return None
+        try: guilds = json.loads(save.get('world_guilds', '[]'))
+        except: guilds = []
+        try: members = json.loads(save.get('world_members', '[]'))
+        except: members = []
+        try: quests = json.loads(save.get('world_quests', '[]'))
+        except: quests = []
+        return {"guilds": guilds, "members": members, "quests": quests}

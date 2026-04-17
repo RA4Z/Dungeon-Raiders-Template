@@ -1,75 +1,121 @@
-window.combatants =[];
+// frontend/src/js/game/dungeon/combat_core.js
+// ══════════════════════════════════════════════════
+//  MOTOR DE COMBATE — com sistema de contexto
+//  window.combatContext = 'dungeon' | 'tournament'
+// ══════════════════════════════════════════════════
+
+window.combatants = [];
+
+// ── Estado de Contexto ─────────────────────────────
+// Define o comportamento de vitória/derrota/fuga
+window.combatContext = 'dungeon';  // padrão
+
+// ── Dados do Torneio (preenchidos por tournament.js) ──
+window._tournamentData = {
+    category: null,
+    opponents: [],        // lista de 15 oponentes NPC
+    currentRound: 0,      // 0=Oitavas, 1=Quartas, 2=Semi, 3=Final
+    currentOpponentIndex: 0,
+    prize: 0,
+};
 
 // ══════════════════════════════════════════════════
-// ENTRADA NA DUNGEON
+// ENTRADA NA DUNGEON (contexto: dungeon)
 // ══════════════════════════════════════════════════
-window.enterDungeon = async function() {
+window.enterDungeon = async function () {
+    window.combatContext = 'dungeon';
     setView('combat-screen');
     const floor = window._dungeonCurrentFloor || 1;
     document.getElementById('combat-dialogue').innerText = `Andar ${floor} — Preparando o campo de batalha...`;
-    window.updateHUD();
-    renderCombatHotbar();
+    window.updateBattleUI();
+    if (typeof renderCombatHotbar === 'function') renderCombatHotbar();
     toggleCombatButtons(true);
 
     document.getElementById('player-name-ui').innerText = window.activePlayer.name;
-
-    // Limpa avatares
     document.getElementById('player-hud-avatar-layers').innerHTML = '';
     document.getElementById('player-hud-avatar-img').src = '';
 
     await buildBattleCharacter(window.activePlayer, 'f', 'player-hud-avatar-img', 'player-hud-avatar-layers');
     await buildBattleCharacter(window.activePlayer, 'b', 'player-image', 'player-layers');
 
-    // Renderiza aliados da party no campo e no HUD
     await renderPartyInBattle();
-
     await spawnEnemies();
 };
 
 // ══════════════════════════════════════════════════
-// PARTY NO CAMPO DE BATALHA E HUD
+// ENTRADA NO TORNEIO (contexto: tournament)
+// ══════════════════════════════════════════════════
+window.enterTournamentBattle = async function () {
+    window.combatContext = 'tournament';
+    setView('combat-screen');
+
+    const round = window._tournamentData.currentRound;
+    const roundNames = ['Oitavas de Final', 'Quartas de Final', 'Semifinal', 'Final'];
+    const roundLabel = roundNames[round] || `Rodada ${round + 1}`;
+
+    document.getElementById('combat-dialogue').innerText = `🏟️ Coliseu — ${roundLabel}`;
+    window.updateBattleUI();
+    if (typeof renderCombatHotbar === 'function') renderCombatHotbar();
+    toggleCombatButtons(true);
+
+    document.getElementById('player-name-ui').innerText = window.activePlayer.name;
+    document.getElementById('player-hud-avatar-layers').innerHTML = '';
+    document.getElementById('player-hud-avatar-img').src = '';
+
+    await buildBattleCharacter(window.activePlayer, 'f', 'player-hud-avatar-img', 'player-hud-avatar-layers');
+    await buildBattleCharacter(window.activePlayer, 'b', 'player-image', 'player-layers');
+
+    // No torneio: sem aliados na party
+    const partyContainer = document.getElementById('party-battlefield-container');
+    if (partyContainer) partyContainer.innerHTML = '';
+
+    // CORREÇÃO: Limpa apenas os blocos dos aliados, preservando a SUA HUD intacta!
+    document.querySelectorAll('.ally-hud-block').forEach(el => el.remove());
+
+    window._partyStats = {};
+
+    await spawnTournamentEnemy();
+};
+
+
+// ══════════════════════════════════════════════════
+// PARTY NO CAMPO DE BATALHA E HUD (apenas dungeon)
 // ══════════════════════════════════════════════════
 async function renderPartyInBattle() {
     const partyContainer = document.getElementById('party-battlefield-container');
     const alliesHudContainer = document.getElementById('allies-hud-container');
     if (!partyContainer || !alliesHudContainer) return;
-    
+
     partyContainer.innerHTML = '';
-    // Limpa os blocos de HUD antigos dos aliados
     document.querySelectorAll('.ally-hud-block').forEach(el => el.remove());
 
-    const party   = window._party ||[];
-    const hired   = window._hiredAllies ||[];
+    const party = window._party || [];
+    const hired = window._hiredAllies || [];
 
     if (!window._partyStats) window._partyStats = {};
 
     for (let i = 0; i < party.length; i++) {
         const memberId = party[i];
-        
-        // CUIDADO: Transformar ambos em string para evitar erro de tipo (Ex: int vs string no Javascript)
         const ally = hired.find(a => String(a.member_id) === String(memberId));
         if (!ally) continue;
 
-        // Stats do aliado usando a nova API Python que carrega direto do save!
         const allyStats = await window.pywebview.api.load_ally_full_stats(window.activeSaveId, memberId);
         if (!allyStats) continue;
 
         window._partyStats[memberId] = {
             ally, stats: allyStats,
-            hp:      (ally.hp !== null && ally.hp !== undefined) ? ally.hp : allyStats.computed.hp,
-            mana:    (ally.mana !== null && ally.mana !== undefined) ? ally.mana : allyStats.computed.mana,
+            hp: (ally.hp !== null && ally.hp !== undefined) ? ally.hp : allyStats.computed.hp,
+            mana: (ally.mana !== null && ally.mana !== undefined) ? ally.mana : allyStats.computed.mana,
             stamina: (ally.stamina !== null && ally.stamina !== undefined) ? ally.stamina : allyStats.computed.stamina,
-            isDead:  false,
+            isDead: false,
         };
 
-        // Renderiza no Campo de Batalha
         partyContainer.innerHTML += `
         <div class="party-member-slot" id="party-slot-${memberId}">
             <div id="party-layers-${memberId}" class="paper-doll-container" style="display:none;"></div>
             <img id="party-img-${memberId}" src="" style="display:none;" class="battlefield-sprite">
         </div>`;
 
-        // Renderiza no HUD Esquerdo (junto do Player)
         alliesHudContainer.innerHTML += `
         <div class="combat-stat-block player-stat ally-hud-block" id="ally-hud-block-${memberId}" style="margin-top: 5px; opacity: 0.9; transform: scale(0.95); transform-origin: top left;">
             <div class="mini-avatar-box">
@@ -88,14 +134,10 @@ async function renderPartyInBattle() {
 
     for (let i = 0; i < party.length; i++) {
         const memberId = party[i];
-        const ally     = hired.find(a => String(a.member_id) === String(memberId));
+        const ally = hired.find(a => String(a.member_id) === String(memberId));
         if (!ally) continue;
-        
         const fakeChar = { race: ally.race, img_front: ally.img_front, img_back: ally.img_back, equipment_data: ally.equipment_data };
-        
-        // Campo: Virado de costas ('b')
         await buildBattleCharacter(fakeChar, 'b', `party-img-${memberId}`, `party-layers-${memberId}`);
-        // HUD: Rosto do aliado ('f')
         await buildBattleCharacter(fakeChar, 'f', `ally-hud-avatar-img-${memberId}`, `ally-hud-avatar-layers-${memberId}`);
     }
 }
@@ -110,33 +152,32 @@ function updatePartyHUD() {
             const hpEl = document.getElementById(`ally-hp-fill-${memberId}`);
             const mpEl = document.getElementById(`ally-mp-fill-${memberId}`);
             const spEl = document.getElementById(`ally-sp-fill-${memberId}`);
-            
-            if(hpEl) hpEl.style.width = `${Math.max(0, (ps.hp / c.hp) * 100)}%`;
-            if(mpEl) mpEl.style.width = `${Math.max(0, (ps.mana / c.mana) * 100)}%`;
-            if(spEl) spEl.style.width = `${Math.max(0, (ps.stamina / c.stamina) * 100)}%`;
+            if (hpEl) hpEl.style.width = `${Math.max(0, (ps.hp / c.hp) * 100)}%`;
+            if (mpEl) mpEl.style.width = `${Math.max(0, (ps.mana / c.mana) * 100)}%`;
+            if (spEl) spEl.style.width = `${Math.max(0, (ps.stamina / c.stamina) * 100)}%`;
         }
     }
 }
 
 // ══════════════════════════════════════════════════
-// SPAWN DE INIMIGOS
+// SPAWN DE INIMIGOS — DUNGEON
 // ══════════════════════════════════════════════════
 async function spawnEnemies() {
-    window.currentEnemies =[];
-    window.combatants =[];
+    window.currentEnemies = [];
+    window.combatants = [];
 
-    const floor      = window._dungeonCurrentFloor || 1;
+    const floor = window._dungeonCurrentFloor || 1;
     const numEnemies = Math.min(
-        window.MAX_ENEMIES_IN_COMBAT,
+        window.MAX_ENEMIES_IN_COMBAT || 3,
         Math.floor(Math.random() * Math.min(3, 1 + Math.floor(floor / 3))) + 1
     );
 
-    const hudContainer    = document.getElementById('enemies-hud-container');
+    const hudContainer = document.getElementById('enemies-hud-container');
     const battleContainer = document.getElementById('enemies-battlefield-container');
-    hudContainer.innerHTML    = '';
+    hudContainer.innerHTML = '';
     battleContainer.innerHTML = '';
 
-    let names =[];
+    let names = [];
 
     window.combatants.push({
         id: 'player', isPlayer: true, isAlly: false,
@@ -145,7 +186,7 @@ async function spawnEnemies() {
         actionValue: 0, isDead: false
     });
 
-    const party = window._party ||[];
+    const party = window._party || [];
     for (const memberId of party) {
         const ps = window._partyStats?.[memberId];
         if (!ps || ps.isDead) continue;
@@ -158,44 +199,135 @@ async function spawnEnemies() {
     }
 
     for (let i = 0; i < numEnemies; i++) {
-        const enemyData  = await window.pywebview.api.get_random_enemy_for_floor(floor);
+        const enemyData = await window.pywebview.api.get_random_enemy_for_floor(floor);
         if (!enemyData) continue;
         const enemyStats = await window.pywebview.api.load_enemy_full_stats(enemyData.id);
 
         const floorMult = 1 + (floor - 1) * 0.05;
         const scaledStats = JSON.parse(JSON.stringify(enemyStats));
-        scaledStats.computed.hp      = Math.floor(scaledStats.computed.hp      * floorMult);
-        scaledStats.computed.phys_dmg= scaledStats.computed.phys_dmg * floorMult;
-        scaledStats.computed.mag_dmg = scaledStats.computed.mag_dmg  * floorMult;
-        scaledStats.computed.phys_res= scaledStats.computed.phys_res * floorMult;
-        scaledStats.computed.mag_res = scaledStats.computed.mag_res  * floorMult;
+        scaledStats.computed.hp = Math.floor(scaledStats.computed.hp * floorMult);
+        scaledStats.computed.phys_dmg = scaledStats.computed.phys_dmg * floorMult;
+        scaledStats.computed.mag_dmg = scaledStats.computed.mag_dmg * floorMult;
+        scaledStats.computed.phys_res = scaledStats.computed.phys_res * floorMult;
+        scaledStats.computed.mag_res = scaledStats.computed.mag_res * floorMult;
 
-        let enemyObj = {
-            index: i, id: enemyData.id, data: enemyData,
-            stats: scaledStats,
-            hp:      scaledStats.computed.hp,
-            mana:    scaledStats.computed.mana,
-            stamina: scaledStats.computed.stamina,
-            isDead:  false
+        _addEnemyToBattle(i, enemyData, scaledStats, names, hudContainer, battleContainer);
+    }
+
+    if (names.length > 0) {
+        document.getElementById('combat-dialogue').innerText = `Apareceu: ${names.join(', ')}!`;
+    }
+
+    if (typeof window.autoSelectNextTarget === 'function') window.autoSelectNextTarget();
+    window.updateBattleUI();
+
+    setTimeout(() => window.processNextTurn(), 800);
+}
+
+// ══════════════════════════════════════════════════
+// SPAWN DE INIMIGO — TORNEIO (1v1)
+// ══════════════════════════════════════════════════
+async function spawnTournamentEnemy() {
+    window.currentEnemies = [];
+    window.combatants = [];
+
+    const hudContainer = document.getElementById('enemies-hud-container');
+    const battleContainer = document.getElementById('enemies-battlefield-container');
+    hudContainer.innerHTML = '';
+    battleContainer.innerHTML = '';
+
+    window.combatants.push({
+        id: 'player', isPlayer: true, isAlly: false,
+        name: window.activePlayer.name,
+        dex: window.playerFullStats.base.des,
+        actionValue: 0, isDead: false
+    });
+
+    const td = window._tournamentData;
+    const opponentNpc = td.opponents[td.currentOpponentIndex];
+    if (!opponentNpc) return;
+
+    let baseStats = {};
+    try { baseStats = typeof opponentNpc.base_stats === 'string' ? JSON.parse(opponentNpc.base_stats) : (opponentNpc.base_stats || {}); } catch (e) { }
+
+    const power = opponentNpc.power_score || 10;
+    const computedStats = {
+        hp: power * 15 + 50, mana: power * 5 + 20, stamina: power * 5 + 20,
+        phys_dmg: power * 0.8, mag_dmg: power * 0.5, phys_res: power * 0.3, mag_res: power * 0.2,
+        crit_rate: 5, crit_dmg: 150, dodge: 5, speed: baseStats.des || 5,
+    };
+
+    const fakeStats = { base: baseStats, computed: computedStats };
+
+    const opponentObj = {
+        index: 0, id: opponentNpc.id || -1, data: opponentNpc, stats: fakeStats,
+        hp: computedStats.hp, mana: computedStats.mana, stamina: computedStats.stamina,
+        isDead: false, isTournamentNpc: true, attacks: [1],
+    };
+
+    window.currentEnemies.push(opponentObj);
+    window.combatants.push({
+        id: 0, isPlayer: false, isAlly: false, name: opponentNpc.name,
+        dex: baseStats.des || 5, actionValue: 0, isDead: false
+    });
+
+    const round = td.currentRound;
+    const roundNames = ['Oitavas', 'Quartas', 'Semifinal', 'Final'];
+
+    // AQUI ENTROU A CORREÇÃO DE LAYOUT: <div style="flex:1;">
+    hudContainer.innerHTML = `
+    <div class="combat-stat-block enemy-stat" id="enemy-hud-block-0" onclick="if(window.setCombatTarget) window.setCombatTarget(0)">
+        <div style="flex:1;">
+            <div style="font-weight:bold; color:#e74c3c; margin-bottom:4px; font-size:0.9rem;">
+                🏟️ ${roundNames[round] || 'Rodada'} | ${opponentNpc.name}
+            </div>
+            <div class="bar-container"><span class="bar-label">HP</span><div class="bar-bg"><div id="enemy-hp-fill-0" class="bar-fill hp-fill" style="width:100%"></div></div></div>
+            <div class="bar-container"><span class="bar-label">MP</span><div class="bar-bg"><div id="enemy-mp-fill-0" class="bar-fill mp-fill" style="width:100%"></div></div></div>
+            <div class="bar-container"><span class="bar-label">SP</span><div class="bar-bg"><div id="enemy-sp-fill-0" class="bar-fill sp-fill" style="width:100%"></div></div></div>
+            <div class="bar-container"><span class="bar-label" style="color:#ecf0f1;">ACT</span><div class="bar-bg"><div id="enemy-atb-fill-0" class="bar-fill atb-fill" style="width:0%"></div></div></div>
+        </div>
+    </div>`;
+
+    battleContainer.innerHTML = `
+    <div class="enemy-container-slot is-targeted" id="enemy-container-0" onclick="if(window.setCombatTarget) window.setCombatTarget(0)">
+        <div id="enemy-layers-0" class="paper-doll-container" style="display:none;"></div>
+        <img id="enemy-img-0" src="" style="max-width:100%; max-height:180px; object-fit:contain; display:block;">
+        <div class="enemy-name-badge">${opponentNpc.name} (PS: ${power})</div>
+    </div>`;
+
+    const fakeChar = { race: opponentNpc.race || 'humano', img_front: opponentNpc.img_front || '', img_back: opponentNpc.img_back || '', equipment_data: opponentNpc.equipment_data || '{}' };
+    await buildBattleCharacter(fakeChar, 'f', 'enemy-img-0', 'enemy-layers-0');
+
+    window.combatTargetIndex = 0;
+    document.getElementById('combat-dialogue').innerText = `⚔️ Seu adversário: ${opponentNpc.name} (Poder: ${power})`;
+    setTimeout(() => window.processNextTurn(), 800);
+}
+
+// Helper interno compartilhado para adicionar inimigo à batalha (DUNGEON)
+function _addEnemyToBattle(i, enemyData, scaledStats, names, hudContainer, battleContainer) {
+    try {
+        let enemyAtks = JSON.parse(enemyData.attacks || '[1]');
+        const enemyObj = {
+            index: i, id: enemyData.id, data: enemyData, stats: scaledStats,
+            hp: scaledStats.computed.hp, mana: scaledStats.computed.mana, stamina: scaledStats.computed.stamina,
+            isDead: false, attacks: enemyAtks,
         };
         window.currentEnemies.push(enemyObj);
+        window.combatants.push({
+            id: i, isPlayer: false, isAlly: false, name: enemyData.name,
+            dex: scaledStats.base.des || 5, actionValue: 0, isDead: false
+        });
         names.push(enemyData.name);
 
-        window.combatants.push({
-            id: i, isPlayer: false, isAlly: false,
-            name: enemyData.name,
-            dex: enemyStats.base.des,
-            actionValue: 0, isDead: false
-        });
-
+        // AQUI ENTROU A CORREÇÃO DE LAYOUT: <div style="flex:1;">
         hudContainer.innerHTML += `
-        <div class="combat-stat-block enemy-stat" id="enemy-hud-block-${i}" onclick="window.setCombatTarget(${i})">
+        <div class="combat-stat-block enemy-stat" id="enemy-hud-block-${i}" onclick="if(window.setCombatTarget) window.setCombatTarget(${i})">
             <div style="flex:1;">
-                <span class="enemy-name-ui">${enemyData.name}</span>
-                <div class="bar-container"><span class="bar-label">HP</span><div class="bar-bg"><div id="enemy-hp-fill-${i}" class="bar-fill hp-fill"></div></div></div>
-                <div class="bar-container"><span class="bar-label">MP</span><div class="bar-bg"><div id="enemy-mp-fill-${i}" class="bar-fill mp-fill"></div></div></div>
-                <div class="bar-container"><span class="bar-label">SP</span><div class="bar-bg"><div id="enemy-sp-fill-${i}" class="bar-fill sp-fill"></div></div></div>
-                <div class="bar-container"><span class="bar-label" style="color:#ecf0f1;">ACT</span><div class="bar-bg"><div id="enemy-atb-fill-${i}" class="bar-fill atb-fill"></div></div></div>
+                <div style="font-weight:bold; color:#e74c3c; margin-bottom:4px; font-size:0.85rem;">${enemyData.name}</div>
+                <div class="bar-container"><span class="bar-label">HP</span><div class="bar-bg"><div id="enemy-hp-fill-${i}" class="bar-fill hp-fill" style="width:100%"></div></div></div>
+                <div class="bar-container"><span class="bar-label">MP</span><div class="bar-bg"><div id="enemy-mp-fill-${i}" class="bar-fill mp-fill" style="width:100%"></div></div></div>
+                <div class="bar-container"><span class="bar-label">SP</span><div class="bar-bg"><div id="enemy-sp-fill-${i}" class="bar-fill sp-fill" style="width:100%"></div></div></div>
+                <div class="bar-container"><span class="bar-label" style="color:#ecf0f1;">ACT</span><div class="bar-bg"><div id="enemy-atb-fill-${i}" class="bar-fill atb-fill" style="width:0%"></div></div></div>
             </div>
             <div class="mini-avatar-box">
                 <div id="enemy-hud-avatar-layers-${i}" class="paper-doll-container" style="display:none;"></div>
@@ -204,246 +336,309 @@ async function spawnEnemies() {
         </div>`;
 
         battleContainer.innerHTML += `
-        <div id="enemy-container-${i}" class="enemy-container-slot" onclick="window.setCombatTarget(${i})">
+        <div class="enemy-container-slot ${i === 0 ? 'is-targeted' : ''}" id="enemy-container-${i}" onclick="if(window.setCombatTarget) window.setCombatTarget(${i})">
             <div id="enemy-layers-${i}" class="paper-doll-container" style="display:none;"></div>
-            <img id="enemy-image-${i}" src="" style="display:none;" class="battlefield-sprite">
+            <img id="enemy-img-${i}" src="" style="max-width:100%; max-height:180px; object-fit:contain;">
+            <div class="enemy-name-badge">${enemyData.name}</div>
         </div>`;
-    }
 
-    for (let i = 0; i < numEnemies; i++) {
-        let e = window.currentEnemies[i];
-        await buildBattleCharacter(e.data,'f',`enemy-image-${i}`,`enemy-layers-${i}`);
-        await buildBattleCharacter(e.data,'f',`enemy-hud-avatar-img-${i}`,`enemy-hud-avatar-layers-${i}`);
-    }
-
-    window.autoSelectNextTarget();
-    updateBattleUI();
-    const floorLabel = getDangerLabel ? getDangerLabel(floor) : { icon:'⚔️' };
-    document.getElementById('combat-dialogue').innerText =
-        `Andar ${floor} ${floorLabel?.icon||''} — Apareceu: ${names.join(', ')}!`;
-
-    setTimeout(() => window.processNextTurn(), 1000);
+        const fakeChar = { race: enemyData.race, img_front: enemyData.img_front, img_back: enemyData.img_back, equipment_data: enemyData.equipment_data };
+        buildBattleCharacter(fakeChar, 'f', `enemy-img-${i}`, `enemy-layers-${i}`);
+    } catch (e) { console.error('Erro ao adicionar inimigo:', e); }
 }
 
-// ══════════════════════════════════════════════════
-// SISTEMA DE TURNOS (ATB)
-// ══════════════════════════════════════════════════
-window.processNextTurn = function() {
-    let aliveEnemies = window.currentEnemies.filter(e => !e.isDead);
-    if (window.playerHP <= 0) { handlePlayerDeath(); return; }
-    if (aliveEnemies.length === 0) { window.winBattle(); return; }
 
-    let minTime   = Infinity;
-    let nextActor = null;
-    for (let c of window.combatants) {
-        if (c.isDead) continue;
-        let speed = 10 + (c.dex || 0);
-        let timeToTurn = (1000 - c.actionValue) / speed;
-        if (timeToTurn < minTime) { minTime = timeToTurn; nextActor = c; }
+// ══════════════════════════════════════════════════
+// LOOP DE TURNOS (ATB - Cálculo Preciso)
+// ══════════════════════════════════════════════════
+window.processNextTurn = function () {
+    const alive = window.combatants.filter(c => !c.isDead);
+    if (!alive.length) return;
+
+    const allEnemiesDead = window.currentEnemies.every(e => e.isDead);
+    if (allEnemiesDead) {
+        _handleVictory();
+        return;
     }
+
+    const playerDead = window.playerHP <= 0;
+    if (playerDead) {
+        _handleDeath();
+        return;
+    }
+
+    if (window.isTurnBusy) return;
+
+    // Calcula tempo exato para o próximo alcançar 1000 de ação
+    let minTime = Infinity;
+    let nextActor = null;
+
+    for (let c of alive) {
+        // Atualiza a Destreza real (pode ter mudado por buffs/debuffs)
+        let dex = 5;
+        if (c.isPlayer) dex = window.playerFullStats?.base?.des || 5;
+        else if (c.isAlly) dex = window._partyStats?.[c.memberId]?.stats?.base?.des || 5;
+        else dex = window.currentEnemies.find(e => e.index === c.id)?.stats?.base?.des || 5;
+        c.dex = dex;
+
+        let speed = 10 + dex;
+        let timeToTurn = (1000 - c.actionValue) / speed;
+        if (timeToTurn < minTime) {
+            minTime = timeToTurn;
+            nextActor = c;
+        }
+    }
+
     if (!nextActor) return;
 
-    for (let c of window.combatants) {
-        if (c.isDead) continue;
+    // Avança as barras no tempo correspondente
+    for (let c of alive) {
         c.actionValue += minTime * (10 + (c.dex || 0));
     }
+
     window.updateATBBars();
 
     setTimeout(() => {
         if (nextActor.isPlayer) {
-            document.getElementById('combat-dialogue').innerText = "Seu turno!";
-            window.isTurnBusy = false;
+            if (window._allyControlMode === 'manual') {
+                window._activeCombatantControl = 'player';
+                if (typeof window.renderCombatControlBar === 'function') window.renderCombatControlBar();
+            }
             toggleCombatButtons(false);
-        } else if (nextActor.isAlly) {
+            document.getElementById('combat-dialogue').innerText = 'Sua vez! Escolha um ataque.';
+            window.isTurnBusy = false; // Libera a UI para clicar
+        }
+        else if (nextActor.isAlly) {
+            if (window._allyControlMode === 'manual') {
+                window._activeCombatantControl = nextActor.memberId;
+                if (typeof window.renderCombatControlBar === 'function') window.renderCombatControlBar();
+                toggleCombatButtons(false);
+                document.getElementById('combat-dialogue').innerText = `Vez de ${nextActor.name}! Escolha o ataque.`;
+                window.isTurnBusy = false; // Libera a UI para clicar
+            } else {
+                window.isTurnBusy = true;
+                toggleCombatButtons(true);
+                _allyAutoAttack(nextActor);
+            }
+        }
+        else {
             window.isTurnBusy = true;
             toggleCombatButtons(true);
-            setTimeout(() => executeAllyTurn(nextActor), 500);
-        } else {
-            window.isTurnBusy = true;
-            toggleCombatButtons(true);
-            setTimeout(() => executeEnemyTurn(nextActor), 500);
+            _enemyAttack(nextActor);
         }
     }, 550);
 };
 
-// ══════════════════════════════════════════════════
-// TURNO DO ALIADO (IA)
-// ══════════════════════════════════════════════════
-async function executeAllyTurn(actor) {
-    const ps = window._partyStats?.[actor.memberId];
-    if (!ps || ps.isDead) { actor.isDead = true; window.processNextTurn(); return; }
+function _handleVictory() {
+    if (window.combatContext === 'tournament') {
+        window.winTournamentRound();
+    } else {
+        window.winBattle();
+    }
+}
 
-    const ally      = ps.ally;
-    const hotbar    = ally.hotbar || ally.attacks || [1];
-    const validAtks = hotbar.filter(id => id !== null && id !== undefined);
+function _handleDeath() {
+    if (window.combatContext === 'tournament') {
+        _handleTournamentDeath();
+    } else {
+        handlePlayerDeath();
+    }
+}
 
+// ══════════════════════════════════════════════════
+// ATAQUE DO ALIADO (AUTO)
+// ══════════════════════════════════════════════════
+async function _allyAutoAttack(combatant) {
+    window.isTurnBusy = true;
+    const memberId = combatant.memberId;
+    const ps = window._partyStats?.[memberId];
+    if (!ps) { combatant.actionValue -= 1000; window.isTurnBusy = false; window.processNextTurn(); return; }
+
+    const aliveEnemies = window.currentEnemies.filter(e => !e.isDead);
+    if (!aliveEnemies.length) { window.isTurnBusy = false; window.processNextTurn(); return; }
+
+    // Sempre foca no alvo selecionado se estiver vivo, senão ataca o primeiro
+    let target = window.currentEnemies[window.combatTargetIndex];
+    if (!target || target.isDead) target = aliveEnemies[0];
+
+    const hotbar = ps.ally.hotbar || [1];
+    const validAtks = hotbar.filter(id => id !== null);
+
+    // Escolhe uma skill que possa pagar os custos, caso contrário descansa
     const affordable = validAtks.filter(id => {
-        const a = (window.gameData.attacks||[]).find(a => a.id == id);
-        return a && (a.hp_cost||0) <= ps.hp && (a.mana_cost||0) <= ps.mana && (a.stamina_cost||0) <= ps.stamina;
+        const a = (window.gameData.attacks || []).find(a => a.id == id);
+        return a && (a.hp_cost || 0) <= ps.hp && (a.mana_cost || 0) <= ps.mana && (a.stamina_cost || 0) <= ps.stamina;
     });
-
-    let msg = '';
-    const target = window.currentEnemies.find(e => !e.isDead);
-    if (!target) { window.processNextTurn(); return; }
 
     if (affordable.length > 0) {
         const atkId = affordable[Math.floor(Math.random() * affordable.length)];
-        const res   = await window.pywebview.api.process_battle_turn(ps.stats, target.stats, atkId, 1);
-        ps.hp      = Math.max(0, ps.hp - res.hp_cost);
-        ps.stamina = Math.max(0, ps.stamina - res.stamina_cost);
-        ps.mana    = Math.max(0, ps.mana    - res.mana_cost);
+        const result = await window.pywebview.api.process_battle_turn(
+            ps.stats, target.stats, atkId, 1
+        );
 
-        if (!res.dodged) {
-            target.hp = Math.max(0, target.hp - res.damage);
-            const cssClass = res.is_crit ? 'dmg-crit' : (res.atk_type==='mag' ? 'dmg-mag' : 'dmg-phys');
-            window.showFloatingDamage(`enemy-container-${target.index}`, res.damage, cssClass);
+        if (result) {
+            ps.stamina = Math.max(0, ps.stamina - (result.stamina_cost || 0));
+            ps.mana = Math.max(0, ps.mana - (result.mana_cost || 0));
+            ps.hp = Math.max(0, ps.hp - (result.hp_cost || 0));
+
+            if (result.dodged) {
+                window.showFloatingDamage(`enemy-container-${target.index}`, 'Esquiva!', 'dmg-dodge');
+            } else {
+                target.hp = Math.max(0, target.hp - result.damage);
+                window.showFloatingDamage(`enemy-container-${target.index}`, result.damage,
+                    result.is_crit ? 'dmg-crit' : (result.atk_type === 'mag' ? 'dmg-mag' : 'dmg-phys'));
+            }
+            document.getElementById('combat-dialogue').innerText = `${ps.ally.name}: ${result.msg}`;
         }
-        msg = `[${ally.name}]: ${res.msg}`;
     } else {
-        ps.hp      = Math.min(ps.stats.computed.hp, ps.hp + 5);
+        // Sem recursos, descansa
+        ps.hp = Math.min(ps.stats.computed.hp, ps.hp + 5);
         ps.stamina = Math.min(ps.stats.computed.stamina, ps.stamina + 20);
-        msg = `[${ally.name}] descansou o turno.`;
+        ps.mana = Math.min(ps.stats.computed.mana, ps.mana + 20);
+        document.getElementById('combat-dialogue').innerText = `[${ps.ally.name}] descansou o turno.`;
     }
 
-    updateBattleUI();
-    updatePartyHUD();
-    document.getElementById('combat-dialogue').innerText = msg;
-    actor.actionValue -= 1000;
-    window.updateATBBars();
+    window.updateBattleUI();
+    combatant.actionValue -= 1000;
 
     setTimeout(() => {
         if (target.hp <= 0) {
             target.isDead = true;
             const c = window.combatants.find(co => !co.isPlayer && !co.isAlly && co.id === target.index);
             if (c) c.isDead = true;
-            document.getElementById(`enemy-container-${target.index}`).classList.add('dead');
-            document.getElementById(`enemy-hud-block-${target.index}`).classList.add('dead');
+            document.getElementById(`enemy-container-${target.index}`)?.classList.add('dead');
+            document.getElementById(`enemy-hud-block-${target.index}`)?.classList.add('dead');
+            document.getElementById(`enemy-hud-block-${target.index}`)?.classList.remove('is-targeted-hud');
         }
-        setTimeout(() => window.processNextTurn(), 500);
+        window.isTurnBusy = false;
+        setTimeout(() => window.processNextTurn(), 400);
     }, 600);
 }
 
 // ══════════════════════════════════════════════════
-// TURNO DO INIMIGO
+// ATAQUE DO INIMIGO
 // ══════════════════════════════════════════════════
-async function executeEnemyTurn(actor) {
-    let e = window.currentEnemies[actor.id];
-    if (!e || e.isDead) { actor.isDead = true; window.processNextTurn(); return; }
+async function _enemyAttack(combatant) {
+    const enemy = window.currentEnemies.find(e => e.index === combatant.id && !e.isDead);
+    if (!enemy) { combatant.actionValue -= 1000; window.isTurnBusy = false; window.processNextTurn(); return; }
 
-    let enemyAtkIds = [1];
-    try { enemyAtkIds = typeof e.data.attacks === 'string' ? JSON.parse(e.data.attacks) : e.data.attacks; } catch {}
-    if (!enemyAtkIds?.length) enemyAtkIds = [1];
-
-    const affordable = enemyAtkIds.filter(id => {
-        const ea = (window.gameData.attacks||[]).find(a => a.id == id);
-        return ea && (ea.hp_cost||0) <= e.hp && (ea.mana_cost||0) <= e.mana && (ea.stamina_cost||0) <= e.stamina;
+    const aliveAllies = [
+        { id: 'player', stats: window.playerFullStats },
+        ...Object.entries(window._partyStats || {})
+            .filter(([, ps]) => !ps.isDead)
+            .map(([mid, ps]) => ({ id: `ally_${mid}`, memberId: mid, stats: ps.stats }))
+    ].filter(a => {
+        if (a.id === 'player') return window.playerHP > 0;
+        return true;
     });
 
-    let msg = '';
+    if (!aliveAllies.length) { combatant.actionValue -= 1000; window.isTurnBusy = false; window.processNextTurn(); return; }
+
+    const targetAlly = aliveAllies[Math.floor(Math.random() * aliveAllies.length)];
+
+    const enemyAtkIds = (enemy.attacks && enemy.attacks.length) ? enemy.attacks : [1];
+    const affordable = enemyAtkIds.filter(id => {
+        const ea = (window.gameData.attacks || []).find(a => a.id == id);
+        return ea && (ea.hp_cost || 0) <= enemy.hp && (ea.mana_cost || 0) <= enemy.mana && (ea.stamina_cost || 0) <= enemy.stamina;
+    });
+
     if (affordable.length > 0) {
-        const randomAtkId = affordable[Math.floor(Math.random() * affordable.length)];
+        const atkId = affordable[Math.floor(Math.random() * affordable.length)];
+        const result = await window.pywebview.api.process_battle_turn(
+            enemy.stats, targetAlly.stats, atkId, 1
+        );
 
-        const aliveAllies = Object.entries(window._partyStats || {})
-            .filter(([,ps]) => !ps.isDead)
-            .map(([id]) => id);
-        const targets = ['player', ...aliveAllies];
-        const chosenTarget = targets[Math.floor(Math.random() * targets.length)];
+        if (result) {
+            enemy.hp = Math.max(0, enemy.hp - result.hp_cost);
+            enemy.stamina = Math.max(0, enemy.stamina - result.stamina_cost);
+            enemy.mana = Math.max(0, enemy.mana - result.mana_cost);
 
-        let defenderStats;
-        if (chosenTarget === 'player') {
-            defenderStats = window.playerFullStats;
-        } else {
-            defenderStats = window._partyStats[chosenTarget]?.stats;
-        }
-        if (!defenderStats) { defenderStats = window.playerFullStats; }
-
-        const resE = await window.pywebview.api.process_battle_turn(e.stats, defenderStats, randomAtkId, 1);
-
-        e.hp      = Math.max(0, e.hp - resE.hp_cost);
-        e.stamina = Math.max(0, e.stamina - resE.stamina_cost);
-        e.mana    = Math.max(0, e.mana    - resE.mana_cost);
-
-        if (!resE.dodged) {
-            if (chosenTarget === 'player') {
-                window.playerHP = Math.max(0, window.playerHP - resE.damage);
-                const css = resE.is_crit ? 'dmg-crit' : (resE.atk_type==='mag' ? 'dmg-mag' : 'dmg-phys');
-                window.showFloatingDamage('player-container', resE.damage, css);
-                const pC = document.getElementById('player-container');
-                if (pC) { pC.classList.add('enemy-hit'); setTimeout(() => pC.classList.remove('enemy-hit'), 200); }
+            if (result.dodged) {
+                const tgtId = targetAlly.id === 'player' ? 'player-container' : `party-slot-${targetAlly.memberId}`;
+                window.showFloatingDamage(tgtId, 'Esquiva!', 'dmg-dodge');
             } else {
-                const ps = window._partyStats[chosenTarget];
-                if (ps) {
-                    ps.hp = Math.max(0, ps.hp - resE.damage);
-                    if (ps.hp <= 0) {
-                        ps.isDead = true;
-                        const ac = window.combatants.find(c => c.isAlly && String(c.memberId) === String(chosenTarget));
-                        if (ac) ac.isDead = true;
-                        document.getElementById(`party-slot-${chosenTarget}`)?.classList.add('dead');
+                if (targetAlly.id === 'player') {
+                    window.playerHP = Math.max(0, window.playerHP - result.damage);
+                    window.showFloatingDamage('player-container', result.damage, result.is_crit ? 'dmg-crit' : 'dmg-phys');
+                } else {
+                    const ps = window._partyStats[targetAlly.memberId];
+                    if (ps) {
+                        ps.hp = Math.max(0, ps.hp - result.damage);
+                        if (ps.hp <= 0) ps.isDead = true;
+                        window.showFloatingDamage(`party-slot-${targetAlly.memberId}`, result.damage, 'dmg-phys');
                     }
-                    window.showFloatingDamage(`party-slot-${chosenTarget}`, resE.damage, 'dmg-phys');
                 }
             }
-        } else {
-            const tgtId = chosenTarget === 'player' ? 'player-container' : `party-slot-${chosenTarget}`;
-            window.showFloatingDamage(tgtId, "Esquiva!", "dmg-dodge");
+            document.getElementById('combat-dialogue').innerText = `${enemy.data.name}: ${result.msg}`;
         }
-        msg = `[${e.data.name}]: ${resE.msg}`;
     } else {
-        e.hp      = Math.min(e.stats.computed.hp, e.hp + 5);
-        e.stamina = Math.min(e.stats.computed.stamina, e.stamina + 20);
-        e.mana    = Math.min(e.stats.computed.mana, e.mana + 20);
-        msg = `[${e.data.name}] descansou o turno.`;
+        // Sem recursos, descansa
+        enemy.hp = Math.min(enemy.stats.computed.hp, enemy.hp + 5);
+        enemy.stamina = Math.min(enemy.stats.computed.stamina, enemy.stamina + 20);
+        enemy.mana = Math.min(enemy.stats.computed.mana, enemy.mana + 20);
+        document.getElementById('combat-dialogue').innerText = `[${enemy.data.name}] descansou o turno.`;
     }
 
-    updateBattleUI();
-    updatePartyHUD();
-    document.getElementById('combat-dialogue').innerText = msg;
-    actor.actionValue -= 1000;
-    window.updateATBBars();
-    setTimeout(() => window.processNextTurn(), 1200);
+    window.updateBattleUI();
+    combatant.actionValue -= 1000;
+
+    setTimeout(() => {
+        window.isTurnBusy = false;
+        window.processNextTurn();
+    }, 800);
 }
 
 // ══════════════════════════════════════════════════
-// TURNO DO PLAYER
+// ATAQUE DO PLAYER (chamado pela hotbar em combat_ui.js)
 // ══════════════════════════════════════════════════
-window.startTurnSequence = async function(attackId) {
+window.startTurnSequence = async function (atkId) {
     if (window.isTurnBusy) return;
-    let target = window.currentEnemies[window.combatTargetIndex];
-    if (!target || target.isDead) {
-        window.autoSelectNextTarget();
-        target = window.currentEnemies[window.combatTargetIndex];
-    }
-    if (!target || target.isDead) return;
+
+    const playerCombatant = window.combatants.find(c => c.isPlayer);
+    if (!playerCombatant || playerCombatant.actionValue < 1000) return;
 
     window.isTurnBusy = true;
     toggleCombatButtons(true);
 
-    if (!window.attackExp[attackId]) window.attackExp[attackId] = { xp:0, level:1 };
-    const expObj = window.attackExp[attackId];
+    let target = window.currentEnemies[window.combatTargetIndex];
+    if (!target || target.isDead) {
+        if (typeof window.autoSelectNextTarget === 'function') window.autoSelectNextTarget();
+        target = window.currentEnemies[window.combatTargetIndex];
+    }
 
-    const res = await window.pywebview.api.process_battle_turn(window.playerFullStats, target.stats, attackId, expObj.level);
+    if (!target || target.isDead) {
+        window.isTurnBusy = false;
+        toggleCombatButtons(false);
+        return;
+    }
 
-    window.playerHP      = Math.max(0, window.playerHP      - res.hp_cost);
+    const expObj = window.attackExp[atkId] || { xp: 0, level: 1 };
+    const res = await window.pywebview.api.process_battle_turn(
+        window.playerFullStats, target.stats, atkId, expObj.level
+    );
+    if (!res) { window.isTurnBusy = false; toggleCombatButtons(false); return; }
+
+    window.playerHP = Math.max(0, window.playerHP - res.hp_cost);
     window.playerStamina = Math.max(0, window.playerStamina - res.stamina_cost);
-    window.playerMana    = Math.max(0, window.playerMana    - res.mana_cost);
+    window.playerMana = Math.max(0, window.playerMana - res.mana_cost);
 
     let levelUpMsg = '';
     if (res.dodged) {
         window.showFloatingDamage(`enemy-container-${target.index}`, "Esquiva!", "dmg-dodge");
     } else {
         target.hp = Math.max(0, target.hp - res.damage);
-        const css = res.is_crit ? 'dmg-crit' : (res.atk_type==='mag' ? 'dmg-mag' : 'dmg-phys');
+        const css = res.is_crit ? 'dmg-crit' : (res.atk_type === 'mag' ? 'dmg-mag' : 'dmg-phys');
         window.showFloatingDamage(`enemy-container-${target.index}`, res.damage, css);
         const reqXp = expObj.level * 100;
         expObj.xp += 35;
         if (expObj.xp >= reqXp) {
             expObj.xp -= reqXp; expObj.level += 1;
             levelUpMsg = ` 🌟[Nível ${expObj.level}]`;
-            renderCombatHotbar();
+            if (typeof renderCombatHotbar === 'function') renderCombatHotbar();
         }
     }
 
-    updateBattleUI();
+    window.updateBattleUI();
     document.getElementById('combat-dialogue').innerText = `Você: ${res.msg}${levelUpMsg}`;
 
     const p = window.combatants.find(c => c.isPlayer);
@@ -455,46 +650,46 @@ window.startTurnSequence = async function(attackId) {
             target.isDead = true;
             const c = window.combatants.find(co => !co.isPlayer && !co.isAlly && co.id === target.index);
             if (c) c.isDead = true;
-            document.getElementById(`enemy-container-${target.index}`).classList.add('dead');
-            document.getElementById(`enemy-hud-block-${target.index}`).classList.add('dead');
-            document.getElementById(`enemy-hud-block-${target.index}`).classList.remove('is-targeted-hud');
+            document.getElementById(`enemy-container-${target.index}`)?.classList.add('dead');
+            document.getElementById(`enemy-hud-block-${target.index}`)?.classList.add('dead');
+            document.getElementById(`enemy-hud-block-${target.index}`)?.classList.remove('is-targeted-hud');
         }
+        window.isTurnBusy = false;
         setTimeout(() => window.processNextTurn(), 500);
     }, 600);
 };
 
 // ══════════════════════════════════════════════════
-// VITÓRIA / FUGA / MORTE
+// VITÓRIA / FUGA / MORTE — DUNGEON
 // ══════════════════════════════════════════════════
-window.winBattle = async function() {
+window.winBattle = async function () {
     document.getElementById('combat-dialogue').innerText = "VITÓRIA! Buscando loot...";
     await window.advanceDungeonFloor();
-    let allLoot =[];
+    let allLoot = [];
     let killedTargets = {};
 
     for (const enemy of window.currentEnemies) {
+        if (enemy.isTournamentNpc) continue;
         if (enemy.id) killedTargets[enemy.id] = (killedTargets[enemy.id] || 0) + 1;
         const res = await window.pywebview.api.generate_loot(enemy.id, window.activeSaveId);
         window.playerInventory = res.new_inventory;
-        window.playerGold      = res.new_gold;
+        window.playerGold = res.new_gold;
         allLoot.push(...res.loot_list);
     }
-    
-    let questsUpdated = false;
+
     for (let aq of window._activeQuests) {
-        const qData = (window.currentWorld.quests ||[]).find(q => String(q.id) === String(aq.quest_id));
+        const qData = (window.currentWorld?.quests || []).find(q => String(q.id) === String(aq.quest_id));
         if (qData && qData.target_character_id) {
             const targetId = String(qData.target_character_id);
             for (let [kId, count] of Object.entries(killedTargets)) {
                 if (String(kId) === targetId) {
                     aq.kills_done = (aq.kills_done || 0) + count;
-                    questsUpdated = true;
                 }
             }
         }
     }
-    
-    window.updateHUD();
+
+    window.updateBattleUI();
     await window.saveGameState();
 
     const floor = window._dungeonCurrentFloor || 1;
@@ -506,7 +701,7 @@ window.winBattle = async function() {
     }, 1000);
 };
 
-window.continueDungeon = function() {
+window.continueDungeon = function () {
     document.getElementById('loot-modal').style.display = 'none';
     document.getElementById('combat-dialogue').innerText = "Você desce mais fundo...";
     toggleCombatButtons(true);
@@ -517,31 +712,37 @@ function handlePlayerDeath() {
     const ouroPerdido = Math.floor(window.playerGold / 2);
     window.playerGold -= ouroPerdido;
     document.getElementById('combat-dialogue').innerText = `Você desmaiou e perdeu ${ouroPerdido} moedas!`;
-    window.updateHUD();
+    window.updateBattleUI();
     window.saveGameState();
     setTimeout(() => {
-        window.playerHP      = window.playerFullStats.computed.hp;
-        window.playerMana    = window.playerFullStats.computed.mana;
+        window.playerHP = window.playerFullStats.computed.hp;
+        window.playerMana = window.playerFullStats.computed.mana;
         window.playerStamina = window.playerFullStats.computed.stamina;
-        window.combatants    = []; window.currentEnemies=[]; window._partyStats   = {};
+        window.combatants = []; window.currentEnemies = []; window._partyStats = {};
+        window.isTurnBusy = false;
         backToCity();
     }, 3000);
 }
 
-window.fleeBattle = function() {
+window.fleeBattle = function () {
+    // Fuga bloqueada no torneio
+    if (window.combatContext === 'tournament') {
+        if (typeof window.showToast === 'function') window.showToast('Não é possível fugir de um torneio!', 'error');
+        return;
+    }
     if (window.isTurnBusy) return;
     window.isTurnBusy = true;
     toggleCombatButtons(true);
     const aliveEnemies = window.currentEnemies.filter(e => !e.isDead);
     if (aliveEnemies.length === 0) return;
-    const pDes    = window.playerFullStats.base.des;
+    const pDes = window.playerFullStats.base.des;
     const maxEDes = Math.max(...aliveEnemies.map(e => e.stats.base.des));
     const fleeChance = Math.max(10, Math.min(90, 50 + (pDes - maxEDes) * 5));
     if (Math.random() * 100 <= fleeChance) {
         document.getElementById('combat-dialogue').innerText = "Fuga com sucesso!";
         setTimeout(() => {
             window.isTurnBusy = false;
-            window.combatants =[]; window.currentEnemies =[]; window._partyStats = {};
+            window.combatants = []; window.currentEnemies = []; window._partyStats = {};
             backToCity();
         }, 1500);
     } else {
@@ -549,37 +750,128 @@ window.fleeBattle = function() {
         const p = window.combatants.find(c => c.isPlayer);
         if (p) p.actionValue -= 1000;
         window.updateATBBars();
-        setTimeout(() => window.processNextTurn(), 1000);
+        setTimeout(() => { window.isTurnBusy = false; window.processNextTurn(); }, 1000);
     }
 };
 
-window.closeLootAndReturn = function() {
+// ══════════════════════════════════════════════════
+// VITÓRIA / MORTE — TORNEIO
+// ══════════════════════════════════════════════════
+window.winTournamentRound = async function () {
+    const td = window._tournamentData;
+    const roundNames = ['Oitavas de Final', 'Quartas de Final', 'Semifinal', 'Final'];
+    const currentRoundName = roundNames[td.currentRound] || `Rodada ${td.currentRound + 1}`;
+
+    // Recupera 100% entre rodadas
+    window.playerHP = window.playerFullStats.computed.hp;
+    window.playerMana = window.playerFullStats.computed.mana;
+    window.playerStamina = window.playerFullStats.computed.stamina;
+
+    td.currentRound++;
+    td.currentOpponentIndex++;
+
+    if (td.currentRound > 3) {
+        // Venceu o torneio!
+        await _handleTournamentVictory();
+        return;
+    }
+
+    document.getElementById('combat-dialogue').innerText =
+        `✅ Venceu as ${currentRoundName}! Próxima fase: ${roundNames[td.currentRound]}`;
+
+    setTimeout(() => {
+        window.combatants = []; window.currentEnemies = []; window._partyStats = {};
+        window.isTurnBusy = false;
+        enterTournamentBattle();
+    }, 2500);
+};
+
+async function _handleTournamentVictory() {
+    const td = window._tournamentData;
+    const prize = td.prize || 0;
+    const category = td.category;
+
+    // Registra vitória no banco
+    await window.pywebview.api.register_tournament_win(
+        window.activeSaveId,
+        window.activePlayer.name,
+        window.activeSaveId,
+        true,
+        category,
+        prize
+    );
+
+    window.playerGold += prize;
+    window.updateBattleUI();
+    await window.saveGameState();
+
+    const catLabels = {
+        novato: 'Novato', intermediario: 'Intermediário',
+        avancado: 'Avançado', lendario: 'Lendário'
+    };
+
+    document.getElementById('combat-dialogue').innerText =
+        `🏆 CAMPEÃO DO TORNEIO! Categoria ${catLabels[category] || category}!`;
+
+    setTimeout(() => {
+        window.combatants = []; window.currentEnemies = []; window._partyStats = {};
+        window.isTurnBusy = false;
+        // Mostra modal de vitória do torneio
+        if (typeof window.showTournamentVictoryModal === 'function') {
+            window.showTournamentVictoryModal(prize, category);
+        } else {
+            alert(`🏆 Você venceu o torneio!\nPrêmio: ${prize} moedas de ouro!`);
+            setView('city-screen');
+        }
+    }, 2000);
+}
+
+function _handleTournamentDeath() {
+    document.getElementById('combat-dialogue').innerText =
+        '💀 Você foi eliminado do torneio! Acorde em casa.';
+
+    // Sem perda de ouro no torneio
+    window.playerHP = window.playerFullStats.computed.hp;
+    window.playerMana = window.playerFullStats.computed.mana;
+    window.playerStamina = window.playerFullStats.computed.stamina;
+
+    window.combatants = []; window.currentEnemies = []; window._partyStats = {};
+    window.isTurnBusy = false;
+
+    setTimeout(() => {
+        window.saveGameState();
+        setView('city-screen');
+    }, 3000);
+}
+
+window.closeLootAndReturn = function () {
     const modal = document.getElementById('loot-modal');
     if (modal) modal.style.display = 'none';
-    
-    // Limpa estados de combate para evitar bugs ao entrar novamente
-    window.combatants = []; 
-    window.currentEnemies = []; 
+    window.combatants = [];
+    window.currentEnemies = [];
     window._partyStats = {};
     window.isTurnBusy = false;
-    
     backToCity();
 };
 
 // ══════════════════════════════════════════════════
 // HELPER: ATUALIZA AS BARRAS DE VIDA (HUD) CONSTANTEMENTE
 // ══════════════════════════════════════════════════
-window.updateBattleUI = function() {
+window.updateBattleUI = function () {
     // Player
     if (window.playerFullStats && window.playerFullStats.computed) {
         const c = window.playerFullStats.computed;
-        document.getElementById('player-hp-fill').style.width = `${Math.max(0, (window.playerHP / c.hp) * 100)}%`;
-        document.getElementById('player-mp-fill').style.width = `${Math.max(0, (window.playerMana / c.mana) * 100)}%`;
-        document.getElementById('player-sp-fill').style.width = `${Math.max(0, (window.playerStamina / c.stamina) * 100)}%`;
+        const hpEl = document.getElementById('player-hp-fill');
+        const mpEl = document.getElementById('player-mp-fill');
+        const spEl = document.getElementById('player-sp-fill');
+
+        if (hpEl) hpEl.style.width = `${Math.max(0, (window.playerHP / c.hp) * 100)}%`;
+        if (mpEl) mpEl.style.width = `${Math.max(0, (window.playerMana / c.mana) * 100)}%`;
+        if (spEl) spEl.style.width = `${Math.max(0, (window.playerStamina / c.stamina) * 100)}%`;
     }
 
     // Aliados (Party)
-    updatePartyHUD();
+    if (typeof updatePartyHUD === 'function') updatePartyHUD();
 
     // Inimigos
     if (window.currentEnemies) {
@@ -591,12 +883,107 @@ window.updateBattleUI = function() {
                 return;
             }
             const c = e.stats.computed;
-            document.getElementById(`enemy-hp-fill-${i}`).style.width = `${Math.max(0, (e.hp / c.hp) * 100)}%`;
-            document.getElementById(`enemy-mp-fill-${i}`).style.width = `${Math.max(0, (e.mana / c.mana) * 100)}%`;
-            document.getElementById(`enemy-sp-fill-${i}`).style.width = `${Math.max(0, (e.stamina / c.stamina) * 100)}%`;
+            const hpE = document.getElementById(`enemy-hp-fill-${i}`);
+            const mpE = document.getElementById(`enemy-mp-fill-${i}`);
+            const spE = document.getElementById(`enemy-sp-fill-${i}`);
+
+            if (hpE) hpE.style.width = `${Math.max(0, (e.hp / c.hp) * 100)}%`;
+            if (mpE) mpE.style.width = `${Math.max(0, (e.mana / c.mana) * 100)}%`;
+            if (spE) spE.style.width = `${Math.max(0, (e.stamina / c.stamina) * 100)}%`;
         });
     }
 
     window.updateATBBars();
     if (!window.isTurnBusy) toggleCombatButtons(false);
 };
+
+// ══════════════════════════════════════════════════
+// ATUALIZAÇÃO DAS BARRAS ATB (Linha do Tempo)
+// ══════════════════════════════════════════════════
+window.updateATBBars = function () {
+    if (!window.combatants) return;
+    window.combatants.forEach(c => {
+        if (c.isDead) return;
+        let pct = Math.min(100, Math.max(0, (c.actionValue / 1000) * 100));
+        let el = null;
+
+        if (c.isPlayer) {
+            el = document.getElementById('player-atb-fill');
+        } else if (c.isAlly) {
+            el = document.getElementById(`ally-atb-fill-${c.memberId}`);
+        } else {
+            el = document.getElementById(`enemy-atb-fill-${c.id}`);
+        }
+
+        if (el) el.style.width = `${pct}%`;
+    });
+};
+
+// ══════════════════════════════════════════════════
+// SELEÇÃO DE ALVO
+// ══════════════════════════════════════════════════
+window.setCombatTarget = function (index) {
+    if (!window.currentEnemies[index] || window.currentEnemies[index].isDead) return;
+    window.combatTargetIndex = index;
+
+    // UI Feedback no Campo
+    document.querySelectorAll('.enemy-container-slot').forEach(el => el.classList.remove('is-targeted'));
+    const container = document.getElementById(`enemy-container-${index}`);
+    if (container) container.classList.add('is-targeted');
+
+    // UI Feedback no HUD
+    document.querySelectorAll('.enemy-stat').forEach(el => el.classList.remove('is-targeted-hud'));
+    const hud = document.getElementById(`enemy-hud-block-${index}`);
+    if (hud) hud.classList.add('is-targeted-hud');
+};
+
+window.autoSelectNextTarget = function () {
+    const aliveIndex = window.currentEnemies.findIndex(e => !e.isDead);
+    if (aliveIndex !== -1) window.setCombatTarget(aliveIndex);
+};
+
+// ══════════════════════════════════════════════════
+// DANO FLUTUANTE (ANIMAÇÃO)
+// ══════════════════════════════════════════════════
+window.showFloatingDamage = function (containerId, text, typeClass) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const span = document.createElement('span');
+    span.innerText = text;
+    span.className = `floating-dmg ${typeClass}`;
+    container.appendChild(span);
+    setTimeout(() => { if (span.parentNode) span.remove(); }, 1200);
+};
+
+// ══════════════════════════════════════════════════
+// CONTROLE DE BOTÕES
+// ══════════════════════════════════════════════════
+function toggleCombatButtons(disabled) {
+    // Hotbar
+    document.querySelectorAll('.hotbar-slot:not(.empty)').forEach(btn => {
+        if (disabled) {
+            btn.disabled = true;
+        } else {
+            // Se for vez do player, checa custos
+            const atkId = btn.dataset.atkId;
+            const atk = window.gameData.attacks.find(a => a.id == atkId);
+            if (atk) {
+                const canPay = (atk.hp_cost || 0) <= window.playerHP &&
+                    (atk.mana_cost || 0) <= window.playerMana &&
+                    (atk.stamina_cost || 0) <= window.playerStamina;
+                btn.disabled = !canPay;
+            }
+        }
+    });
+
+    // Fuga
+    const btnFlee = document.getElementById('flee-btn');
+    if (btnFlee) {
+        if (window.combatContext === 'tournament') {
+            btnFlee.style.display = 'none';
+        } else {
+            btnFlee.style.display = 'block';
+            btnFlee.disabled = disabled;
+        }
+    }
+}

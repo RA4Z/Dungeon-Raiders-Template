@@ -78,47 +78,66 @@ window.buildBattleCharacter = async function (characterData, side, imgId, layers
 // ══════════════════════════════════════════════════
 // HUD DE BATALHA
 // ══════════════════════════════════════════════════
-function updateBattleUI() {
+window.updateBattleUI = function () {
+    // 1. Atualiza as barras do Player
     if (window.playerFullStats && window.playerFullStats.computed) {
         const c = window.playerFullStats.computed;
-        document.getElementById('player-hp-fill').style.width = `${Math.max(0, (window.playerHP / c.hp) * 100)}%`;
-        document.getElementById('player-mp-fill').style.width = `${Math.max(0, (window.playerMana / c.mana) * 100)}%`;
-        document.getElementById('player-sp-fill').style.width = `${Math.max(0, (window.playerStamina / c.stamina) * 100)}%`;
+        const hpEl = document.getElementById('player-hp-fill');
+        const mpEl = document.getElementById('player-mp-fill');
+        const spEl = document.getElementById('player-sp-fill');
+
+        if (hpEl) hpEl.style.width = `${Math.max(0, (window.playerHP / c.hp) * 100)}%`;
+        if (mpEl) mpEl.style.width = `${Math.max(0, (window.playerMana / c.mana) * 100)}%`;
+        if (spEl) spEl.style.width = `${Math.max(0, (window.playerStamina / c.stamina) * 100)}%`;
     }
 
+    // 2. Atualiza as barras dos Aliados (Party)
+    if (typeof updatePartyHUD === 'function') updatePartyHUD();
+
+    // 3. Atualiza as barras dos Inimigos de forma segura
     if (window.currentEnemies) {
         window.currentEnemies.forEach((e, i) => {
             const block = document.getElementById(`enemy-hud-block-${i}`);
             if (!block) return;
             if (e.isDead) { block.classList.add('dead'); return; }
+
             const c = e.stats.computed;
-            document.getElementById(`enemy-hp-fill-${i}`).style.width = `${Math.max(0, (e.hp / c.hp) * 100)}%`;
-            document.getElementById(`enemy-mp-fill-${i}`).style.width = `${Math.max(0, (e.mana / c.mana) * 100)}%`;
-            document.getElementById(`enemy-sp-fill-${i}`).style.width = `${Math.max(0, (e.stamina / c.stamina) * 100)}%`;
+            const hpE = document.getElementById(`enemy-hp-fill-${i}`);
+            const mpE = document.getElementById(`enemy-mp-fill-${i}`);
+            const spE = document.getElementById(`enemy-sp-fill-${i}`);
+
+            if (hpE) hpE.style.width = `${Math.max(0, (e.hp / c.hp) * 100)}%`;
+            if (mpE) mpE.style.width = `${Math.max(0, (e.mana / c.mana) * 100)}%`;
+            if (spE) spE.style.width = `${Math.max(0, (e.stamina / c.stamina) * 100)}%`;
         });
     }
 
-    window.updateATBBars();
-    if (!window.isTurnBusy) toggleCombatButtons(false);
-}
+    // Atualiza a barra de ação (ATB)
+    if (typeof window.updateATBBars === 'function') window.updateATBBars();
+
+    // Libera os botões de ataque se não estiver no meio do turno
+    if (!window.isTurnBusy && typeof toggleCombatButtons === 'function') toggleCombatButtons(false);
+};
 
 window.updateATBBars = function () {
     if (!window.combatants) return;
     window.combatants.forEach(c => {
         if (c.isDead) return;
         let pct = Math.min(100, Math.max(0, (c.actionValue / 1000) * 100));
+        let el = null;
+
         if (c.isPlayer) {
-            let el = document.getElementById('player-atb-fill');
-            if (el) el.style.width = `${pct}%`;
+            el = document.getElementById('player-atb-fill');
         } else if (c.isAlly) {
-            let el = document.getElementById(`ally-atb-fill-${c.memberId}`);
-            if (el) el.style.width = `${pct}%`;
+            el = document.getElementById(`ally-atb-fill-${c.memberId}`);
         } else {
-            let el = document.getElementById(`enemy-atb-fill-${c.id}`);
-            if (el) el.style.width = `${pct}%`;
+            el = document.getElementById(`enemy-atb-fill-${c.id}`);
         }
+
+        if (el) el.style.width = `${pct}%`;
     });
 };
+
 
 window.setCombatTarget = function (index) {
     if (!window.currentEnemies[index] || window.currentEnemies[index].isDead) return;
