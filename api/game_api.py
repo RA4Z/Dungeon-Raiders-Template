@@ -5,7 +5,81 @@ from api.stats_engine import StatsEngine
 from api.generators.world_gen import WorldGenerator
 import json
 import random
-import sqlite3
+
+# ─── TABELA DE PESOS POR STAT ───────────────────────────────────────────────
+_PRICE_WEIGHTS = {
+    # Atributos Base
+    'for': 50, 'int': 50, 'des': 50, 'car': 50, 'res': 50,
+    # Sub-status de pool
+    'hp': 1.5, 'mana': 1.5, 'stamina': 1.5,
+    # Dano e Defesa
+    'phys_dmg': 15, 'mag_dmg': 15,
+    'phys_res': 15, 'mag_res': 15,
+    # Crítico
+    'crit_rate': 30, 'crit_dmg': 10,
+}
+_EQUIP_BASE_COST = 15
+
+
+def calculate_item_price(item_type, item_data):
+    """
+    Calcula o preço de um item dinamicamente.
+
+    Para equipamentos: lê stats_modifiers (JSON) e aplica pesos.
+    Para consumíveis : usa (effect_value * 2), mínimo 5 moedas.
+
+    Retorna um inteiro (preço em moedas).
+    """
+    if item_type == 'equip':
+        price = _EQUIP_BASE_COST
+        try:
+            mods = json.loads(item_data.get('stats_modifiers', '{}') or '{}')
+        except Exception:
+            mods = {}
+
+        for stat, value in mods.items():
+            try:
+                v = float(value)
+            except (TypeError, ValueError):
+                continue
+            if v == 0:
+                continue
+            weight = _PRICE_WEIGHTS.get(stat, 5)          # fallback 5 por stat desconhecido
+            price += abs(v) * weight                       # abs: penalidades (stats negativos) também têm custo
+
+        return max(1, int(round(price)))
+
+    elif item_type == 'cons':
+        effect = int(item_data.get('effect_value', 0) or 0)
+        return max(5, effect * 2)
+
+    return 10   # fallback genérico
+
+
+# ─── GERAÇÃO PONDERADA POR DROP_CHANCE ──────────────────────────────────────
+def _weighted_sample(pool, weights, k):
+    """
+    Seleciona k itens ÚNICOS de pool usando weights como probabilidade relativa.
+    Equivalente a random.choices mas sem repetição.
+    """
+    pool    = list(pool)
+    weights = list(weights)
+    chosen  = []
+    for _ in range(min(k, len(pool))):
+        total = sum(weights)
+        if total <= 0:
+            break
+        r = random.uniform(0, total)
+        cumulative = 0
+        for i, w in enumerate(weights):
+            cumulative += w
+            if r <= cumulative:
+                chosen.append(pool[i])
+                pool.pop(i)
+                weights.pop(i)
+                break
+    return chosen
+
 
 # ═══════════════════════════════════════════════════════════
 # CONSTANTES DE TORNEIO
@@ -1127,3 +1201,192 @@ class GameAPI:
         try: quests = json.loads(save.get('world_quests', '[]'))
         except: quests = []
         return {"guilds": guilds, "members": members, "quests": quests}
+    
+    def get_shop_inventory(self, save_id):
+        """
+        Retorna o inventário da loja para o save.
+
+        Regras:
+        - Se days_passed > shop_last_day  → gera novo estoque e persiste.
+        - Se mesmo dia                    → retorna estoque já salvo.
+
+        Retorno:
+        {
+            "items": [
+                {
+                    "index":   0,
+                    "id":      3,
+                    "type":    "equip" | "cons",
+                    "name":    "Nome do Item",
+                    "price":   120,
+                    "sold":    false,
+                    "img":     "caminho/imagem.png",
+                    "mods":    { ... }   // apenas para equipamentos
+                    "effect_type":  "heal_hp",  // apenas para consumíveis
+                    "effect_value": 50          // apenas para consumíveis
+                },
+                ...
+            ],
+            "player_gold": 350
+        }
+        """
+        from database.db_manager import get_all_items, update_item
+
+        save = next((s for s in get_all_items('saves') if s['id'] == save_id), None)
+        if not save:
+            return {"items": [], "player_gold": 0}
+
+        days_passed    = int(save.get('days_passed', 1))
+        shop_last_day  = int(save.get('shop_last_day', 0))
+        shop_inventory = save.get('shop_inventory', '[]') or '[]'
+
+        # ── Mesmo dia: retorna estoque já gerado ────────────────────────────
+        if days_passed <= shop_last_day and shop_inventory and shop_inventory != '[]':
+            try:
+                items = json.loads(shop_inventory)
+                return {"items": items, "player_gold": int(save.get('gold', 0))}
+            except Exception:
+                pass    # JSON corrompido → regenera abaixo
+
+        # ── Novo dia: gera estoque ──────────────────────────────────────────
+        all_equips = get_all_items('equipments')
+        all_cons   = get_all_items('consumables')
+
+        # Monta pool com pesos
+        pool    = []
+        weights = []
+
+        for eq in all_equips:
+            pool.append(('equip', eq))
+            weights.append(max(1, int(eq.get('drop_chance', 10))))
+
+        for cons in all_cons:
+            pool.append(('cons', cons))
+            weights.append(max(1, int(cons.get('drop_chance', 20))))
+
+        # Número de itens do dia (5–8)
+        num_items = random.randint(5, 8)
+        selected  = _weighted_sample(
+            [(p, w) for p, w in zip(pool, weights)],
+            [w for _, w in zip(pool, weights)],
+            num_items
+        )
+
+        # Reconstrução: _weighted_sample retorna (item_tuple, weight) — corrigir:
+        # Versão limpa sem o wrapper de tupla:
+        selected_items = _weighted_sample(pool, weights, num_items)
+
+        shop_items = []
+        for idx, (itype, idata) in enumerate(selected_items):
+            price = calculate_item_price(itype, idata)
+
+            entry = {
+                "index": idx,
+                "id":    idata['id'],
+                "type":  itype,
+                "name":  idata.get('name', '???'),
+                "price": price,
+                "sold":  False,
+            }
+
+            if itype == 'equip':
+                entry["img"] = idata.get('img_front', '')
+                try:
+                    entry["mods"] = json.loads(idata.get('stats_modifiers', '{}') or '{}')
+                except Exception:
+                    entry["mods"] = {}
+
+            else:   # consumível
+                entry["img"]          = idata.get('img_path', '')
+                entry["effect_type"]  = idata.get('effect_type', '')
+                entry["effect_value"] = int(idata.get('effect_value', 0) or 0)
+
+            shop_items.append(entry)
+
+        # Persiste
+        update_item('saves', save_id, {
+            'shop_last_day':  days_passed,
+            'shop_inventory': json.dumps(shop_items),
+        })
+
+        return {"items": shop_items, "player_gold": int(save.get('gold', 0))}
+
+    def buy_shop_item(self, save_id, item_index):
+        """
+        Processa a compra de um item da loja.
+
+        Parâmetros:
+            save_id    : ID do save
+            item_index : índice do item no array shop_inventory
+
+        Retorno:
+            { "status": "success"|"error", "message": "...",
+              "new_gold": 320, "new_inventory": {...} }
+        """
+        from database.db_manager import get_all_items, update_item
+
+        save = next((s for s in get_all_items('saves') if s['id'] == save_id), None)
+        if not save:
+            return {"status": "error", "message": "Save não encontrado."}
+
+        try:
+            shop_items = json.loads(save.get('shop_inventory', '[]') or '[]')
+        except Exception:
+            return {"status": "error", "message": "Estoque corrompido."}
+
+        # Valida índice
+        if item_index < 0 or item_index >= len(shop_items):
+            return {"status": "error", "message": "Item inválido."}
+
+        item = shop_items[item_index]
+
+        # Já vendido?
+        if item.get('sold', False):
+            return {"status": "error", "message": "Este item já foi vendido."}
+
+        # Ouro suficiente?
+        gold  = int(save.get('gold', 0))
+        price = int(item.get('price', 0))
+        if gold < price:
+            return {"status": "error", "message": f"Ouro insuficiente! Você precisa de {price}🪙."}
+
+        # Desconta ouro
+        gold -= price
+
+        # Adiciona ao inventário do player
+        try:
+            inventory = json.loads(save.get('inventory_data', '{}'))
+        except Exception:
+            inventory = {"equipments": [], "consumables": {}}
+
+        if not isinstance(inventory.get('equipments'), list):
+            inventory['equipments'] = []
+        if not isinstance(inventory.get('consumables'), dict):
+            inventory['consumables'] = {}
+
+        itype = item.get('type')
+        iid   = item.get('id')
+
+        if itype == 'equip':
+            inventory['equipments'].append(iid)
+        elif itype == 'cons':
+            cid = str(iid)
+            inventory['consumables'][cid] = inventory['consumables'].get(cid, 0) + 1
+
+        # Marca como vendido
+        shop_items[item_index]['sold'] = True
+
+        # Persiste
+        update_item('saves', save_id, {
+            'gold':           gold,
+            'inventory_data': json.dumps(inventory),
+            'shop_inventory': json.dumps(shop_items),
+        })
+
+        return {
+            "status":        "success",
+            "message":       f"Você comprou {item['name']} por {price}🪙!",
+            "new_gold":      gold,
+            "new_inventory": inventory,
+        }
+    

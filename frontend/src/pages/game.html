@@ -4,6 +4,7 @@
         <div class="location-btn btn-casa" onclick="goToLocation('casa')"> <span>🏠 Sua Casa</span></div>
         <div class="location-btn btn-centro" onclick="openInventory()"> <span>🎒 Inventário</span></div>
         <div class="location-btn btn-quartel" onclick="goToLocation('quartel')"> <span>⚔️ Quartel</span></div>
+        <div class="location-btn" style="background:#f39c12;" onclick="goToLocation('mercado')"> <span>🏪 Mercado</span></div>
         <div class="location-btn" style="background:#663306;" onclick="goToLocation('coliseu')"> <span>⚔️ Coliseu</span></div>
         <div class="location-btn btn-magia" style="background:#8e44ad;" onclick="openSkillbook()"><span>📖
                 Habilidades</span></div>
@@ -38,6 +39,11 @@
     <div id="dungeon-entrance-content" style="height:100%; overflow-y:auto;"></div>
 </div>
 
+<div id="shop-screen" class="game-view">
+    <div id="shop-content">
+        <!-- Preenchido dinamicamente por shop.js -->
+    </div>
+</div>
 <!-- ═══════════════════════════════ GUILDA ══════════════════════════════ -->
 <div id="guild-screen" class="game-view" style="padding:0; overflow:hidden;"></div>
 

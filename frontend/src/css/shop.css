@@ -1,0 +1,442 @@
+/* frontend/src/css/shop.css
+   ═══════════════════════════════════════════════════════════════════════════
+   SISTEMA DE LOJA — Estilo RPG Dark / Clássico
+   Importar em index.html: <link rel="stylesheet" href="src/css/shop.css">
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── VIEW CONTAINER ──────────────────────────────────────────────────────── */
+#shop-screen {
+    display: none;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    background:
+        radial-gradient(ellipse at top left,  rgba(180, 120,  20, 0.08) 0%, transparent 60%),
+        radial-gradient(ellipse at bottom right, rgba(120,  60,   0, 0.06) 0%, transparent 60%),
+        #0d0d0d;
+    font-family: 'Segoe UI', sans-serif;
+    color: #ecf0f1;
+}
+
+#shop-screen.active-view { display: flex; }
+
+/* ─── CONTEÚDO SCROLLÁVEL ─────────────────────────────────────────────────── */
+#shop-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px 30px;
+    scrollbar-width: thin;
+    scrollbar-color: #5a3a00 #111;
+}
+
+#shop-content::-webkit-scrollbar       { width: 7px; }
+#shop-content::-webkit-scrollbar-track { background: #111; }
+#shop-content::-webkit-scrollbar-thumb { background: #5a3a00; border-radius: 4px; }
+
+/* ─── CABEÇALHO ───────────────────────────────────────────────────────────── */
+.shop-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #2a1800;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.shop-title {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 1.8rem;
+    color: #f39c12;
+    text-shadow: 0 0 12px rgba(243, 156, 18, 0.4);
+    margin: 0 0 4px 0;
+}
+
+.shop-subtitle {
+    color: #8d6e37;
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+.shop-subtitle strong { color: #f39c12; }
+
+.shop-gold-display {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #f1c40f;
+    background: #1a1000;
+    border: 2px solid #5a3a00;
+    border-radius: 8px;
+    padding: 8px 18px;
+    text-align: center;
+    text-shadow: 0 0 8px rgba(241, 196, 15, 0.5);
+}
+
+.shop-refresh-hint {
+    font-size: 0.72rem;
+    color: #5a3a00;
+    text-align: center;
+    margin: 4px 0 0 0;
+}
+
+/* ─── GRID DE ITENS ───────────────────────────────────────────────────────── */
+.shop-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 18px;
+}
+
+.shop-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: #5a3a00;
+    font-size: 1rem;
+    padding: 60px 0;
+    font-style: italic;
+}
+
+/* ─── CARD DE ITEM ────────────────────────────────────────────────────────── */
+.shop-item-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(160deg, #161005 0%, #0d0a00 100%);
+    border: 1px solid #3a2500;
+    border-radius: 10px;
+    overflow: hidden;
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+    cursor: default;
+}
+
+.shop-item-card:hover:not(.shop-sold) {
+    transform: translateY(-3px);
+    border-color: #f39c12;
+    box-shadow: 0 6px 20px rgba(243, 156, 18, 0.2);
+}
+
+/* Esgotado */
+.shop-item-card.shop-sold {
+    opacity: 0.5;
+    filter: grayscale(70%);
+    border-color: #2a2a2a;
+    cursor: not-allowed;
+}
+
+/* Sem ouro suficiente */
+.shop-item-card.shop-cant-afford {
+    border-color: #4a1010;
+}
+
+.shop-item-card.shop-cant-afford:hover {
+    border-color: #c0392b;
+    box-shadow: 0 4px 12px rgba(192, 57, 43, 0.15);
+}
+
+/* ─── BADGE (TIPO) ─────────────────────────────────────────────────────────── */
+.shop-item-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.75);
+    color: #8d6e37;
+    font-size: 0.62rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 7px;
+    border-radius: 20px;
+    border: 1px solid #3a2500;
+}
+
+/* ─── IMAGEM ───────────────────────────────────────────────────────────────── */
+.shop-item-img-wrap {
+    position: relative;
+    background: linear-gradient(135deg, #120c00, #1a1200);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 110px;
+    border-bottom: 1px solid #2a1800;
+}
+
+.shop-item-img {
+    max-height: 90px;
+    max-width: 90px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 2px 6px rgba(243, 156, 18, 0.25));
+    transition: filter 0.2s;
+}
+
+.shop-item-card:hover:not(.shop-sold) .shop-item-img {
+    filter: drop-shadow(0 3px 10px rgba(243, 156, 18, 0.55));
+}
+
+/* Overlay "ESGOTADO" */
+.shop-sold-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.55);
+    color: #e74c3c;
+    font-size: 0.9rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-shadow: 0 0 6px rgba(231, 76, 60, 0.7);
+}
+
+/* ─── INFO DO ITEM ────────────────────────────────────────────────────────── */
+.shop-item-info {
+    padding: 10px 12px 6px;
+    flex: 1;
+}
+
+.shop-item-name {
+    display: block;
+    font-size: 0.9rem;
+    color: #e8c87a;
+    margin-bottom: 8px;
+    line-height: 1.2;
+    font-family: Georgia, serif;
+}
+
+.shop-mod-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.shop-mod-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    color: #8d9aaa;
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.shop-mod-row:last-child { border-bottom: none; }
+
+.shop-mod-none {
+    font-size: 0.73rem;
+    color: #444;
+    font-style: italic;
+}
+
+.mod-positive { color: #2ecc71; font-weight: bold; }
+.mod-negative { color: #e74c3c; font-weight: bold; }
+
+/* ─── RODAPÉ DO CARD ──────────────────────────────────────────────────────── */
+.shop-item-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px 10px;
+    border-top: 1px solid #2a1800;
+    background: rgba(0, 0, 0, 0.2);
+    gap: 8px;
+}
+
+.shop-item-price {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #f1c40f;
+    white-space: nowrap;
+}
+
+.price-sold { color: #444; }
+
+/* ─── BOTÃO COMPRAR ───────────────────────────────────────────────────────── */
+.shop-buy-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 5px;
+    font-size: 0.78rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    background: #c0810a;
+    color: #fff;
+    white-space: nowrap;
+}
+
+.shop-buy-btn:hover:not(:disabled) {
+    background: #f39c12;
+    transform: scale(1.04);
+}
+
+.shop-buy-btn:active:not(:disabled) {
+    transform: scale(0.97);
+}
+
+.shop-buy-btn.sold,
+.shop-buy-btn:disabled {
+    background: #2a2a2a;
+    color: #555;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.shop-buy-btn.cant-afford {
+    background: #4a1010;
+    color: #a0505050;
+    cursor: not-allowed;
+}
+
+/* ─── RODAPÉ DA TELA ──────────────────────────────────────────────────────── */
+.shop-footer {
+    padding: 14px 24px;
+    border-top: 1px solid #2a1800;
+    background: rgba(0, 0, 0, 0.3);
+    text-align: left;
+}
+
+.shop-back-btn {
+    padding: 9px 22px;
+    background: #2c1e00;
+    border: 1px solid #5a3a00;
+    color: #c8a050;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.88rem;
+    transition: background 0.15s, color 0.15s;
+}
+
+.shop-back-btn:hover {
+    background: #5a3a00;
+    color: #f1c40f;
+}
+
+/* ─── TOOLTIP DA LOJA ─────────────────────────────────────────────────────── */
+.shop-tooltip {
+    position: fixed;
+    z-index: 9999;
+    background: #0d0a00;
+    border: 1px solid #5a3a00;
+    border-radius: 8px;
+    padding: 14px 16px;
+    width: 260px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(243,156,18,0.1);
+    pointer-events: none;
+    display: none;
+    font-size: 0.82rem;
+    color: #bdc3c7;
+}
+
+.stt-name {
+    color: #f39c12;
+    margin: 0 0 4px 0;
+    font-family: Georgia, serif;
+    font-size: 1rem;
+}
+
+.stt-type {
+    color: #5a3a00;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stt-hr {
+    border: none;
+    border-top: 1px solid #2a1800;
+    margin: 8px 0;
+}
+
+.stt-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.stt-pos  { color: #2ecc71; font-weight: bold; }
+.stt-neg  { color: #e74c3c; font-weight: bold; }
+.stt-none { color: #444; font-style: italic; }
+
+.stt-price-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: #8d6e37;
+}
+
+.stt-price-row strong { color: #f1c40f; }
+
+/* Breakdown de preço */
+.stt-breakdown {
+    margin-top: 10px;
+    font-size: 0.75rem;
+    color: #6a6a6a;
+}
+
+.stt-breakdown summary {
+    cursor: pointer;
+    color: #5a3a00;
+    user-select: none;
+}
+
+.stt-breakdown-row,
+.stt-breakdown-total {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 3px;
+}
+
+.stt-breakdown-total {
+    border-top: 1px solid #2a1800;
+    margin-top: 5px;
+    padding-top: 4px;
+    color: #c8a050;
+    font-weight: bold;
+}
+
+/* ─── ESTADOS DE LOADING / ERRO ───────────────────────────────────────────── */
+.shop-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 80px 0;
+    color: #5a3a00;
+    font-style: italic;
+}
+
+.shop-loading-spinner {
+    width: 42px;
+    height: 42px;
+    border: 4px solid #2a1800;
+    border-top-color: #f39c12;
+    border-radius: 50%;
+    animation: shop-spin 0.9s linear infinite;
+}
+
+@keyframes shop-spin {
+    to { transform: rotate(360deg); }
+}
+
+.shop-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 60px 0;
+    color: #c0392b;
+}
+
+.shop-error button {
+    padding: 9px 20px;
+    border: 1px solid #5a3a00;
+    background: #1a0a00;
+    color: #f39c12;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.shop-error button:hover { background: #2c1500; }

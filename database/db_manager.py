@@ -160,7 +160,9 @@ def init_db():
         calendar_month INTEGER DEFAULT 1,
         calendar_year INTEGER DEFAULT 1,
         last_tournament_day INTEGER DEFAULT 0,
-        tournament_history TEXT DEFAULT '[]'
+        tournament_history TEXT DEFAULT '[]',
+        shop_last_day  INTEGER DEFAULT 0,
+        shop_inventory TEXT    DEFAULT '[]'
     )''')
 
     migrations = [
@@ -191,6 +193,8 @@ def init_db():
         "ALTER TABLE saves ADD COLUMN calendar_year INTEGER DEFAULT 1",
         "ALTER TABLE saves ADD COLUMN last_tournament_day INTEGER DEFAULT 0",
         "ALTER TABLE saves ADD COLUMN tournament_history TEXT DEFAULT '[]'",
+        "ALTER TABLE saves ADD COLUMN shop_last_day  INTEGER DEFAULT 0",
+        "ALTER TABLE saves ADD COLUMN shop_inventory TEXT    DEFAULT '[]'",
     ]
     for sql in migrations:
         run_migration(conn_save, sql)

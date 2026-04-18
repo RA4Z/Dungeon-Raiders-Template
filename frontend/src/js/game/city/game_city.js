@@ -8,21 +8,21 @@
 
 const DAYS_OF_WEEK_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 const MONTH_NAMES = [
-    'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
-    'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
 
 /**
  * Converte total de dias em objeto de calendário.
  * Dia 1 = Segunda (índice 0), Domingo = índice 6.
  */
-window.getCalendarFromDays = function(totalDays) {
+window.getCalendarFromDays = function (totalDays) {
     totalDays = Math.max(1, Math.floor(totalDays));
-    const year  = Math.floor((totalDays - 1) / 360) + 1;
-    const rem   = (totalDays - 1) % 360;
+    const year = Math.floor((totalDays - 1) / 360) + 1;
+    const rem = (totalDays - 1) % 360;
     const month = Math.floor(rem / 30) + 1;          // 1–12
-    const day   = (rem % 30) + 1;                    // 1–30
-    const dow   = (totalDays - 1) % 7;               // 0=Seg … 6=Dom
+    const day = (rem % 30) + 1;                    // 1–30
+    const dow = (totalDays - 1) % 7;               // 0=Seg … 6=Dom
     return {
         day, month, year,
         dayOfWeek: DAYS_OF_WEEK_LABELS[dow],
@@ -36,10 +36,10 @@ window.getCalendarFromDays = function(totalDays) {
  * Formata a data para exibição na HUD.
  * Exemplo: "📅 Dom, 07/01 - Ano 3"
  */
-window.formatCalendarHUD = function(totalDays) {
+window.formatCalendarHUD = function (totalDays) {
     const c = window.getCalendarFromDays(totalDays);
-    const dd  = String(c.day).padStart(2, '0');
-    const mm  = String(c.month).padStart(2, '0');
+    const dd = String(c.day).padStart(2, '0');
+    const mm = String(c.month).padStart(2, '0');
     const isSunday = c.isSunday;
     const label = `📅 ${c.dayOfWeek}, ${dd}/${mm} - Ano ${c.year}`;
     return { label, isSunday, calendar: c };
@@ -49,7 +49,7 @@ window.formatCalendarHUD = function(totalDays) {
 // OVERRIDE DE updateHUD PARA INCLUIR CALENDÁRIO
 // ══════════════════════════════════════════════════
 const _originalUpdateHUD = window.updateHUD;
-window.updateHUD = function() {
+window.updateHUD = function () {
     // Chama o HUD original
     _originalUpdateHUD?.();
 
@@ -102,7 +102,7 @@ function backToCity() {
 // ══════════════════════════════════════════════════
 // LOCAIS DA CIDADE — com botão do Coliseu
 // ══════════════════════════════════════════════════
-window.renderCityScreen = function() {
+window.renderCityScreen = function () {
     const el = document.getElementById('city-screen');
     if (!el) return;
 
@@ -123,6 +123,12 @@ window.renderCityScreen = function() {
 
 async function goToLocation(locType) {
     if (!window.activePlayer) return alert("Por favor, selecione um Personagem Ativo!");
+
+
+    if (locType === 'mercado') {
+        window.openShop();
+        return;
+    }
 
     if (locType === 'caverna') {
         if (window.playerHP <= 0) return alert("Você está gravemente ferido! Descanse antes de explorar.");
@@ -146,7 +152,7 @@ async function goToLocation(locType) {
 
     setView('location-screen');
     const title = document.getElementById('loc-title');
-    const text  = document.getElementById('loc-text');
+    const text = document.getElementById('loc-text');
     const actBox = document.getElementById('loc-actions');
     actBox.innerHTML = "";
 
@@ -166,8 +172,8 @@ async function goToLocation(locType) {
         let html = `<div style="display:flex; flex-direction:column; gap:10px; max-width:450px; margin:15px auto;">`;
         for (let k in window.STAT_MAP.base) {
             let currentLvl = window.activePlayer.base_stats[k];
-            let currentXp  = window.playerStatExp[k] || 0;
-            let reqXp      = window.getXpRequired(currentLvl);
+            let currentXp = window.playerStatExp[k] || 0;
+            let reqXp = window.getXpRequired(currentLvl);
             html += `
             <div style="background:#222; padding:15px; border-radius:5px; border:1px solid #444;
                 display:flex; justify-content:space-between; align-items:center;">
@@ -200,10 +206,10 @@ async function goToLocation(locType) {
 async function healPlayer() {
     if (!window.activePlayer || !window.playerFullStats) return;
 
-    window.playerHP      = window.playerFullStats.computed.hp;
-    window.playerMana    = window.playerFullStats.computed.mana;
+    window.playerHP = window.playerFullStats.computed.hp;
+    window.playerMana = window.playerFullStats.computed.mana;
     window.playerStamina = window.playerFullStats.computed.stamina;
-    window.playerDays   += 1;
+    window.playerDays += 1;
 
     // Recalcula calendário localmente para feedback imediato
     const cal = window.getCalendarFromDays(window.playerDays);
@@ -261,7 +267,7 @@ async function healPlayer() {
 // ══════════════════════════════════════════════════
 // TREINO DO PLAYER
 // ══════════════════════════════════════════════════
-window.trainStat = async function(statKey) {
+window.trainStat = async function (statKey) {
     const COST = 20;
     const XP_GAIN = 50;
     if (window.playerGold < COST) return alert(`Precisa de ${COST} moedas!`);
@@ -281,7 +287,7 @@ window.trainStat = async function(statKey) {
 // ══════════════════════════════════════════════════
 window._rankingEntities = [];
 
-window.openRanking = function() {
+window.openRanking = function () {
     if (!window.currentWorld || !window.activePlayer) return;
 
     document.getElementById('ranking-modal').style.display = 'flex';
@@ -306,7 +312,7 @@ window.openRanking = function() {
         worldMembers.forEach(npc => {
             const guild = guilds.find(g => String(g.id) === String(npc.guild_id));
             let npcBase = {};
-            try { npcBase = JSON.parse(npc.base_stats || '{}'); } catch(e) {}
+            try { npcBase = JSON.parse(npc.base_stats || '{}'); } catch (e) { }
             const npcPower = Object.values(npcBase).reduce((acc, val) => acc + (parseInt(val) || 0), 0);
             allEntities.push({
                 name: npc.name,
@@ -330,8 +336,8 @@ window.openRanking = function() {
                     <span class="rank-pos">${medal}</span>
                     <div style="display:flex; flex-direction:column;">
                         <span class="rank-name">${h.name} ${h.isPrecreated
-                            ? '<span title="Herói Único" style="color:#f1c40f;font-size:0.7em;">⭐</span>'
-                            : ''}</span>
+                    ? '<span title="Herói Único" style="color:#f1c40f;font-size:0.7em;">⭐</span>'
+                    : ''}</span>
                         <span class="rank-guild">${h.guild}</span>
                     </div>
                 </div>
@@ -344,15 +350,15 @@ window.openRanking = function() {
     }, 100);
 };
 
-window.openRankingCharDetail = async function(index) {
+window.openRankingCharDetail = async function (index) {
     const entity = window._rankingEntities[index];
     if (!entity) return;
 
     document.getElementById('char-detail-modal').style.display = 'flex';
-    document.getElementById('cdm-name').innerText  = entity.name;
-    document.getElementById('cdm-guild').innerText  = entity.guild;
-    document.getElementById('cdm-power').innerText  = entity.power;
-    document.getElementById('cdm-gold').innerText   = entity.isPlayer ? window.playerGold : (entity.data.gold || 0);
+    document.getElementById('cdm-name').innerText = entity.name;
+    document.getElementById('cdm-guild').innerText = entity.guild;
+    document.getElementById('cdm-power').innerText = entity.power;
+    document.getElementById('cdm-gold').innerText = entity.isPlayer ? window.playerGold : (entity.data.gold || 0);
 
     const avatarEl = document.getElementById('cdm-avatar');
     avatarEl.innerHTML = '';
@@ -371,7 +377,7 @@ window.openRankingCharDetail = async function(index) {
     if (entity.isPlayer) {
         baseStats = window.playerFullStats.base;
     } else {
-        try { baseStats = JSON.parse(entity.data.base_stats || '{}'); } catch(e) {}
+        try { baseStats = JSON.parse(entity.data.base_stats || '{}'); } catch (e) { }
     }
 
     statsEl.innerHTML = Object.entries(window.STAT_MAP.base).map(([k, name]) => `
@@ -387,7 +393,7 @@ window.openRankingCharDetail = async function(index) {
         eqData = window.activePlayer.equipment_data || {};
         if (typeof eqData === 'string') eqData = JSON.parse(eqData);
     } else {
-        try { eqData = JSON.parse(entity.data.equipment_data || '{}'); } catch(e) {}
+        try { eqData = JSON.parse(entity.data.equipment_data || '{}'); } catch (e) { }
     }
 
     equipsEl.innerHTML = '';
@@ -408,7 +414,7 @@ window.openRankingCharDetail = async function(index) {
             equipsEl.innerHTML += `
             <div style="width:45px;height:45px;background:#161b22;border:1px dashed #30363d;
                 border-radius:5px;display:flex;justify-content:center;align-items:center;opacity:0.5;">
-                <span style="font-size:0.6rem;color:#7f8c8d;">${slot.substring(0,3).toUpperCase()}</span>
+                <span style="font-size:0.6rem;color:#7f8c8d;">${slot.substring(0, 3).toUpperCase()}</span>
             </div>`;
         }
     });
@@ -419,7 +425,7 @@ window.openRankingCharDetail = async function(index) {
         attacks = window.playerAttacks || [];
         if (typeof attacks === 'string') attacks = JSON.parse(attacks);
     } else {
-        try { attacks = JSON.parse(entity.data.attacks || '[]'); } catch(e) {}
+        try { attacks = JSON.parse(entity.data.attacks || '[]'); } catch (e) { }
     }
 
     skillsEl.innerHTML = attacks.map(atkId => {
@@ -440,9 +446,9 @@ window.openRankingCharDetail = async function(index) {
 // ══════════════════════════════════════════════════
 // JORNAL DO MUNDO (CONSOLE)
 // ══════════════════════════════════════════════════
-window.openWorldLog = function(messages) {
+window.openWorldLog = function (messages) {
     const modal = document.getElementById('world-log-modal');
-    const list  = document.getElementById('world-log-list');
+    const list = document.getElementById('world-log-list');
     if (!modal || !list) return;
 
     modal.style.display = 'flex';
