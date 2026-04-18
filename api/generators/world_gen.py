@@ -237,22 +237,25 @@ class WorldGenerator:
         name = random.choice(FIRST_NAMES_M if gender == 'male' else FIRST_NAMES_F)
         if random.random() > 0.4: name += f" {random.choice(TITLES)}"
             
+        # ── REBALANCEAMENTO DE PODER ──
+        # Reduzimos o teto máximo e ajustamos as probabilidades de raridade
         target_power = random.choices([
-                random.randint(10, 50),     # Novato 
-                random.randint(51, 150),    # Intermediario 
-                random.randint(151, 400),   # Avançado 
-                random.randint(401, 800),   # Lendário 
-                random.randint(801, 1500)   # Lendário Absoluto 
+                random.randint(10, 50),     # Novato (45% do mundo)
+                random.randint(51, 150),    # Intermediario (30%)
+                random.randint(151, 400),   # Avançado (15%)
+                random.randint(401, 600),   # Lendário (8%)
+                random.randint(601, 800)   # Heróis Supremos (Teto máximo - 2%)
             ],
-            weights=[40, 30, 15, 10, 5]
+            weights=[50, 30, 15, 4.5, 0.5] 
         )[0]
         
-        weights = [random.uniform(0.2, 1.0) for _ in range(5)]
-        weights[random.randint(0,4)] += 1.5
+        # Distribuição mais suave de atributos (evita um único atributo sugar todo o poder)
+        weights =[random.uniform(0.4, 1.0) for _ in range(5)]
+        weights[random.randint(0,4)] += 1.2 # Bônus para um atributo "principal"
         total_w = sum(weights)
         
         base_stats = {}
-        keys =['for','int','des','car','res']
+        keys = ['for','int','des','car','res']
         allocated = 0
         for i in range(4):
             val = max(1, int((weights[i]/total_w) * target_power))
@@ -262,16 +265,17 @@ class WorldGenerator:
         
         power = sum(base_stats.values())
         
+        # Tiers atualizados baseados no novo limite
         power_tier = 1
         if power > 50: power_tier = 2
         if power > 150: power_tier = 3
         if power > 400: power_tier = 4
-        if power > 800: power_tier = 5
+        if power > 700: power_tier = 5
 
         eq_data = {"base": random.choice(self.bodies)['id'], "skin_color": random.choice(SKIN_COLORS)}
         for slot in['face', 'hair', 'shirt', 'pants', 'boots', 'gloves', 'hand_r']:
             if random.random() > 0.3:
-                valid_eqs =[e for e in self.equipments if e['type'] == slot and e['gender'] in ['both', gender]]
+                valid_eqs = [e for e in self.equipments if e['type'] == slot and e['gender'] in ['both', gender]]
                 if valid_eqs: eq_data[slot] = random.choice(valid_eqs)['id']
 
         npc_attacks = [1]
@@ -280,10 +284,10 @@ class WorldGenerator:
             extra_atks = random.sample(self.attacks, k=num_extra_attacks)
             npc_attacks.extend([a['id'] for a in extra_atks if a['id'] != 1])
 
-        # Inicializa XP de ataques com níveis condizentes ao power_tier
+        # Inicializa XP de ataques com níveis um pouco menos apelativos
         attack_exp = {}
         for atk_id in set(npc_attacks):
-            atk_lvl = max(1, int(power_tier * random.uniform(0.8, 2.5)))
+            atk_lvl = max(1, int(power_tier * random.uniform(0.8, 2.0)))
             attack_exp[str(atk_id)] = {"xp": 0, "level": atk_lvl}
             
         assigned_guild = random.choice(guilds)['id'] if random.random() > 0.5 else ""
