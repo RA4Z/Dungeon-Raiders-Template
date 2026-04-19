@@ -86,6 +86,7 @@ window.startDungeonAtFloor = async function(floor) {
 // AVANÇAR ANDAR APÓS VITÓRIA
 // ══════════════════════════════════════════════════
 window.advanceDungeonFloor = async function() {
+    AudioManager.playSFX('floor_advance');
     const next = (window._dungeonCurrentFloor || 1) + 1;
     window._dungeonCurrentFloor = next;
     const isNewMax = next > (window._dungeonMaxFloor || 1);

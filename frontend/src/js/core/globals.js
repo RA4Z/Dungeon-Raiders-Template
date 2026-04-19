@@ -142,3 +142,13 @@ window.showToast = function(message, type = 'success') {
         if(toast.parentNode) toast.remove();
     }, 3000);
 };
+
+const _originalShowToast = window.showToast;
+
+window.showToast = function(message, type = 'info') {
+    if (type === 'success') AudioManager.playSFX('toast_success');
+    else if (type === 'error') AudioManager.playSFX('toast_error');
+    // else: sem som para 'info' (opcional)
+ 
+    if (_originalShowToast) _originalShowToast(message, type);
+};

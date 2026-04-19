@@ -96,6 +96,8 @@ function setView(viewId) {
 
 function backToCity() {
     setView('city-screen');
+    AudioManager.playBGM('city');
+    AudioManager.playSFX('door_open');
     window.updateHUD();
 }
 
@@ -122,6 +124,7 @@ window.renderCityScreen = function () {
 };
 
 async function goToLocation(locType) {
+    AudioManager.playSFX('click');
     if (!window.activePlayer) return alert("Por favor, selecione um Personagem Ativo!");
 
 
@@ -131,6 +134,7 @@ async function goToLocation(locType) {
     }
 
     if (locType === 'caverna') {
+        AudioManager.playSFX('dungeon_enter');
         if (window.playerHP <= 0) return alert("Você está gravemente ferido! Descanse antes de explorar.");
         window.openDungeonEntrance();
         return;
@@ -206,6 +210,7 @@ async function goToLocation(locType) {
 async function healPlayer() {
     if (!window.activePlayer || !window.playerFullStats) return;
 
+    AudioManager.playSFX('click');
     window.playerHP = window.playerFullStats.computed.hp;
     window.playerMana = window.playerFullStats.computed.mana;
     window.playerStamina = window.playerFullStats.computed.stamina;
@@ -276,8 +281,12 @@ window.trainStat = async function (statKey) {
     window.updateHUD();
     let leveledUp = await window.addStatExp(statKey, XP_GAIN);
     let msg = `Treinou ${window.STAT_MAP.base[statKey]} por 1 dia e gastou 20 moedas.\nGanhou ${XP_GAIN} XP!`;
-    if (leveledUp)
+    if (leveledUp) {
+        AudioManager.playSFX('level_up'); 
         msg += `\n\n🎉 LEVEL UP! ${window.STAT_MAP.base[statKey]} agora é ${window.activePlayer.base_stats[statKey]}!`;
+    } else {
+        AudioManager.playSFX('xp_gain');
+    }
     alert(msg);
     goToLocation('quartel');
 };

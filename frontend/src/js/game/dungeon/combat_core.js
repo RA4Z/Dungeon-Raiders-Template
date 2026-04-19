@@ -23,6 +23,7 @@ window._tournamentData = {
 // ENTRADA NA DUNGEON (contexto: dungeon)
 // ══════════════════════════════════════════════════
 window.enterDungeon = async function () {
+    AudioManager.playBGM('combat');
     window.combatContext = 'dungeon';
     setView('combat-screen');
     const floor = window._dungeonCurrentFloor || 1;
@@ -482,11 +483,21 @@ async function _allyAutoAttack(combatant) {
             ps.hp = Math.max(0, ps.hp - (result.hp_cost || 0));
 
             if (result.dodged) {
+                AudioManager.playSFX('dodge');
                 window.showFloatingDamage(`enemy-container-${target.index}`, 'Esquiva!', 'dmg-dodge');
             } else {
                 target.hp = Math.max(0, target.hp - result.damage);
                 window.showFloatingDamage(`enemy-container-${target.index}`, result.damage,
                     result.is_crit ? 'dmg-crit' : (result.atk_type === 'mag' ? 'dmg-mag' : 'dmg-phys'));
+            }
+            if (result.dodged) {
+                AudioManager.playSFX('dodge');
+            } else if (result.is_crit) {
+                AudioManager.playSFX('crit_hit');
+            } else if (result.atk_type === 'phys') {
+                AudioManager.playSFX('hit_phys');
+            } else {
+                AudioManager.playSFX('hit_mag');
             }
             document.getElementById('combat-dialogue').innerText = `${ps.ally.name}: ${result.msg}`;
         }
@@ -568,6 +579,15 @@ async function _enemyAttack(combatant) {
                         window.showFloatingDamage(`party-slot-${targetAlly.memberId}`, result.damage, 'dmg-phys');
                     }
                 }
+            }
+            if (result.dodged) {
+                AudioManager.playSFX('dodge');
+            } else if (result.is_crit) {
+                AudioManager.playSFX('crit_hit');
+            } else if (result.atk_type === 'phys') {
+                AudioManager.playSFX('hit_phys');
+            } else {
+                AudioManager.playSFX('hit_mag');
             }
             document.getElementById('combat-dialogue').innerText = `${enemy.data.name}: ${result.msg}`;
         }
@@ -709,6 +729,8 @@ window.continueDungeon = function () {
 };
 
 function handlePlayerDeath() {
+    AudioManager.playSFX('player_death');
+    // BGM será restaurada pelo backToCity() abaixo — não parar aqui
     const ouroPerdido = Math.floor(window.playerGold / 2);
     window.playerGold -= ouroPerdido;
     document.getElementById('combat-dialogue').innerText = `Você desmaiou e perdeu ${ouroPerdido} moedas!`;
@@ -739,6 +761,7 @@ window.fleeBattle = function () {
     const maxEDes = Math.max(...aliveEnemies.map(e => e.stats.base.des));
     const fleeChance = Math.max(10, Math.min(90, 50 + (pDes - maxEDes) * 5));
     if (Math.random() * 100 <= fleeChance) {
+        AudioManager.playSFX('flee');
         document.getElementById('combat-dialogue').innerText = "Fuga com sucesso!";
         setTimeout(() => {
             window.isTurnBusy = false;
@@ -812,9 +835,10 @@ async function _handleTournamentVictory() {
 
         if (typeof window.showTournamentVictoryModal === 'function') {
             window.showTournamentVictoryModal(prize, category);
+            // showTournamentVictoryModal deve chamar backToCity() ao fechar
         } else {
             alert(`🏆 Você venceu o torneio!\nPrêmio: ${prize} moedas de ouro!`);
-            setView('city-screen');
+            backToCity();   // ← era setView('city-screen'), sem BGM
         }
     }, 3000);
 }
@@ -835,7 +859,7 @@ async function _handleTournamentDeath() {
 
     setTimeout(() => {
         window.saveGameState();
-        setView('city-screen');
+        backToCity();   // ← restaura BGM da cidade
     }, 3000);
 }
 

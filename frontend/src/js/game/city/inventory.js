@@ -249,6 +249,7 @@ async function equipItem(invIndex) {
     const newItemId = window.playerInventory.equipments[invIndex];
     const newItemDef = window.gameData.equipments.find(e => e.id == newItemId);
     if (!newItemDef) return;
+    AudioManager.playSFX('equip_item');
 
     window.playerInventory.equipments.splice(invIndex, 1);
 
@@ -271,6 +272,7 @@ async function equipItem(invIndex) {
 async function unequipItem(slot) {
     let eqDataMap = typeof window.activePlayer.equipment_data === 'string' ? JSON.parse(window.activePlayer.equipment_data) : window.activePlayer.equipment_data;
     if (!eqDataMap[slot]) return;
+    AudioManager.playSFX('unequip_item');
 
     const itemId = eqDataMap[slot];
     window.playerInventory.equipments.push(itemId);
@@ -289,7 +291,11 @@ async function unequipItem(slot) {
 
 async function useConsumable(cId) {
     const maxHp = window.playerFullStats.computed.hp;
-    if (window.playerHP >= maxHp) return alert("Seu HP já está no máximo!");
+    if (window.playerHP >= maxHp) {
+        AudioManager.playSFX('error');
+        return;
+    }
+    AudioManager.playSFX('click'); 
 
     const itemObj = window.gameData.consumables.find(c => c.id == cId);
     if (itemObj && itemObj.effect_type === 'heal_hp') {

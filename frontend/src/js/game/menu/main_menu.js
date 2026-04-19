@@ -5,6 +5,7 @@ let newGameGender = 'male';
 const MAX_POINTS = 15;
 
 async function loadMenuSaves() {
+    AudioManager.playBGM('menu');
     const saves = await window.pywebview.api.get_saves();
     const container = document.getElementById('saves-list-container');
     if (!container) return;
@@ -101,6 +102,7 @@ window.getBodyImage = function (body, side, gender) {
 };
 
 function openNewGameModal() {
+    AudioManager.playSFX('open_menu');
     const modal = document.getElementById('new-game-modal');
     if (!modal) return;
     modal.style.display = 'flex';
@@ -188,6 +190,7 @@ window.updateNewGamePreview = async function () {
 
 
 function closeNewGameModal() {
+    AudioManager.playSFX('close_menu');
     document.getElementById('new-game-modal').style.display = 'none';
 }
 
@@ -242,16 +245,19 @@ async function createNewGame() {
     document.getElementById('ng-btn-create').disabled = false;
 
     if (res.status === 'success') {
+        AudioManager.playSFX('fanfare');
         window.showToast("Mundo e Herói criados!", "success");
         closeNewGameModal();
         loadGameSession(res.save);
     } else {
+        AudioManager.playSFX('error');
         window.showToast(res.message, "error");
     }
 }
 
 async function deleteSave(id) {
     if (confirm("Apagar save?")) {
+        AudioManager.playSFX('click');
         await window.pywebview.api.delete_entity('saves', id);
         window.showToast("Save excluído.", "success");
         loadMenuSaves();
@@ -259,6 +265,7 @@ async function deleteSave(id) {
 }
 
 async function loadGameSession(save) {
+    AudioManager.playBGM('city'); 
     window.activeSaveId = save.id;
     window.playerGold = save.gold;
     window.playerDays = save.days_passed || 1;

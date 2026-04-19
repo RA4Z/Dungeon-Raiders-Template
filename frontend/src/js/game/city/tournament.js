@@ -384,6 +384,7 @@ window.cancelTournamentEntry = function(category, entryFee) {
 // MODAL DE VITÓRIA DO TORNEIO
 // ══════════════════════════════════════════════════
 window.showTournamentVictoryModal = function(prize, category) {
+    AudioManager.playSFX('tournament_win');
     const cfg = TOURNAMENT_CATEGORY_CONFIG[category] || {};
     const modal = document.getElementById('tournament-victory-modal');
     if (!modal) { backToCity(); return; }

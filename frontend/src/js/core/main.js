@@ -6,12 +6,12 @@ let isApiReady = false;
 // 1. Carrega os pedaços de HTML assim que a tela abre
 window.addEventListener('DOMContentLoaded', async () => {
     const pages = [
-        { id: 'menu-tab',   file: 'src/pages/menu.html'     },
-        { id: 'game-tab',   file: 'src/pages/game.html'     },
-        { id: 'allies-tab', file: 'src/pages/allies.html'   },
-        { id: 'admin-tab',  file: 'src/pages/forge.html'    },
-        { id: 'char-tab',   file: 'src/pages/builder.html'  },
-        { id: 'crud-tab',   file: 'src/pages/database.html' },
+        { id: 'menu-tab', file: 'src/pages/menu.html' },
+        { id: 'game-tab', file: 'src/pages/game.html' },
+        { id: 'allies-tab', file: 'src/pages/allies.html' },
+        { id: 'admin-tab', file: 'src/pages/forge.html' },
+        { id: 'char-tab', file: 'src/pages/builder.html' },
+        { id: 'crud-tab', file: 'src/pages/database.html' },
     ];
 
     for (let p of pages) {
@@ -22,7 +22,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             } else {
                 console.error(`Falha ao carregar ${p.file}`);
             }
-        } catch(e) {
+        } catch (e) {
             console.error(e);
         }
     }
@@ -34,7 +34,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             const guildScreen = document.getElementById('guild-screen');
             if (guildScreen) guildScreen.innerHTML = await guildRes.text();
         }
-    } catch(e) {
+    } catch (e) {
         console.error("Erro ao carregar arquivos de guilda:", e);
     }
 
@@ -66,23 +66,23 @@ function applyDevModeTabs() {
 }
 
 // Função pública chamada pelo Python
-window.applyDevMode = function() {
+window.applyDevMode = function () {
     applyDevModeTabs();
 };
 
 // 4. Função global para buscar os dados no banco
-window.refreshData = async function() {
+window.refreshData = async function () {
     window.gameData = await window.pywebview.api.load_data();
 
-    if (typeof loadMenuSaves    === "function") loadMenuSaves();
-    if (typeof buildSelects     === "function") buildSelects();
-    if (typeof renderCrudTable  === "function") renderCrudTable();
+    if (typeof loadMenuSaves === "function") loadMenuSaves();
+    if (typeof buildSelects === "function") buildSelects();
+    if (typeof renderCrudTable === "function") renderCrudTable();
     if (typeof window.renderForgeStats === "function") window.renderForgeStats();
     if (typeof updateLivePreview === "function") updateLivePreview();
 };
 
 // 5. Sistema de Navegação (Abas)
-window.showTab = function(tabId, btnElement) {
+window.showTab = function (tabId, btnElement) {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
 
@@ -95,7 +95,7 @@ window.showTab = function(tabId, btnElement) {
     if (tabId === 'allies-tab' && typeof window.renderAlliesPanel === 'function') {
         window.renderAlliesPanel();
     }
-    
+
     // Atualiza o CRUD ao entrar na aba de banco de dados
     if (tabId === 'crud-tab' && typeof renderCrudTable === 'function') {
         renderCrudTable();
@@ -104,8 +104,15 @@ window.showTab = function(tabId, btnElement) {
 
 // 6. Desbloqueio do botão de Aliados junto com o Jogo
 const _origLoadGameSession = window.loadGameSession;
-window.loadGameSession = async function(save) {
+window.loadGameSession = async function (save) {
     await _origLoadGameSession?.(save);
     const alliesBtn = document.getElementById('btn-tab-allies');
     if (alliesBtn) alliesBtn.style.display = 'block';
 };
+
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('button, .city-location-btn, .inv-item-card');
+    if (btn && !btn.closest('#audio-panel')) {   // evita loop no painel de áudio
+        AudioManager.playSFX('click');
+    }
+}, { passive: true });

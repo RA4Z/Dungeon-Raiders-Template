@@ -7,8 +7,8 @@
 'use strict';
 
 // ─── Cache local do dia de loja (evita chamadas desnecessárias) ─────────────
-let _shopItems        = [];   // array de itens do dia atual
-let _shopDayCache     = -1;   // days_passed em que o cache foi gerado
+let _shopItems = [];   // array de itens do dia atual
+let _shopDayCache = -1;   // days_passed em que o cache foi gerado
 
 // ─── Mapa de tipos legível ───────────────────────────────────────────────────
 const SHOP_TYPE_LABEL = { equip: 'Equipamento', cons: 'Consumível' };
@@ -25,6 +25,7 @@ const STAT_PRICE_WEIGHTS = {
 // ABERTURA DA LOJA
 // ═══════════════════════════════════════════════════════════════════════════
 window.openShop = async function () {
+    AudioManager.playSFX('open_menu');
     if (!window.activePlayer) {
         return window.showToast('Nenhum personagem ativo!', 'error');
     }
@@ -35,7 +36,7 @@ window.openShop = async function () {
     try {
         const data = await window.pywebview.api.get_shop_inventory(window.activeSaveId);
 
-        _shopItems    = data.items    || [];
+        _shopItems = data.items || [];
         window.playerGold = data.player_gold ?? window.playerGold;
         window.updateHUD();
 
@@ -60,7 +61,7 @@ function _refreshShopUI() {
 // ═══════════════════════════════════════════════════════════════════════════
 window.buyShopItem = async function (itemIndex) {
     const item = _shopItems[itemIndex];
-    if (!item)   return;
+    if (!item) return;
     if (item.sold) return window.showToast('Este item já foi vendido!', 'error');
 
     if (window.playerGold < item.price) {
@@ -75,14 +76,15 @@ window.buyShopItem = async function (itemIndex) {
         const res = await window.pywebview.api.buy_shop_item(window.activeSaveId, itemIndex);
 
         if (res.status === 'success') {
-            // Atualiza estado local
+            AudioManager.playSFX('buy_item');
             _shopItems[itemIndex].sold = true;
-            window.playerGold          = res.new_gold;
-            window.playerInventory     = res.new_inventory;
+            window.playerGold = res.new_gold;
+            window.playerInventory = res.new_inventory;
 
             window.showToast(res.message, 'success');
             _refreshShopUI();
         } else {
+            AudioManager.playSFX('error');
             window.showToast(res.message, 'error');
             if (btn) { btn.disabled = false; btn.textContent = `Comprar ${item.price}🪙`; }
         }
@@ -100,9 +102,9 @@ function _renderShop() {
     const el = document.getElementById('shop-content');
     if (!el) return;
 
-    const cal   = window.getCalendarFromDays ? window.getCalendarFromDays(window.playerDays) : {};
+    const cal = window.getCalendarFromDays ? window.getCalendarFromDays(window.playerDays) : {};
     const dateStr = cal.day
-        ? `${String(cal.day).padStart(2,'0')}/${String(cal.month).padStart(2,'0')} — Ano ${cal.year}`
+        ? `${String(cal.day).padStart(2, '0')}/${String(cal.month).padStart(2, '0')} — Ano ${cal.year}`
         : `Dia ${window.playerDays}`;
 
     el.innerHTML = `
@@ -123,9 +125,9 @@ function _renderShop() {
         <!-- ── GRID DE ITENS ──────────────────────────────────────────── -->
         <div class="shop-grid" id="shop-items-grid">
             ${_shopItems.length === 0
-                ? '<p class="shop-empty">O mercador não tem nada para vender hoje.</p>'
-                : _shopItems.map(_buildItemCard).join('')
-            }
+            ? '<p class="shop-empty">O mercador não tem nada para vender hoje.</p>'
+            : _shopItems.map(_buildItemCard).join('')
+        }
         </div>
 
         <!-- ── RODAPÉ ────────────────────────────────────────────────── -->
@@ -137,14 +139,14 @@ function _renderShop() {
 
 // ─── Monta HTML de um card ───────────────────────────────────────────────────
 function _buildItemCard(item, idx) {
-    const sold      = item.sold;
+    const sold = item.sold;
     const affordable = !sold && window.playerGold >= item.price;
     const cardClass = `shop-item-card ${sold ? 'shop-sold' : ''} ${!affordable && !sold ? 'shop-cant-afford' : ''}`;
 
-    const imgSrc  = item.img  || 'assets/no_image.png';
+    const imgSrc = item.img || 'assets/no_image.png';
     const modHtml = _buildModHtml(item);
     const btnText = sold ? '☠ Esgotado' : `Comprar ${item.price}🪙`;
-    const btnClass= sold ? 'shop-buy-btn sold' : (affordable ? 'shop-buy-btn' : 'shop-buy-btn cant-afford');
+    const btnClass = sold ? 'shop-buy-btn sold' : (affordable ? 'shop-buy-btn' : 'shop-buy-btn cant-afford');
 
     return `
     <div class="${cardClass}"
@@ -196,10 +198,10 @@ function _buildModHtml(item) {
         .filter(([, v]) => parseFloat(v) !== 0)
         .slice(0, 5)    // máx 5 stats no card (o resto fica no tooltip)
         .map(([k, v]) => {
-            const val   = parseFloat(v);
-            const name  = (window.STAT_MAP?.base[k] || window.STAT_MAP?.derived[k] || k);
-            const sign  = val > 0 ? '+' : '';
-            const cls   = val > 0 ? 'mod-positive' : 'mod-negative';
+            const val = parseFloat(v);
+            const name = (window.STAT_MAP?.base[k] || window.STAT_MAP?.derived[k] || k);
+            const sign = val > 0 ? '+' : '';
+            const cls = val > 0 ? 'mod-positive' : 'mod-negative';
             return `<span class="shop-mod-row">
                 <span>${name}</span>
                 <strong class="${cls}">${sign}${val}</strong>
@@ -237,10 +239,10 @@ function _shopShowTooltip(idx, event) {
             html += `<p class="stt-none">Sem modificadores.</p>`;
         } else {
             entries.forEach(([k, v]) => {
-                const val  = parseFloat(v);
+                const val = parseFloat(v);
                 const name = (window.STAT_MAP?.base[k] || window.STAT_MAP?.derived[k] || k);
                 const sign = val > 0 ? '+' : '';
-                const cls  = val > 0 ? 'stt-pos' : 'stt-neg';
+                const cls = val > 0 ? 'stt-pos' : 'stt-neg';
                 html += `<div class="stt-row"><span>${name}</span>
                          <strong class="${cls}">${sign}${val}</strong></div>`;
             });
@@ -277,11 +279,11 @@ window.addEventListener('mousemove', (e) => {
 function _shopPositionTooltip(tooltip, e) {
     let x = e.clientX + 18;
     let y = e.clientY + 18;
-    if (x + 270 > window.innerWidth)  x = window.innerWidth  - 280;
+    if (x + 270 > window.innerWidth) x = window.innerWidth - 280;
     if (y + tooltip.offsetHeight + 10 > window.innerHeight)
         y = window.innerHeight - tooltip.offsetHeight - 10;
     tooltip.style.left = x + 'px';
-    tooltip.style.top  = y + 'px';
+    tooltip.style.top = y + 'px';
 }
 
 function _buildPriceBreakdown(mods) {
@@ -291,9 +293,9 @@ function _buildPriceBreakdown(mods) {
     Object.entries(mods).forEach(([k, v]) => {
         const val = parseFloat(v);
         if (!val) return;
-        const w   = STAT_PRICE_WEIGHTS[k] || 5;
+        const w = STAT_PRICE_WEIGHTS[k] || 5;
         const add = Math.abs(val) * w;
-        total    += add;
+        total += add;
         const name = (window.STAT_MAP?.base[k] || window.STAT_MAP?.derived[k] || k);
         rows += `<div class="stt-breakdown-row"><span>${name} ×${Math.abs(val)}</span><strong>+${add.toFixed(0)}🪙</strong></div>`;
     });
@@ -332,7 +334,7 @@ window.injectShopButton = function () {
     if (!actions || document.getElementById('city-shop-btn')) return;
 
     const btn = document.createElement('button');
-    btn.id        = 'city-shop-btn';
+    btn.id = 'city-shop-btn';
     btn.className = 'city-location-btn';
     btn.innerHTML = '🏪 Mercado';
     btn.style.cssText = `
