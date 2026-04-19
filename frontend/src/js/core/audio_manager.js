@@ -14,7 +14,7 @@ const AUDIO_ASSETS = {
         city:       'assets/audio/bgm_city.mp3',    // ex: 'assets/audio/bgm_city.mp3'
         combat:     'assets/audio/bgm_combat.mp3',    // ex: 'assets/audio/bgm_combat.mp3'
         dungeon:    '',
-        menu:       '',
+        menu:       'assets/audio/bgm_menu.mp3',
         victory:    '',
     },
     sfx: {
