@@ -70,3 +70,44 @@
     color: #7f8c8d;
 }
 .ccb-active-label strong { color: #ecf0f1; }
+/* Limpa os inimigos mortos da tela visualmente */
+.enemy-container-slot.dead {
+    opacity: 0 !important;
+    pointer-events: none;
+    transition: opacity 0.5s ease-out;
+}
+
+.combat-stat-block.enemy-stat.dead {
+    opacity: 0.3 !important;
+    pointer-events: none;
+    filter: grayscale(100%);
+}
+
+/* ==========================================================
+   Z-INDEX E ESTADOS DE MORTE (COMBATE)
+   ========================================================== */
+
+/* Garante que o jogador e os aliados fiquem SEMPRE na frente dos inimigos */
+#player-container,
+#party-battlefield-container {
+    z-index: 10;
+}
+#enemies-battlefield-container {
+    z-index: 5;
+}
+
+/* Oculta aliados e inimigos mortos no campo de batalha (Fade Out suave) */
+.enemy-container-slot.dead,
+.party-member-slot.dead {
+    opacity: 0 !important;
+    pointer-events: none;
+    transition: opacity 0.5s ease-out;
+}
+
+/* Deixa as barrinhas da HUD dos mortos escuras e em preto e branco */
+.combat-stat-block.enemy-stat.dead,
+.combat-stat-block.player-stat.dead {
+    opacity: 0.3 !important;
+    pointer-events: none;
+    filter: grayscale(100%);
+}
