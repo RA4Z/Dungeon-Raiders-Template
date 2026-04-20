@@ -814,7 +814,6 @@ async function _handleTournamentVictory() {
     const prize = td.prize || 0;
     const category = td.category;
 
-    // Registra vitória no banco
     await window.pywebview.api.register_tournament_win(
         window.activeSaveId, window.activePlayer.name, window.activeSaveId, true, category, prize
     );
@@ -827,39 +826,49 @@ async function _handleTournamentVictory() {
         `🏆 CAMPEÃO! Categoria ${catLabels[category] || category}! A plateia grita seu nome, e o dia chega ao fim.`;
 
     setTimeout(async () => {
-        window.combatants = []; window.currentEnemies = []; window._partyStats = {};
+        window.combatants = [];
+        window.currentEnemies = [];
+        window._partyStats = {};
         window.isTurnBusy = false;
 
-        // O torneio durou o dia todo. Dorme automaticamente e acorda na Segunda-feira!
-        if (typeof window.healPlayer === 'function') await window.healPlayer();
+        // 1º PASSO CRUCIAL: Sair da tela de combate para liberar as outras telas!
+        if (typeof setView === 'function') setView('coliseum-screen');
 
+        // 2º PASSO: Avançar o dia (Isso abrirá o Jornal do Mundo no fundo)
+        if (typeof window.healPlayer === 'function') {
+            await window.healPlayer();
+        }
+
+        // 3º PASSO: Mostrar o popup de vitória por cima de tudo
         if (typeof window.showTournamentVictoryModal === 'function') {
             window.showTournamentVictoryModal(prize, category);
-            // showTournamentVictoryModal deve chamar backToCity() ao fechar
         } else {
             alert(`🏆 Você venceu o torneio!\nPrêmio: ${prize} moedas de ouro!`);
-            backToCity();   // ← era setView('city-screen'), sem BGM
+            if (typeof backToCity === 'function') backToCity();
+            else setView('city-screen');
         }
     }, 3000);
 }
 
-async function _handleTournamentDeath() {
+function _handleTournamentDeath() {
     document.getElementById('combat-dialogue').innerText =
-        '💀 Você foi eliminado do torneio! Acorde em casa.';
+        '💀 Você foi eliminado! O cansaço toma conta do seu corpo e você desmaia...';
 
-    // Sem perda de ouro no torneio
-    window.playerHP = window.playerFullStats.computed.hp;
-    window.playerMana = window.playerFullStats.computed.mana;
-    window.playerStamina = window.playerFullStats.computed.stamina;
+    setTimeout(async () => {
+        window.combatants = [];
+        window.currentEnemies = [];
+        window._partyStats = {};
+        window.isTurnBusy = false;
 
-    window.combatants = []; window.currentEnemies = []; window._partyStats = {};
-    window.isTurnBusy = false;
+        // Sair da tela de combate
+        if (typeof setView === 'function') setView('city-screen');
 
-    if (typeof window.healPlayer === 'function') await window.healPlayer();
+        // Mesmo perdendo, o dia termina por exaustão
+        if (typeof window.healPlayer === 'function') {
+            await window.healPlayer();
+        }
 
-    setTimeout(() => {
-        window.saveGameState();
-        backToCity();   // ← restaura BGM da cidade
+        if (typeof backToCity === 'function') backToCity();
     }, 3000);
 }
 

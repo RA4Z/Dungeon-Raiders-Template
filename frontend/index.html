@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>RPG Clicker Novel</title>
+    <link rel="stylesheet" href="src/css/dev_console.css">
     <link rel="stylesheet" href="src/css/base.css">
     <link rel="stylesheet" href="src/css/admin.css">
     <link rel="stylesheet" href="src/css/game.css">
@@ -39,13 +40,11 @@
     <div id="char-tab" class="tab-content"></div>
     <div id="crud-tab" class="tab-content" style="padding:0;"></div>
 
-<button id="audio-settings-btn"
-        onclick="document.getElementById('audio-panel').classList.toggle('open')"
-        title="Configurações de Áudio"
-        aria-label="Configurações de Áudio">
-    <span id="audio-mute-icon">🔊</span>
-</button>
- 
+    <button id="audio-settings-btn" onclick="document.getElementById('audio-panel').classList.toggle('open')"
+        title="Configurações de Áudio" aria-label="Configurações de Áudio">
+        <span id="audio-mute-icon">🔊</span>
+    </button>
+
     <!-- Dev mode: padrão true, Python sobrescreve para false no executável -->
     <script>window.__DEV_MODE__ = true;</script>
 
@@ -79,61 +78,55 @@
 
     <!-- 5. MAIN (Inicia o app) -->
     <script src="src/js/core/main.js"></script>
-    
+    <script src="src/js/core/dev_console.js"></script>
+
     <!-- PAINEL DE CONFIGURAÇÕES DE ÁUDIO -->
     <div id="audio-panel" role="dialog" aria-label="Configurações de Áudio">
-    
+
         <div class="ap-header">
             <span class="ap-title">⚙ Áudio</span>
             <button class="ap-close" onclick="document.getElementById('audio-panel').classList.remove('open')"
-                    aria-label="Fechar">✕</button>
+                aria-label="Fechar">✕</button>
         </div>
-    
+
         <!-- Música de Fundo -->
         <div class="ap-row">
             <label class="ap-label" for="audio-vol-bgm">
                 <span class="ap-icon">🎵</span> Música
             </label>
             <div class="ap-slider-wrap">
-                <input type="range" id="audio-vol-bgm" class="ap-slider"
-                    min="0" max="1" step="0.01" value="0.5"
-                    oninput="AudioManager.setVolume('bgm', this.value)"
-                    aria-label="Volume da Música">
+                <input type="range" id="audio-vol-bgm" class="ap-slider" min="0" max="1" step="0.01" value="0.5"
+                    oninput="AudioManager.setVolume('bgm', this.value)" aria-label="Volume da Música">
                 <span class="ap-pct" id="audio-label-bgm">50%</span>
             </div>
         </div>
-    
+
         <!-- Efeitos Sonoros -->
         <div class="ap-row">
             <label class="ap-label" for="audio-vol-sfx">
                 <span class="ap-icon">⚔</span> Efeitos
             </label>
             <div class="ap-slider-wrap">
-                <input type="range" id="audio-vol-sfx" class="ap-slider"
-                    min="0" max="1" step="0.01" value="0.7"
-                    oninput="AudioManager.setVolume('sfx', this.value)"
-                    aria-label="Volume dos Efeitos Sonoros">
+                <input type="range" id="audio-vol-sfx" class="ap-slider" min="0" max="1" step="0.01" value="0.7"
+                    oninput="AudioManager.setVolume('sfx', this.value)" aria-label="Volume dos Efeitos Sonoros">
                 <span class="ap-pct" id="audio-label-sfx">70%</span>
             </div>
         </div>
-    
+
         <!-- Botão Mute + teste de SFX -->
         <div class="ap-actions">
-            <button id="audio-mute-btn" class="ap-mute-btn"
-                    onclick="AudioManager.toggleMute()"
-                    title="Silenciar / Ativar tudo">
+            <button id="audio-mute-btn" class="ap-mute-btn" onclick="AudioManager.toggleMute()"
+                title="Silenciar / Ativar tudo">
                 <span id="audio-mute-icon">🔊</span> Silenciar Tudo
             </button>
-            <button class="ap-test-btn"
-                    onclick="AudioManager.playSFX('click')"
-                    title="Testar som">
+            <button class="ap-test-btn" onclick="AudioManager.playSFX('click')" title="Testar som">
                 ▶ Testar
             </button>
         </div>
-    
+
         <p class="ap-hint">Configurações salvas automaticamente.</p>
     </div>
-    
+
 </body>
 
 </html>

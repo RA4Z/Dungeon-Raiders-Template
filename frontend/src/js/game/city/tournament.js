@@ -5,10 +5,10 @@
 // ══════════════════════════════════════════════════
 
 const TOURNAMENT_CATEGORY_CONFIG = {
-    novato:        { label: 'Novato',        icon: '🥉', entry: 0,   prize: 1000,   color: '#2ecc71', min: 0,   max: 50   },
+    novato:        { label: 'Novato',        icon: '🥉', entry: 100,   prize: 1000,   color: '#2ecc71', min: 0,   max: 50   },
     intermediario: { label: 'Intermediário', icon: '🥈', entry: 500,   prize: 5000,   color: '#3498db', min: 51,  max: 150  },
-    avancado:      { label: 'Avançado',      icon: '🥇', entry: 2000,  prize: 25000,  color: '#e67e22', min: 151, max: 400  },
-    lendario:      { label: 'Lendário',      icon: '👑', entry: 10000, prize: 150000, color: '#9b59b6', min: 401, max: 99999 },
+    avancado:      { label: 'Avançado',      icon: '🥇', entry: 2500,  prize: 25000,  color: '#e67e22', min: 151, max: 400  },
+    lendario:      { label: 'Lendário',      icon: '👑', entry: 15000, prize: 150000, color: '#9b59b6', min: 401, max: 99999 },
 };
 
 const ROUND_NAMES =['Oitavas de Final', 'Quartas de Final', 'Semifinal', 'Final'];
