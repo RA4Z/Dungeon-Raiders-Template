@@ -1,0 +1,461 @@
+/* ═══════════════════════════════════════════════════════════════
+   COMBAT RESPONSIVE — Adicionar ao final de game.css
+   Substitui os valores fixos de scale/position por variáveis CSS
+   dinâmicas calculadas via JS (combat_scale.js)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Variáveis de escala (definidas pelo JS) ───────────────────── */
+:root {
+    --combat-player-scale:  1.9;
+    --combat-ally-scale:    1.8;
+    --combat-enemy-scale:   1.6;
+    --combat-ui-height:     230px;   /* altura do painel de ações */
+    --combat-hud-width:     300px;
+}
+
+/* ══════════════════════════════════════════════════
+   TELA DE COMBATE — layout base
+   ══════════════════════════════════════════════════ */
+#combat-screen {
+    position: relative;
+    overflow: hidden;
+    display: none;          /* mantém o padrão; .active-view mostra */
+}
+#combat-screen.active-view { display: block; }
+
+/* ══════════════════════════════════════════════════
+   BATTLEFIELD — ocupa todo o espaço acima do UI
+   ══════════════════════════════════════════════════ */
+#battlefield {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: var(--combat-ui-height);
+    width: 100%;
+    /* remove a altura fixa antiga */
+    height: auto !important;
+}
+
+/* ══════════════════════════════════════════════════
+   JOGADOR PRINCIPAL
+   ══════════════════════════════════════════════════ */
+#player-container {
+    position: absolute;
+    bottom: 5%;
+    left: 25%;
+    transform: translateX(-50%) scale(var(--combat-player-scale));
+    transform-origin: bottom center;
+    z-index: 10;
+    transition: transform 0.15s;
+}
+
+/* ══════════════════════════════════════════════════
+   PARTY (ALIADOS)
+   ══════════════════════════════════════════════════ */
+#party-battlefield-container {
+    position: absolute;
+    bottom: 5%;
+    /* O JS posiciona left dinamicamente; aqui definimos left: 35% como fallback */
+    left: 35%;
+    display: flex;
+    gap: clamp(10px, 2vw, 30px);
+    align-items: flex-end;
+}
+
+.party-member-slot {
+    transform: scale(var(--combat-ally-scale));
+    transform-origin: bottom center;
+    position: relative;
+    transition: opacity 0.5s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.party-member-slot.dead {
+    opacity: 0.2;
+    filter: grayscale(100%);
+    pointer-events: none;
+}
+
+/* ══════════════════════════════════════════════════
+   INIMIGOS
+   ══════════════════════════════════════════════════ */
+#enemies-battlefield-container {
+    position: absolute;
+    bottom: 18%; /* Antes estava 28%, baixamos para eles não baterem a cabeça */
+    right: 10%;
+    display: flex;
+    gap: clamp(8px, 2vw, 25px);
+    align-items: flex-end;
+    justify-content: flex-end;
+}
+
+.enemy-container-slot {
+    transform: scale(var(--combat-enemy-scale));
+    transform-origin: bottom center;
+    position: relative;
+    transition: filter 0.3s, transform 0.2s, opacity 1s;
+    cursor: crosshair;
+}
+.enemy-container-slot:hover {
+    filter: brightness(1.3) drop-shadow(0 0 10px #e74c3c);
+    transform: scale(calc(var(--combat-enemy-scale) + 0.05));
+}
+.enemy-container-slot.is-targeted {
+    filter: brightness(1.2) drop-shadow(0 0 20px #e74c3c);
+    transform: scale(calc(var(--combat-enemy-scale) + 0.1));
+    z-index: 15;
+}
+.enemy-container-slot.dead {
+    opacity: 0;
+    filter: grayscale(100%);
+    pointer-events: none;
+    transform: scale(var(--combat-enemy-scale)) translateY(50px);
+}
+
+/* ══════════════════════════════════════════════════
+   SPRITES (tamanho máximo responsivo)
+   ══════════════════════════════════════════════════ */
+.battlefield-sprite {
+    /* Define o tamanho BASE exato igual ao paper-doll humano (250px).
+       O Javascript cuidará de escalar isso via transform: scale() */
+    height: 250px;
+    max-height: 250px; 
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0px 0px 10px rgba(0,0,0,0.5));
+    display: block;
+}
+
+/* Paper doll no campo de batalha */
+.paper-doll-container {
+    position: relative;
+    width:  150px;
+    height: 250px;
+    overflow: hidden;
+    background: transparent;
+}
+.paper-doll-container img {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    object-fit: contain;
+}
+
+/* ══════════════════════════════════════════════════
+   HUD SUPERIOR — responsivo
+   ══════════════════════════════════════════════════ */
+.combat-top-hud {
+    position: absolute;
+    top: 0;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: clamp(6px, 1.5vh, 15px) clamp(8px, 2vw, 30px);
+    background: transparent;
+    z-index: 50;
+    pointer-events: none;
+}
+.combat-top-hud > * { pointer-events: auto; }
+
+.allies-hud-wrapper,
+.enemies-hud-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(4px, 0.8vh, 8px);
+    /* Largura máxima proporcional à tela */
+    width: clamp(180px, var(--combat-hud-width), 28vw);
+}
+.enemies-hud-wrapper { align-items: flex-end; }
+
+/* Blocos de stat menores em telas pequenas */
+.combat-stat-block {
+    width: 100%;
+    max-width: clamp(180px, 250px, 28vw);
+    background: rgba(15,15,15,0.9);
+    padding: clamp(4px, 0.8vh, 8px) clamp(6px, 1vw, 12px);
+    border-radius: 5px;
+    border: 1px solid #444;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.7);
+    transition: 0.2s;
+}
+
+/* Nome do personagem na HUD menor em telas pequenas */
+#player-name-ui,
+.enemy-name-ui,
+.player-name-ui {
+    display: block;
+    font-size: clamp(0.65rem, 1.2vw, 1rem);
+    font-weight: bold;
+    color: #ecf0f1;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+    text-shadow: 1px 1px 2px #000;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Mini avatar box */
+.mini-avatar-box {
+    width:  clamp(32px, 4vw, 45px);
+    height: clamp(32px, 4vw, 45px);
+    overflow: hidden;
+    border: 1px solid #555;
+    border-radius: 4px;
+    background: #222;
+    flex-shrink: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+/* ══════════════════════════════════════════════════
+   PAINEL DE AÇÕES (UI inferior)
+   ══════════════════════════════════════════════════ */
+#visual-novel-ui {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: var(--combat-ui-height);
+    background: linear-gradient(to top, rgba(0,0,0,1) 60%, rgba(0,0,0,0.7) 100%);
+    border-top: 2px solid #c0392b;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: clamp(8px, 1.5vh, 15px);
+    z-index: 20;
+    overflow: hidden;
+}
+
+/* Hotbar menor em telas pequenas */
+.bg3-hotbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(4px, 0.8vw, 8px);
+    justify-content: center;
+    background: rgba(20,20,20,0.8);
+    padding: clamp(6px, 1vh, 10px);
+    border-radius: 8px;
+    border: 2px solid #8e44ad;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.8);
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.hotbar-slot {
+    width:  clamp(40px, 5vw, 55px);
+    height: clamp(40px, 5vw, 55px);
+    background: #222;
+    border: 2px solid #555;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    transition: 0.1s;
+    box-shadow: inset 0 0 10px #000;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════════════
+   BREAKPOINTS — telas menores (≤ 1280px)
+   ══════════════════════════════════════════════════ */
+@media (max-width: 1280px) {
+    :root {
+        --combat-player-scale: 1.5;
+        --combat-ally-scale:   1.4;
+        --combat-enemy-scale:  1.3;
+        --combat-ui-height:    210px;
+        --combat-hud-width:    240px;
+    }
+
+    #player-container  { left: 22%; }
+    #enemies-battlefield-container { right: 8%; max-width: 52%; }
+}
+
+/* ══════════════════════════════════════════════════
+   BREAKPOINTS — telas médias (≤ 1024px)
+   ══════════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+    :root {
+        --combat-player-scale: 1.25;
+        --combat-ally-scale:   1.15;
+        --combat-enemy-scale:  1.1;
+        --combat-ui-height:    195px;
+        --combat-hud-width:    210px;
+    }
+
+    #player-container  { left: 20%; }
+    #party-battlefield-container { left: 30%; }
+    #enemies-battlefield-container { right: 5%; max-width: 50%; }
+}
+
+/* ══════════════════════════════════════════════════
+   BREAKPOINTS — telas pequenas (≤ 768px)
+   ══════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+    :root {
+        --combat-player-scale: 1.0;
+        --combat-ally-scale:   0.95;
+        --combat-enemy-scale:  0.9;
+        --combat-ui-height:    180px;
+        --combat-hud-width:    180px;
+    }
+
+    #player-container  { left: 18%; }
+    #party-battlefield-container { left: 26%; gap: 8px; }
+    #enemies-battlefield-container { right: 3%; max-width: 48%; bottom: 22%; }
+
+    .combat-stat-block { padding: 3px 6px; }
+    .bar-container { margin-bottom: 1px; }
+    .bar-bg { height: 4px; }
+}
+
+/* ══════════════════════════════════════════════════
+   BREAKPOINTS — telas muito grandes (≥ 1920px)
+   ══════════════════════════════════════════════════ */
+@media (min-width: 1920px) {
+    :root {
+        --combat-player-scale: 2.2;
+        --combat-ally-scale:   2.0;
+        --combat-enemy-scale:  1.85;
+        --combat-hud-width:    320px;
+    }
+}
+
+@media (min-width: 2560px) {
+    :root {
+        --combat-player-scale: 2.8;
+        --combat-ally-scale:   2.5;
+        --combat-enemy-scale:  2.3;
+        --combat-hud-width:    380px;
+    }
+}
+
+#player-container,
+.party-member-slot,
+.enemy-container-slot {
+    height: 250px;
+    display: flex;
+    align-items: flex-end; /* Mantém os pés no chão */
+}
+
+/* ══════════════════════════════════════════════════
+   CORREÇÕES DE GAMEPLAY E ALINHAMENTO
+   ══════════════════════════════════════════════════ */
+
+/* 1. Deixa CLARO que a habilidade não pode ser usada por falta de SP/MP */
+.hotbar-slot:disabled {
+    opacity: 0.3 !important;
+    filter: grayscale(100%);
+    cursor: not-allowed;
+    box-shadow: inset 0 0 15px #e74c3c; /* Brilho vermelho de aviso */
+}
+
+/* 2. Corrige o problema do inimigo flutuando (Nome empurrando a imagem) */
+.enemy-name-badge {
+    position: absolute;
+    bottom: -25px; /* Coloca o nome logo abaixo dos pés, fora do fluxo da imagem */
+    white-space: nowrap;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    color: #f1c40f;
+    pointer-events: none;
+    z-index: 20;
+}
+
+/* ══════════════════════════════════════════════════
+   CORREÇÕES FINAIS DE ALINHAMENTO E CORTES (TORNEIO)
+   ══════════════════════════════════════════════════ */
+
+/* 1. Remove a guilhotina! Permite que cabelos e armas passem do limite da caixa */
+.paper-doll-container {
+    overflow: visible !important; 
+}
+.mini-avatar-box .paper-doll-container {
+    overflow: hidden !important; /* Apenas os avatares pequenos das barras devem cortar excessos */
+}
+
+/* 2. Mantém os bonecos centralizados e com o pé cravado no chão */
+#player-container,
+.party-member-slot,
+.enemy-container-slot {
+    height: 250px;
+    display: flex;
+    flex-direction: column !important; /* Força a organização vertical */
+    justify-content: flex-end !important; /* Cola o pé do boneco no fundo */
+    align-items: center !important; /* Centraliza perfeitamente na horizontal */
+}
+
+/* 3. Centraliza a etiqueta de nome embaixo do inimigo perfeitamente */
+.enemy-name-badge {
+    position: absolute;
+    bottom: -35px; /* Margem extra para não grudar no pé do boneco */
+    left: 50%;
+    transform: translateX(-50%); /* A matemática exata para centralizar itens absolutos */
+    white-space: nowrap;
+    background: rgba(0, 0, 0, 0.85);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: #f1c40f;
+    pointer-events: none;
+    z-index: 20;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,1); /* Destaca o nome no fundo escuro */
+}
+
+/* ══════════════════════════════════════════════════
+   HUD COMPACTA E MODERNA (BARRAS FININHAS)
+   ══════════════════════════════════════════════════ */
+
+/* 1. Reduz o enchimento interno da caixa preta */
+.combat-stat-block {
+    padding: 4px 8px !important;
+    background: rgba(10, 12, 16, 0.9) !important;
+}
+
+/* 2. Reduz o nome do personagem e a margem debaixo dele */
+#player-name-ui, 
+.enemy-name-ui, 
+.player-name-ui {
+    font-size: 0.75rem !important;
+    margin-bottom: 2px !important;
+}
+
+/* 3. Cola as barras umas nas outras (reduz a margem entre HP, MP, etc) */
+.combat-stat-block .bar-container {
+    margin-bottom: 2px !important;
+    align-items: center !important;
+}
+
+/* 4. Deixa as siglas "HP", "MP", "SP", "ACT" minúsculas e precisas */
+.combat-stat-block .bar-label {
+    font-size: 0.6rem !important;
+    width: 22px !important;
+    margin-right: 4px !important;
+    font-weight: bold;
+}
+
+/* 5. O SEGREDO: Barras extremamente finas (4px de altura) */
+.combat-stat-block .bar-bg {
+    height: 4px !important;
+    border-radius: 2px !important;
+    border: 1px solid #111 !important;
+    background: #1a1a1a !important;
+}
+
+/* 6. Diminui as fotos/avatares para acompanharem o visual mais magro */
+.combat-stat-block .mini-avatar-box {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 4px !important;
+}

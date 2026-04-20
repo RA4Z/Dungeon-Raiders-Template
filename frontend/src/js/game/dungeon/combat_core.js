@@ -47,6 +47,7 @@ window.enterDungeon = async function () {
 // ENTRADA NO TORNEIO (contexto: tournament)
 // ══════════════════════════════════════════════════
 window.enterTournamentBattle = async function () {
+    AudioManager.playBGM('combat');
     window.combatContext = 'tournament';
     setView('combat-screen');
 
@@ -385,9 +386,12 @@ window.processNextTurn = function () {
 
     for (let c of alive) {
         c.actionValue += minTime * (10 + (c.dex || 0));
+        // A MÁGICA: Se chegou muito perto, arredonda para 1000 e evita o bug!
+        if (c.actionValue > 999.5) c.actionValue = 1000;
     }
 
     if (typeof window.updateATBBars === 'function') window.updateATBBars();
+
 
     setTimeout(() => {
         if (nextActor.isPlayer) {
@@ -490,7 +494,7 @@ function _checkEnemyDeath(target) {
         document.getElementById(`enemy-container-${target.index}`)?.classList.add('dead');
         document.getElementById(`enemy-hud-block-${target.index}`)?.classList.add('dead');
         document.getElementById(`enemy-hud-block-${target.index}`)?.classList.remove('is-targeted-hud');
-        if(typeof window.autoSelectNextTarget === 'function') window.autoSelectNextTarget();
+        if (typeof window.autoSelectNextTarget === 'function') window.autoSelectNextTarget();
     }
 }
 
@@ -500,11 +504,11 @@ function _checkEnemyDeath(target) {
 // ══════════════════════════════════════════════════
 async function _enemyAttack(combatant) {
     const enemy = window.currentEnemies.find(e => e.index === combatant.id && !e.isDead);
-    
+
     try {
         if (!enemy) return;
 
-        const aliveAllies =[
+        const aliveAllies = [
             { id: 'player', stats: window.playerFullStats },
             ...Object.entries(window._partyStats || {}).filter(([, ps]) => !ps.isDead).map(([mid, ps]) => ({ id: `ally_${mid}`, memberId: mid, stats: ps.stats }))
         ].filter(a => a.id === 'player' ? window.playerHP > 0 : true);
@@ -514,14 +518,14 @@ async function _enemyAttack(combatant) {
         const targetAlly = aliveAllies[Math.floor(Math.random() * aliveAllies.length)];
         const enemyAtkIds = (enemy.attacks && enemy.attacks.length) ? enemy.attacks : [1];
         const affordable = enemyAtkIds.filter(id => {
-            const ea = (window.gameData.attacks||[]).find(a => a.id == id);
-            return ea && (ea.hp_cost||0) <= enemy.hp && (ea.mana_cost||0) <= enemy.mana && (ea.stamina_cost||0) <= enemy.stamina;
+            const ea = (window.gameData.attacks || []).find(a => a.id == id);
+            return ea && (ea.hp_cost || 0) <= enemy.hp && (ea.mana_cost || 0) <= enemy.mana && (ea.stamina_cost || 0) <= enemy.stamina;
         });
 
         if (affordable.length > 0) {
             const atkId = affordable[Math.floor(Math.random() * affordable.length)];
             const result = await window.pywebview.api.process_battle_turn(enemy.stats, targetAlly.stats, atkId, 1);
-            
+
             if (result) {
                 enemy.hp = Math.max(0, enemy.hp - result.hp_cost);
                 enemy.stamina = Math.max(0, enemy.stamina - result.stamina_cost);
@@ -538,18 +542,18 @@ async function _enemyAttack(combatant) {
                         const ps = window._partyStats[targetAlly.memberId];
                         if (ps) {
                             ps.hp = Math.max(0, ps.hp - result.damage);
-                            
+
                             // AQUI ESTÁ A CORREÇÃO: Marca o aliado como morto na interface
                             if (ps.hp <= 0) {
                                 ps.isDead = true;
                                 const ac = window.combatants.find(c => c.isAlly && String(c.memberId) === String(targetAlly.memberId));
                                 if (ac) ac.isDead = true;
-                                
+
                                 // Adiciona as classes que criamos no CSS
                                 document.getElementById(`party-slot-${targetAlly.memberId}`)?.classList.add('dead');
                                 document.getElementById(`ally-hud-block-${targetAlly.memberId}`)?.classList.add('dead');
                             }
-                            
+
                             window.showFloatingDamage(`party-slot-${targetAlly.memberId}`, result.damage, 'dmg-phys');
                         }
                     }
@@ -576,14 +580,17 @@ async function _enemyAttack(combatant) {
 // ══════════════════════════════════════════════════
 // ATAQUE DO PLAYER (chamado pela hotbar em combat_ui.js)
 // ══════════════════════════════════════════════════
-window.startTurnSequence = async function (atkId) {
+window.startTurnSequence = async function(atkId) {
     if (window.isTurnBusy) return;
 
     const playerCombatant = window.combatants.find(c => c.isPlayer);
-    if (!playerCombatant || playerCombatant.actionValue < 1000) return;
+    
+    // CORREÇÃO: Tolerância para não ignorar o clique do jogador
+    if (!playerCombatant || playerCombatant.actionValue < 999) return;
 
     window.isTurnBusy = true;
     if (typeof toggleCombatButtons === 'function') toggleCombatButtons(true);
+
 
     let target = window.currentEnemies[window.combatTargetIndex];
     if (!target || target.isDead) {
@@ -951,7 +958,7 @@ window.restTurn = function () {
     if (window.isTurnBusy) return;
 
     const playerCombatant = window.combatants.find(c => c.isPlayer);
-    if (!playerCombatant || playerCombatant.actionValue < 1000) return;
+    if (!playerCombatant || playerCombatant.actionValue < 999) return;
 
     window.isTurnBusy = true;
     if (typeof toggleCombatButtons === 'function') toggleCombatButtons(true);

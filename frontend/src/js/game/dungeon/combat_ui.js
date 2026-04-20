@@ -402,7 +402,7 @@ window._executeManualAllyTurn = async function (actor, attackId) {
 };
 
 window.toggleCombatButtons = function (isDisabled) {
-    // 1. Desativa/Ativa Hotbar
+    // 1. Desativa/Ativa Hotbar (E aplica a classe do CSS)
     document.querySelectorAll('.hotbar-slot:not(.empty)').forEach(btn => {
         if (isDisabled) {
             btn.disabled = true;
@@ -418,7 +418,7 @@ window.toggleCombatButtons = function (isDisabled) {
         }
     });
 
-    // 2. Desativa/Ativa Fuga (e esconde no torneio)
+    // 2. Desativa/Ativa Fuga (Esconde no torneio)
     const btnFlee = document.getElementById('flee-btn');
     if (btnFlee) {
         if (window.combatContext === 'tournament') {
@@ -438,7 +438,9 @@ window.toggleCombatButtons = function (isDisabled) {
             btnRest.id = 'rest-btn';
             btnRest.innerHTML = '💤 Descansar Turno <span style="font-size:0.75em;display:block;">(Recupera +20 MP/SP)</span>';
             btnRest.style.cssText = 'background:#2980b9; width:100%; max-width:250px; margin-top:10px; padding:8px; border-radius:5px; border:none; color:white; font-weight:bold; cursor:pointer;';
-            btnRest.onclick = window.restTurn;
+
+            // Garantia Absoluta: Chama a função mesmo que ela tenha sido recarregada na memória
+            btnRest.onclick = () => { if (typeof window.restTurn === 'function') window.restTurn(); };
 
             if (btnFlee) actionsDiv.insertBefore(btnRest, btnFlee);
             else actionsDiv.appendChild(btnRest);
@@ -446,6 +448,19 @@ window.toggleCombatButtons = function (isDisabled) {
     }
     if (btnRest) {
         btnRest.disabled = isDisabled;
+    }
+
+    // 4. WATCHDOG (CÃO DE GUARDA) ANTI-TRAVAMENTO
+    // Se o combate não avançar após 5 segundos, o jogo se destrava sozinho à força!
+    if (isDisabled) {
+        clearTimeout(window._watchdogTimer);
+        window._watchdogTimer = setTimeout(() => {
+            console.warn("Watchdog: Combate pareceu travar. Forçando passagem de turno...");
+            window.isTurnBusy = false;
+            if (typeof window.processNextTurn === 'function') window.processNextTurn();
+        }, 5000);
+    } else {
+        clearTimeout(window._watchdogTimer);
     }
 };
 
